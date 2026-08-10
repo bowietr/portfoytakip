@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Portföyüm</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="stylesheet" href="./assets/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark">P</div>
+        <div>
+          <strong>Portföyüm</strong>
+          <small>Yatırım Takip</small>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <button class="nav-item active" data-view="dashboard">⌂ <span>Genel Bakış</span></button>
+        <button class="nav-item" data-view="portfolio">◫ <span>Portföy</span></button>
+        <button class="nav-item" data-view="transactions">⇄ <span>İşlemler</span></button>
+        <button class="nav-item" data-view="settings">⚙ <span>Ayarlar</span></button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <button id="themeToggle" class="ghost-btn">☾ Koyu / Açık</button>
+        <small>Veriler bu cihazda saklanır.</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">YATIRIM PANELİ</p>
+          <h1 id="pageTitle">Genel Bakış</h1>
+        </div>
+        <div class="top-actions">
+          <div id="dataStatus" class="status-pill">TEFAS bekleniyor</div>
+          <button id="refreshBtn" class="primary-btn">↻ Fiyatları Güncelle</button>
+        </div>
+      </header>
+
+      <section id="dashboardView" class="view active">
+        <div class="summary-grid">
+          <article class="metric-card">
+            <span>Toplam Portföy</span>
+            <strong id="totalValue">₺0,00</strong>
+            <small id="assetCount">0 varlık</small>
+          </article>
+          <article class="metric-card">
+            <span>Toplam Maliyet</span>
+            <strong id="totalCost">₺0,00</strong>
+            <small>Yatırılan ana para</small>
+          </article>
+          <article class="metric-card">
+            <span>Toplam Kâr / Zarar</span>
+            <strong id="totalPnL">₺0,00</strong>
+            <small id="totalPnLPct">%0,00</small>
+          </article>
+          <article class="metric-card">
+            <span>Günlük Değişim</span>
+            <strong id="dailyChange">₺0,00</strong>
+            <small id="lastUpdated">Henüz güncellenmedi</small>
+          </article>
+        </div>
+
+        <div class="dashboard-grid">
+          <article class="panel chart-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Varlık Dağılımı</h2>
+                <p>Portföy değerine göre</p>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="allocationChart"></canvas>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>En Büyük Pozisyonlar</h2>
+                <p>Portföy ağırlığı</p>
+              </div>
+            </div>
+            <div id="topPositions" class="position-list empty-state">
+              Henüz varlık eklenmedi.
+            </div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>Portföy Özeti</h2>
+              <p>Fonlar ve hisseler tek tabloda</p>
+            </div>
+            <button class="secondary-btn" data-open-modal="asset">+ Varlık Ekle</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Varlık</th>
+                  <th>Tür</th>
+                  <th>Adet</th>
+                  <th>Ort. Maliyet</th>
+                  <th>Güncel Fiyat</th>
+                  <th>Değer</th>
+                  <th>K/Z</th>
+                </tr>
+              </thead>
+              <tbody id="dashboardTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="portfolioView" class="view">
+        <div class="section-actions">
+          <div class="filter-tabs">
+            <button class="filter active" data-filter="all">Tümü</button>
+            <button class="filter" data-filter="fund">Fonlar</button>
+            <button class="filter" data-filter="stock">Hisseler</button>
+          </div>
+          <button class="primary-btn" data-open-modal="asset">+ Yeni Varlık</button>
+        </div>
+
+        <div id="assetCards" class="asset-grid"></div>
+      </section>
+
+      <section id="transactionsView" class="view">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <h2>İşlem Geçmişi</h2>
+              <p>Alış işlemleriniz</p>
+            </div>
+            <button class="primary-btn" data-open-modal="transaction">+ Alış Ekle</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Varlık</th>
+                  <th>Adet</th>
+                  <th>Fiyat</th>
+                  <th>Tutar</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="transactionTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section id="settingsView" class="view">
+        <article class="panel settings-panel">
+          <h2>TEFAS Veri Bağlantısı</h2>
+          <p>
+            GitHub Pages tarayıcıdan TEFAS'a doğrudan erişimde CORS engeline takılabileceği için
+            Cloudflare Worker adresini buraya girin.
+          </p>
+          <label>
+            Worker URL
+            <input id="apiBaseInput" type="url" placeholder="https://portfoyum-api.kullanici.workers.dev" />
+          </label>
+          <div class="inline-actions">
+            <button id="saveApiBtn" class="primary-btn">Kaydet</button>
+            <button id="testApiBtn" class="secondary-btn">TTE ile Test Et</button>
+          </div>
+          <div id="apiTestResult" class="notice"></div>
+        </article>
+
+        <article class="panel settings-panel">
+          <h2>Veri Yönetimi</h2>
+          <p>Portföyünüz tarayıcının localStorage alanında tutulur.</p>
+          <div class="inline-actions">
+            <button id="exportBtn" class="secondary-btn">JSON Dışa Aktar</button>
+            <label class="secondary-btn file-btn">
+              JSON İçe Aktar
+              <input id="importInput" type="file" accept=".json,application/json" hidden />
+            </label>
+            <button id="clearBtn" class="danger-btn">Tüm Veriyi Sil</button>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="assetModal" class="modal">
+    <form id="assetForm" method="dialog">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">PORTFÖY</p>
+          <h2>Yeni Varlık Ekle</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close-modal>×</button>
+      </div>
+
+      <div class="form-grid">
+        <label>
+          Varlık Türü
+          <select id="assetType" required>
+            <option value="fund">Yatırım Fonu</option>
+            <option value="stock">Hisse Senedi</option>
+          </select>
+        </label>
+
+        <label>
+          Kod
+          <input id="assetCode" maxlength="12" placeholder="Örn: TTE" required />
+        </label>
+
+        <label class="full">
+          İsim
+          <input id="assetName" placeholder="Örn: Teknoloji Fonu" />
+        </label>
+
+        <label>
+          İlk Alış Adedi
+          <input id="assetQty" type="number" min="0" step="0.000001" value="0" />
+        </label>
+
+        <label>
+          İlk Alış Fiyatı
+          <input id="assetBuyPrice" type="number" min="0" step="0.000001" value="0" />
+        </label>
+
+        <label>
+          Alış Tarihi
+          <input id="assetDate" type="date" />
+        </label>
+
+        <label id="manualPriceLabel">
+          Güncel Fiyat
+          <input id="assetCurrentPrice" type="number" min="0" step="0.000001" value="0" />
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" data-close-modal>Vazgeç</button>
+        <button type="submit" class="primary-btn">Varlığı Ekle</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="transactionModal" class="modal">
+    <form id="transactionForm" method="dialog">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">İŞLEM</p>
+          <h2>Alış Ekle</h2>
+        </div>
+        <button type="button" class="icon-btn" data-close-modal>×</button>
+      </div>
+
+      <div class="form-grid">
+        <label class="full">
+          Varlık
+          <select id="txAsset" required></select>
+        </label>
+        <label>
+          Adet
+          <input id="txQty" type="number" min="0.000001" step="0.000001" required />
+        </label>
+        <label>
+          Alış Fiyatı
+          <input id="txPrice" type="number" min="0.000001" step="0.000001" required />
+        </label>
+        <label>
+          Tarih
+          <input id="txDate" type="date" required />
+        </label>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="secondary-btn" data-close-modal>Vazgeç</button>
+        <button type="submit" class="primary-btn">Kaydet</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="./assets/app.js"></script>
+</body>
+</html>
