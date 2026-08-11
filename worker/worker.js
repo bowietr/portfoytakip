@@ -13,7 +13,7 @@
 const TEFAS_URL = "https://www.tefas.gov.tr/api/funds/fonFiyatBilgiGetir";
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-tefas-proxy" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.4" });
     }
 
     const stockMatch = url.pathname.match(/^\/api\/stock\/([A-Za-z0-9._-]+)$/);
@@ -30,7 +30,7 @@ export default {
       if (!/^[A-Z0-9]{2,12}$/.test(stockCode)) {
         return json({ ok:false, error:"Geçersiz hisse kodu." }, 400);
       }
-      return await handleStock(stockCode);
+      return await handleStock(stockCode, env);
     }
 
     const match = url.pathname.match(/^\/api\/fund\/([A-Za-z0-9_-]+)$/);
@@ -81,79 +81,108 @@ export default {
   }
 };
 
-async function handleStock(code) {
-  const symbol = `${code}.IS`;
-  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d&includePrePost=false&events=div%2Csplits`;
+async function handleStock(code, env) {
+  // Yahoo Finance BIST verilerinde önceki kapanış/seans uyuşmazlığı görüldüğü için
+  // v1.4 itibarıyla hisse verisi iTick üzerinden alınır.
+  //
+  // Cloudflare Worker Secret:
+  //   ITICK_TOKEN = iTick API tokenınız
+  //
+  // iTick stock/quote:
+  //   ld  = latest price
+  //   p   = previous closing price
+  //   ch  = change
+  //   chp = change percent
+  //   t   = latest trade timestamp (ms)
+
+  const token = env?.ITICK_TOKEN;
+  if (!token) {
+    return json({
+      ok: false,
+      error: "iTick API anahtarı tanımlı değil. Cloudflare Worker → Settings → Variables and Secrets bölümünde ITICK_TOKEN secret'ını ekleyin."
+    }, 503);
+  }
+
+  const endpoint = `https://api.itick.org/stock/quote?region=TR&code=${encodeURIComponent(code)}`;
 
   try {
-    const upstream = await fetch(yahooUrl, {
+    const upstream = await fetch(endpoint, {
+      method: "GET",
       headers: {
-        "Accept": "application/json,text/plain,*/*",
-        "User-Agent": "Mozilla/5.0 (compatible; Portfoyum/1.3)"
+        "accept": "application/json",
+        "token": token,
+        "User-Agent": "Portfoyum/1.4"
       }
     });
 
     const text = await upstream.text();
-    if (!upstream.ok) {
-      return json({ ok:false, error:`Hisse veri servisi HTTP ${upstream.status}` }, 502);
-    }
 
     let payload;
-    try { payload = JSON.parse(text); }
-    catch { return json({ ok:false, error:"Hisse veri servisi geçersiz yanıt döndürdü." }, 502); }
-
-    const result = payload?.chart?.result?.[0];
-    if (!result) {
-      const message = payload?.chart?.error?.description || "Hisse bulunamadı.";
-      return json({ ok:false, error:message }, 404);
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      return json({
+        ok: false,
+        error: `iTick geçersiz yanıt döndürdü (HTTP ${upstream.status}).`
+      }, 502);
     }
 
-    const meta = result.meta || {};
-    const timestamps = Array.isArray(result.timestamp) ? result.timestamp : [];
-    const closes = result?.indicators?.quote?.[0]?.close || [];
-    const valid = [];
-
-    for (let i = 0; i < closes.length; i++) {
-      const close = Number(closes[i]);
-      if (close > 0) valid.push({ price: close, ts: timestamps[i] || null });
+    if (!upstream.ok) {
+      return json({
+        ok: false,
+        error: payload?.msg || `iTick HTTP ${upstream.status}`
+      }, 502);
     }
 
-    const livePrice = Number(meta.regularMarketPrice);
-    const latest = livePrice > 0 ? livePrice : valid.at(-1)?.price;
-
-    // BIST günlük değişimi için gerçek önceki seans kapanışını
-    // günlük mumlardan alıyoruz. Yahoo meta.previousClose alanı
-    // bazı BIST hisselerinde zaman zaman eskimiş/farklı değer döndürebiliyor.
-    let previous = null;
-    if (valid.length > 1) {
-      previous = Number(valid.at(-2).price);
+    if (Number(payload?.code) !== 0 || !payload?.data) {
+      return json({
+        ok: false,
+        error: payload?.msg || `${code} için iTick verisi bulunamadı.`
+      }, 404);
     }
 
-    // Günlük mum geçmişi gelmezse meta değeri sadece yedek olarak kullan.
-    if (!(previous > 0)) {
-      const metaPrevious = Number(meta.previousClose || meta.chartPreviousClose);
-      previous = metaPrevious > 0 ? metaPrevious : null;
+    const d = payload.data;
+    const latest = Number(d.ld);
+    const previous = Number(d.p);
+    const providerChange = Number(d.ch);
+    const providerChangePct = Number(d.chp);
+
+    if (!(latest > 0)) {
+      return json({ ok:false, error:"Geçerli hisse fiyatı bulunamadı." }, 502);
     }
 
-    if (!(latest > 0)) return json({ ok:false, error:"Geçerli hisse fiyatı bulunamadı." }, 502);
+    // Sağlayıcının önceki kapanışını esas alıp yüzdeyi biz de bağımsız hesaplıyoruz.
+    // API'nin chp alanı ile fark varsa hesaplanan değer tercih edilir.
+    const calculatedChange = previous > 0 ? latest - previous : null;
+    const calculatedChangePct = previous > 0 ? (calculatedChange / previous) * 100 : null;
 
-    const ts = Number(meta.regularMarketTime) || valid.at(-1)?.ts || Math.floor(Date.now()/1000);
-    const change = previous > 0 ? latest - previous : null;
-    const changePercent = previous > 0 ? (change / previous) * 100 : null;
+    const change = Number.isFinite(calculatedChange) ? calculatedChange
+      : Number.isFinite(providerChange) ? providerChange
+      : null;
+
+    const changePercent = Number.isFinite(calculatedChangePct) ? calculatedChangePct
+      : Number.isFinite(providerChangePct) ? providerChangePct
+      : null;
+
+    const timestamp = Number(d.t);
+    const date = timestamp > 0
+      ? new Date(timestamp).toISOString()
+      : new Date().toISOString();
 
     return json({
       ok: true,
-      source: "Yahoo Finance - delayed",
+      source: "iTick",
       code,
-      symbol,
+      symbol: code,
       price: latest,
-      previousPrice: previous,
+      previousPrice: previous > 0 ? previous : null,
       change,
       changePercent,
-      date: new Date(ts * 1000).toISOString(),
-      name: meta.longName || meta.shortName || code,
-      currency: meta.currency || "TRY",
-      exchange: meta.exchangeName || "IST"
+      providerChangePercent: Number.isFinite(providerChangePct) ? providerChangePct : null,
+      date,
+      name: code,
+      currency: "TRY",
+      exchange: "Borsa Istanbul"
     });
   } catch (err) {
     return json({ ok:false, error:String(err?.message || err) }, 500);
