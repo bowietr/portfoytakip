@@ -151,3 +151,16 @@ portfoyum-v1/
 │   └── wrangler.toml
 └── README.md
 ```
+
+---
+
+## V1.1 değişiklikleri
+
+- Arayüz füme / grafit tonlarına geçirildi.
+- Her fon ve hisse için günlük TL ve yüzde değişim alanı eklendi.
+- TEFAS fonlarında önceki fiyat üzerinden günlük değişim otomatik hesaplanır.
+- Hisseler için önceki kapanış + güncel fiyat manuel güncelleme düğmesi eklendi.
+- Aynı varlığı yeniden oluşturmaya gerek kalmadan sınırsız parçalı alış yapılabilir.
+- Satış / portföyden çıkarma işlemi eklendi.
+- Satışlarda kalan pozisyonun ağırlıklı ortalama maliyeti korunur.
+- Eski kayıtlar otomatik olarak alış işlemi kabul edildiğinden mevcut localStorage verileriyle uyumludur.
