@@ -370,7 +370,9 @@ async function refreshStockOne(id) {
   setStatus(`${asset.code} güncelleniyor…`);
   try {
     const data = await fetchStockPrice(asset.code);
-    asset.previousPrice = Number(data.previousPrice || asset.currentPrice || data.price);
+    asset.previousPrice = Number(data.previousPrice) > 0
+      ? Number(data.previousPrice)
+      : Number(asset.currentPrice || data.price);
     asset.currentPrice = Number(data.price);
     asset.lastUpdated = data.date || new Date().toISOString();
     if ((!asset.name || asset.name === asset.code) && data.name) asset.name = data.name;
@@ -456,7 +458,9 @@ async function refreshAll() {
         ? await fetchFundPrice(asset.code)
         : await fetchStockPrice(asset.code);
 
-      asset.previousPrice = Number(data.previousPrice || asset.currentPrice || data.price);
+      asset.previousPrice = Number(data.previousPrice) > 0
+        ? Number(data.previousPrice)
+        : Number(asset.currentPrice || data.price);
       asset.currentPrice = Number(data.price);
       asset.lastUpdated = data.date || new Date().toISOString();
       if ((!asset.name || asset.name === asset.code) && data.name) asset.name = data.name;
