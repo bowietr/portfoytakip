@@ -111,6 +111,7 @@
                   <th>Adet</th>
                   <th>Ort. Maliyet</th>
                   <th>Güncel Fiyat</th>
+                  <th>Günlük</th>
                   <th>Değer</th>
                   <th>K/Z</th>
                 </tr>
@@ -139,9 +140,9 @@
           <div class="panel-head">
             <div>
               <h2>İşlem Geçmişi</h2>
-              <p>Alış işlemleriniz</p>
+              <p>Parçalı alış ve satış işlemleriniz</p>
             </div>
-            <button class="primary-btn" data-open-modal="transaction">+ Alış Ekle</button>
+            <button class="primary-btn" data-open-modal="transaction">+ İşlem Ekle</button>
           </div>
           <div class="table-wrap">
             <table>
@@ -149,6 +150,7 @@
                 <tr>
                   <th>Tarih</th>
                   <th>Varlık</th>
+                  <th>İşlem</th>
                   <th>Adet</th>
                   <th>Fiyat</th>
                   <th>Tutar</th>
@@ -257,13 +259,20 @@
       <div class="modal-head">
         <div>
           <p class="eyebrow">İŞLEM</p>
-          <h2>Alış Ekle</h2>
+          <h2>Portföy İşlemi Ekle</h2>
         </div>
         <button type="button" class="icon-btn" data-close-modal>×</button>
       </div>
 
       <div class="form-grid">
-        <label class="full">
+        <label>
+          İşlem Türü
+          <select id="txType" required>
+            <option value="buy">Alış / Ekleme</option>
+            <option value="sell">Satış / Çıkarma</option>
+          </select>
+        </label>
+        <label>
           Varlık
           <select id="txAsset" required></select>
         </label>
@@ -272,7 +281,7 @@
           <input id="txQty" type="number" min="0.000001" step="0.000001" required />
         </label>
         <label>
-          Alış Fiyatı
+          İşlem Fiyatı
           <input id="txPrice" type="number" min="0.000001" step="0.000001" required />
         </label>
         <label>
