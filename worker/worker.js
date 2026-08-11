@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.5" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.6" });
     }
 
     const stockMatch = url.pathname.match(/^\/api\/stock\/([A-Za-z0-9._-]+)$/);
@@ -82,34 +82,48 @@ export default {
 };
 
 async function handleStock(code, env) {
-  // v1.5:
-  // Ücretsiz ve API anahtarsız BIST takibi.
+  // v1.6 — BIST hisseleri için TradingView delayed scanner.
   //
-  // Yahoo Finance'ın anlık/meta previousClose alanlarını KULLANMIYORUZ.
-  // Sadece günlük tarihsel mumları kullanıyoruz ve bugünün tamamlanmamış
-  // mumunu dışarıda bırakıyoruz. Böylece sonuç "son kesinleşmiş kapanış"
-  // ve ondan önceki kesinleşmiş kapanıştan hesaplanıyor.
+  // Yahoo Finance BIST verisi bazı günlerde bir işlem günü geriden geldiği için
+  // hisse tarafında tamamen kaldırıldı.
   //
-  // Örn.:
-  // latest completed close = 78.85
-  // previous completed close = 77.40
-  // change % = (78.85 - 77.40) / 77.40 * 100 = +1.87%
+  // TradingView scanner ücretsiz/gecikmeli piyasa verisini döndürür.
+  // close      = son fiyat
+  // change     = günlük yüzde değişim
+  // change_abs = günlük TL değişim
+  //
+  // Önceki kapanışı da bu iki değerden bağımsız olarak yeniden hesaplıyoruz.
 
-  const symbol = `${code}.IS`;
+  const symbol = `BIST:${code}`;
+  const endpoint = "https://scanner.tradingview.com/turkey/scan";
 
-  // Bir aylık günlük veri, tatil/hafta sonlarına rağmen son iki tamamlanmış
-  // seansı güvenle bulmak için yeterli tampon sağlar.
-  const endpoint =
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
-    `?range=1mo&interval=1d&includePrePost=false&events=div%2Csplits&corsDomain=finance.yahoo.com`;
+  const body = {
+    symbols: {
+      tickers: [symbol],
+      query: { types: [] }
+    },
+    columns: [
+      "name",
+      "description",
+      "close",
+      "change",
+      "change_abs",
+      "currency",
+      "update_mode"
+    ]
+  };
 
   try {
     const upstream = await fetch(endpoint, {
-      method: "GET",
+      method: "POST",
       headers: {
+        "Content-Type": "application/json",
         "Accept": "application/json,text/plain,*/*",
-        "User-Agent": "Mozilla/5.0 (compatible; Portfoyum/1.5)"
-      }
+        "Origin": "https://www.tradingview.com",
+        "Referer": "https://www.tradingview.com/",
+        "User-Agent": "Mozilla/5.0 (compatible; Portfoyum/1.6)"
+      },
+      body: JSON.stringify(body)
     });
 
     const text = await upstream.text();
@@ -120,119 +134,99 @@ async function handleStock(code, env) {
     } catch {
       return json({
         ok: false,
-        error: `Hisse veri kaynağı geçersiz yanıt döndürdü (HTTP ${upstream.status}).`
+        error: `TradingView geçersiz yanıt döndürdü (HTTP ${upstream.status}).`
       }, 502);
     }
 
     if (!upstream.ok) {
       return json({
         ok: false,
-        error: `Hisse veri kaynağı HTTP ${upstream.status}`
+        error: `TradingView HTTP ${upstream.status}`
       }, 502);
     }
 
-    const result = payload?.chart?.result?.[0];
-    if (!result) {
-      const providerError = payload?.chart?.error?.description;
+    const row = payload?.data?.[0];
+    if (!row || !Array.isArray(row.d)) {
       return json({
         ok: false,
-        error: providerError || `${code} için günlük fiyat verisi bulunamadı.`
+        error: `${code} için TradingView BIST verisi bulunamadı.`
       }, 404);
     }
 
-    const timestamps = Array.isArray(result.timestamp) ? result.timestamp : [];
-    const quote = result?.indicators?.quote?.[0] || {};
-    const adjclose = result?.indicators?.adjclose?.[0]?.adjclose || [];
-    const closes = quote.close || [];
+    // columns sırası ile birebir eşleşir.
+    const [
+      tvName,
+      description,
+      closeRaw,
+      changePctRaw,
+      changeAbsRaw,
+      currencyRaw,
+      updateMode
+    ] = row.d;
 
-    const rows = [];
+    const price = Number(closeRaw);
+    const providerChangePct = Number(changePctRaw);
+    const providerChangeAbs = Number(changeAbsRaw);
 
-    for (let i = 0; i < timestamps.length; i++) {
-      const ts = Number(timestamps[i]);
-      const rawClose = Number(closes[i]);
-      const adjustedClose = Number(adjclose[i]);
-
-      // Günlük portföy takibinde normal kapanışı tercih ediyoruz.
-      const close = rawClose > 0 ? rawClose : adjustedClose;
-
-      if (!(ts > 0) || !(close > 0)) continue;
-
-      rows.push({
-        ts,
-        close,
-        istanbulDate: dateInIstanbul(ts * 1000)
-      });
-    }
-
-    if (rows.length < 2) {
+    if (!(price > 0)) {
       return json({
         ok: false,
-        error: `${code} için yeterli tamamlanmış günlük kapanış bulunamadı.`
+        error: `${code} için geçerli son fiyat bulunamadı.`
       }, 502);
     }
 
-    // Bugünün İstanbul tarihine ait mum Yahoo tarafından seans sırasında
-    // geçici olarak oluşturulabilir. Gecikme sorun olmadığı için bugünkü mumu
-    // her durumda dışarıda bırakıyoruz. Yarın olduğunda otomatik kesinleşmiş
-    // kapanış olarak kullanılacak.
-    const todayTR = dateInIstanbul(Date.now());
-    const completed = rows.filter(r => r.istanbulDate < todayTR);
+    let previousPrice = null;
 
-    if (completed.length < 2) {
-      return json({
-        ok: false,
-        error: `${code} için iki adet kesinleşmiş kapanış bulunamadı.`
-      }, 502);
+    // change_abs varsa önce bunu kullan.
+    if (Number.isFinite(providerChangeAbs)) {
+      const p = price - providerChangeAbs;
+      if (p > 0) previousPrice = p;
     }
 
-    completed.sort((a, b) => a.ts - b.ts);
+    // change_abs gelmezse yüzde değişimden önceki kapanışı ters hesapla.
+    if (!(previousPrice > 0) && Number.isFinite(providerChangePct) && providerChangePct > -100) {
+      const p = price / (1 + providerChangePct / 100);
+      if (p > 0) previousPrice = p;
+    }
 
-    const latest = completed.at(-1);
-    const previous = completed.at(-2);
-
-    const change = latest.close - previous.close;
-    const changePercent = previous.close > 0
-      ? (change / previous.close) * 100
+    const change = previousPrice > 0 ? price - previousPrice
+      : Number.isFinite(providerChangeAbs) ? providerChangeAbs
       : null;
 
-    const meta = result.meta || {};
+    const calculatedChangePct = previousPrice > 0
+      ? ((price - previousPrice) / previousPrice) * 100
+      : null;
+
+    // TradingView'ın yüzde alanı ile kendi hesabımız küçük yuvarlama farkı dışında
+    // aynı olmalı. Önceki kapanış hesaplanabildiyse bizim hesap tercih edilir.
+    const changePercent = Number.isFinite(calculatedChangePct)
+      ? calculatedChangePct
+      : Number.isFinite(providerChangePct) ? providerChangePct : null;
 
     return json({
       ok: true,
-      source: "Yahoo Finance EOD historical",
-      mode: "last_completed_close",
+      source: "TradingView delayed scanner",
+      mode: "delayed_market_quote",
       code,
       symbol,
-      price: latest.close,
-      previousPrice: previous.close,
+      price,
+      previousPrice,
       change,
       changePercent,
-      date: new Date(latest.ts * 1000).toISOString(),
-      priceDate: latest.istanbulDate,
-      previousPriceDate: previous.istanbulDate,
-      name: meta.longName || meta.shortName || code,
-      currency: meta.currency || "TRY",
-      exchange: meta.exchangeName || "Borsa Istanbul",
-      delayed: true
+      providerChangePercent: Number.isFinite(providerChangePct) ? providerChangePct : null,
+      name: description || tvName || code,
+      currency: currencyRaw || "TRY",
+      exchange: "Borsa Istanbul",
+      updateMode: updateMode || null,
+      delayed: true,
+      date: new Date().toISOString()
     });
   } catch (err) {
-    return json({ ok:false, error:String(err?.message || err) }, 500);
+    return json({
+      ok: false,
+      error: String(err?.message || err)
+    }, 500);
   }
-}
-
-function dateInIstanbul(ms) {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Istanbul",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).formatToParts(new Date(ms));
-
-  const map = {};
-  for (const p of parts) {
-    if (p.type !== "literal") map[p.type] = p.value;
-  }
-  return `${map.year}-${map.month}-${map.day}`;
 }
 
 function corsHeaders() {
