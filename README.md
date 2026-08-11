@@ -171,3 +171,54 @@ portfoyum-v1/
 - BIST hisselerinde günlük değişim, gerçek önceki seans kapanışından hesaplanır.
 - Yahoo `previousClose` meta alanındaki tutarsızlıklara karşı günlük mum verisi esas alınır.
 - Hisse bazındaki ve toplam portföy günlük getirisi aynı düzeltilmiş önceki kapanış değerini kullanır.
+
+
+## v1.4 — BIST veri kaynağı düzeltmesi
+
+Yahoo Finance BIST hisseleri için bazı günlerde önceki kapanış/seans bilgisini tutarsız döndürdüğü için hisse veri kaynağı kaldırıldı.
+
+V1.4'te hisseler iTick `stock/quote` API'sinden çekilir:
+
+- `region=TR`
+- `ld`: son fiyat
+- `p`: önceki kapanış
+- `ch`: günlük fark
+- `chp`: günlük yüzde değişim
+
+### iTick token kurulumu
+
+1. iTick hesabı oluşturup bir API token alın.
+2. Cloudflare → **Workers & Pages** → `portfoyum-api`
+3. **Settings** → **Variables and Secrets**
+4. **Add** / **Add variable**
+5. Name:
+   `ITICK_TOKEN`
+6. Value:
+   iTick tokenınız
+7. Türünü **Secret** olarak kaydedin.
+8. Worker kodunu `worker/worker.js` ile değiştirip Deploy edin.
+
+Token frontend'e veya GitHub'a yazılmaz. Cloudflare Worker Secret olarak kalır.
+
+### Test
+
+Worker adresiniz:
+
+`https://portfoyum-api....workers.dev`
+
+ise şunu açın:
+
+`https://portfoyum-api....workers.dev/api/stock/FROTO`
+
+Başarılı cevapta şu alanlar görünmelidir:
+
+- `price`
+- `previousPrice`
+- `change`
+- `changePercent`
+- `source: "iTick"`
+
+FROTO gibi hisselerde uygulamanın günlük yüzde hesabı:
+`(price - previousPrice) / previousPrice * 100`
+
+şeklinde yapılır.
