@@ -222,3 +222,48 @@ FROTO gibi hisselerde uygulamanın günlük yüzde hesabı:
 `(price - previousPrice) / previousPrice * 100`
 
 şeklinde yapılır.
+
+
+## v1.5 — Ücretsiz BIST kapanış modu
+
+iTick kaldırıldı. Artık API anahtarı gerekmez.
+
+Hisse verisi için Yahoo Finance'ın **anlık fiyat / previousClose meta alanları kullanılmaz**.
+Bunun yerine yalnızca tarihsel `1d` mumların tamamlanmış kapanışları kullanılır.
+
+Mantık:
+
+1. BIST kodu otomatik olarak `.IS` sembolüne çevrilir.
+2. Son 1 aylık günlük kapanış verisi alınır.
+3. İstanbul tarihine göre **bugünün mumu her zaman dışarıda bırakılır**.
+4. Son iki tamamlanmış işlem gününün kapanışı seçilir.
+5. Günlük getiri uygulama tarafından hesaplanır:
+
+`(son kesinleşmiş kapanış - önceki kesinleşmiş kapanış) / önceki kesinleşmiş kapanış * 100`
+
+Bu nedenle hisse verisi bir işlem günü gecikmeli olabilir; amaç anlık olmak değil,
+**tutarlı ve kesinleşmiş kapanış verisi** göstermektir.
+
+### Cloudflare
+
+V1.5 ile `ITICK_TOKEN` gerekmez. Cloudflare'daki eski secret kalsa da kullanılmaz;
+isterseniz silebilirsiniz.
+
+Sadece `worker/worker.js` kodunu V1.5 ile değiştirip Deploy edin.
+
+### Test
+
+`/api/stock/FROTO`
+
+cevabında şu alanları kontrol edin:
+
+- `source: "Yahoo Finance EOD historical"`
+- `mode: "last_completed_close"`
+- `price`
+- `previousPrice`
+- `changePercent`
+- `priceDate`
+- `previousPriceDate`
+
+`priceDate` ve `previousPriceDate` sayesinde hangi iki kapanışın karşılaştırıldığını
+artık açıkça görebilirsiniz.
