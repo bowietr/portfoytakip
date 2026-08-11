@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.4" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.5" });
     }
 
     const stockMatch = url.pathname.match(/^\/api\/stock\/([A-Za-z0-9._-]+)$/);
@@ -82,36 +82,33 @@ export default {
 };
 
 async function handleStock(code, env) {
-  // Yahoo Finance BIST verilerinde önceki kapanış/seans uyuşmazlığı görüldüğü için
-  // v1.4 itibarıyla hisse verisi iTick üzerinden alınır.
+  // v1.5:
+  // Ücretsiz ve API anahtarsız BIST takibi.
   //
-  // Cloudflare Worker Secret:
-  //   ITICK_TOKEN = iTick API tokenınız
+  // Yahoo Finance'ın anlık/meta previousClose alanlarını KULLANMIYORUZ.
+  // Sadece günlük tarihsel mumları kullanıyoruz ve bugünün tamamlanmamış
+  // mumunu dışarıda bırakıyoruz. Böylece sonuç "son kesinleşmiş kapanış"
+  // ve ondan önceki kesinleşmiş kapanıştan hesaplanıyor.
   //
-  // iTick stock/quote:
-  //   ld  = latest price
-  //   p   = previous closing price
-  //   ch  = change
-  //   chp = change percent
-  //   t   = latest trade timestamp (ms)
+  // Örn.:
+  // latest completed close = 78.85
+  // previous completed close = 77.40
+  // change % = (78.85 - 77.40) / 77.40 * 100 = +1.87%
 
-  const token = env?.ITICK_TOKEN;
-  if (!token) {
-    return json({
-      ok: false,
-      error: "iTick API anahtarı tanımlı değil. Cloudflare Worker → Settings → Variables and Secrets bölümünde ITICK_TOKEN secret'ını ekleyin."
-    }, 503);
-  }
+  const symbol = `${code}.IS`;
 
-  const endpoint = `https://api.itick.org/stock/quote?region=TR&code=${encodeURIComponent(code)}`;
+  // Bir aylık günlük veri, tatil/hafta sonlarına rağmen son iki tamamlanmış
+  // seansı güvenle bulmak için yeterli tampon sağlar.
+  const endpoint =
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}` +
+    `?range=1mo&interval=1d&includePrePost=false&events=div%2Csplits&corsDomain=finance.yahoo.com`;
 
   try {
     const upstream = await fetch(endpoint, {
       method: "GET",
       headers: {
-        "accept": "application/json",
-        "token": token,
-        "User-Agent": "Portfoyum/1.4"
+        "Accept": "application/json,text/plain,*/*",
+        "User-Agent": "Mozilla/5.0 (compatible; Portfoyum/1.5)"
       }
     });
 
@@ -123,70 +120,119 @@ async function handleStock(code, env) {
     } catch {
       return json({
         ok: false,
-        error: `iTick geçersiz yanıt döndürdü (HTTP ${upstream.status}).`
+        error: `Hisse veri kaynağı geçersiz yanıt döndürdü (HTTP ${upstream.status}).`
       }, 502);
     }
 
     if (!upstream.ok) {
       return json({
         ok: false,
-        error: payload?.msg || `iTick HTTP ${upstream.status}`
+        error: `Hisse veri kaynağı HTTP ${upstream.status}`
       }, 502);
     }
 
-    if (Number(payload?.code) !== 0 || !payload?.data) {
+    const result = payload?.chart?.result?.[0];
+    if (!result) {
+      const providerError = payload?.chart?.error?.description;
       return json({
         ok: false,
-        error: payload?.msg || `${code} için iTick verisi bulunamadı.`
+        error: providerError || `${code} için günlük fiyat verisi bulunamadı.`
       }, 404);
     }
 
-    const d = payload.data;
-    const latest = Number(d.ld);
-    const previous = Number(d.p);
-    const providerChange = Number(d.ch);
-    const providerChangePct = Number(d.chp);
+    const timestamps = Array.isArray(result.timestamp) ? result.timestamp : [];
+    const quote = result?.indicators?.quote?.[0] || {};
+    const adjclose = result?.indicators?.adjclose?.[0]?.adjclose || [];
+    const closes = quote.close || [];
 
-    if (!(latest > 0)) {
-      return json({ ok:false, error:"Geçerli hisse fiyatı bulunamadı." }, 502);
+    const rows = [];
+
+    for (let i = 0; i < timestamps.length; i++) {
+      const ts = Number(timestamps[i]);
+      const rawClose = Number(closes[i]);
+      const adjustedClose = Number(adjclose[i]);
+
+      // Günlük portföy takibinde normal kapanışı tercih ediyoruz.
+      const close = rawClose > 0 ? rawClose : adjustedClose;
+
+      if (!(ts > 0) || !(close > 0)) continue;
+
+      rows.push({
+        ts,
+        close,
+        istanbulDate: dateInIstanbul(ts * 1000)
+      });
     }
 
-    // Sağlayıcının önceki kapanışını esas alıp yüzdeyi biz de bağımsız hesaplıyoruz.
-    // API'nin chp alanı ile fark varsa hesaplanan değer tercih edilir.
-    const calculatedChange = previous > 0 ? latest - previous : null;
-    const calculatedChangePct = previous > 0 ? (calculatedChange / previous) * 100 : null;
+    if (rows.length < 2) {
+      return json({
+        ok: false,
+        error: `${code} için yeterli tamamlanmış günlük kapanış bulunamadı.`
+      }, 502);
+    }
 
-    const change = Number.isFinite(calculatedChange) ? calculatedChange
-      : Number.isFinite(providerChange) ? providerChange
+    // Bugünün İstanbul tarihine ait mum Yahoo tarafından seans sırasında
+    // geçici olarak oluşturulabilir. Gecikme sorun olmadığı için bugünkü mumu
+    // her durumda dışarıda bırakıyoruz. Yarın olduğunda otomatik kesinleşmiş
+    // kapanış olarak kullanılacak.
+    const todayTR = dateInIstanbul(Date.now());
+    const completed = rows.filter(r => r.istanbulDate < todayTR);
+
+    if (completed.length < 2) {
+      return json({
+        ok: false,
+        error: `${code} için iki adet kesinleşmiş kapanış bulunamadı.`
+      }, 502);
+    }
+
+    completed.sort((a, b) => a.ts - b.ts);
+
+    const latest = completed.at(-1);
+    const previous = completed.at(-2);
+
+    const change = latest.close - previous.close;
+    const changePercent = previous.close > 0
+      ? (change / previous.close) * 100
       : null;
 
-    const changePercent = Number.isFinite(calculatedChangePct) ? calculatedChangePct
-      : Number.isFinite(providerChangePct) ? providerChangePct
-      : null;
-
-    const timestamp = Number(d.t);
-    const date = timestamp > 0
-      ? new Date(timestamp).toISOString()
-      : new Date().toISOString();
+    const meta = result.meta || {};
 
     return json({
       ok: true,
-      source: "iTick",
+      source: "Yahoo Finance EOD historical",
+      mode: "last_completed_close",
       code,
-      symbol: code,
-      price: latest,
-      previousPrice: previous > 0 ? previous : null,
+      symbol,
+      price: latest.close,
+      previousPrice: previous.close,
       change,
       changePercent,
-      providerChangePercent: Number.isFinite(providerChangePct) ? providerChangePct : null,
-      date,
-      name: code,
-      currency: "TRY",
-      exchange: "Borsa Istanbul"
+      date: new Date(latest.ts * 1000).toISOString(),
+      priceDate: latest.istanbulDate,
+      previousPriceDate: previous.istanbulDate,
+      name: meta.longName || meta.shortName || code,
+      currency: meta.currency || "TRY",
+      exchange: meta.exchangeName || "Borsa Istanbul",
+      delayed: true
     });
   } catch (err) {
     return json({ ok:false, error:String(err?.message || err) }, 500);
   }
+}
+
+function dateInIstanbul(ms) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(new Date(ms));
+
+  const map = {};
+  for (const p of parts) {
+    if (p.type !== "literal") map[p.type] = p.value;
+  }
+  return `${map.year}-${map.month}-${map.day}`;
 }
 
 function corsHeaders() {
