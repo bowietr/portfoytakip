@@ -267,3 +267,62 @@ cevabında şu alanları kontrol edin:
 
 `priceDate` ve `previousPriceDate` sayesinde hangi iki kapanışın karşılaştırıldığını
 artık açıkça görebilirsiniz.
+
+
+## v1.6 — TradingView BIST delayed veri
+
+V1.5'te kullanılan Yahoo Finance günlük geçmiş verisi, FROTO örneğinde 11 Ağustos
+kapanışını 12 Ağustos 00:35 itibarıyla hâlâ sunmadığı için hisse tarafında kaldırıldı.
+
+V1.6'da hisse verisi:
+
+`POST https://scanner.tradingview.com/turkey/scan`
+
+üzerinden `BIST:FROTO`, `BIST:THYAO`, `BIST:ASELS` gibi sembollerle alınır.
+
+Kullanılan alanlar:
+
+- `close` → son fiyat
+- `change` → günlük yüzde değişim
+- `change_abs` → günlük TL değişim
+- `description` → şirket adı
+- `currency`
+- `update_mode`
+
+Önceki kapanış:
+
+`previousPrice = close - change_abs`
+
+olarak hesaplanır. `change_abs` yoksa:
+
+`previousPrice = close / (1 + change / 100)`
+
+formülü kullanılır.
+
+API anahtarı gerekmez.
+
+### Cloudflare güncellemesi
+
+Sadece V1.6 içindeki:
+
+`worker/worker.js`
+
+dosyasını Cloudflare Worker koduyla değiştirip Deploy edin.
+
+### FROTO testi
+
+`/api/stock/FROTO`
+
+cevabında özellikle şunlara bakın:
+
+- `source`: `TradingView delayed scanner`
+- `price`
+- `previousPrice`
+- `changePercent`
+- `providerChangePercent`
+
+11 Ağustos 2026 kapanışı için beklenen referans yaklaşık:
+
+- Son: `78.85`
+- Önceki: `77.40`
+- Günlük: `+1.87%`
