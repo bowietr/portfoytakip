@@ -1,4 +1,4 @@
-# Portföyüm v1
+# Portföyüm v1.2
 
 GitHub Pages üzerinde çalışan, yatırım fonları ve hisse senetlerini aynı portföyde takip etmek için hazırlanmış mobil uyumlu bir uygulama.
 
@@ -11,13 +11,13 @@ GitHub Pages üzerinde çalışan, yatırım fonları ve hisse senetlerini aynı
 - Gerçekleşmemiş kâr / zarar
 - Portföy dağılım grafiği
 - TEFAS fon fiyatı güncelleme
+- BIST hisse fiyatı güncelleme (gecikmeli veri)
 - Koyu / açık tema
 - JSON yedekleme / geri yükleme
 - localStorage ile cihazda veri saklama
 - Mobil uyumlu arayüz
 
-> Not: Hisse fiyatları v1'de otomatik değildir. Hisse eklerken güncel fiyat manuel girilir.
-> Sonraki sürümde BIST veri sağlayıcısı eklenebilir.
+> Not: BIST hisse fiyatları ücretsiz gecikmeli piyasa verisi üzerinden alınır; gerçek zamanlı lisanslı feed değildir.
 
 ---
 
