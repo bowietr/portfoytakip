@@ -53,17 +53,42 @@ function getAssetTx(assetId) {
 }
 
 function calcAsset(asset) {
-  const txs = getAssetTx(asset.id);
-  const qty = txs.reduce((s,t) => s + Number(t.qty), 0);
-  const cost = txs.reduce((s,t) => s + Number(t.qty) * Number(t.price), 0);
+  const txs = getAssetTx(asset.id)
+    .map((t, i) => ({ ...t, _i: i, type: t.type || "buy" }))
+    .sort((a,b) => String(a.date).localeCompare(String(b.date)) || a._i - b._i);
+
+  let qty = 0;
+  let cost = 0;
+  let realized = 0;
+
+  for (const t of txs) {
+    const tQty = Number(t.qty || 0);
+    const tPrice = Number(t.price || 0);
+    if (!(tQty > 0) || !(tPrice >= 0)) continue;
+
+    if ((t.type || "buy") === "sell") {
+      if (qty <= 0) continue;
+      const sellQty = Math.min(tQty, qty);
+      const avgBefore = cost / qty;
+      realized += sellQty * (tPrice - avgBefore);
+      qty -= sellQty;
+      cost -= sellQty * avgBefore;
+      if (qty < 0.000000001) { qty = 0; cost = 0; }
+    } else {
+      qty += tQty;
+      cost += tQty * tPrice;
+    }
+  }
+
   const avg = qty > 0 ? cost / qty : 0;
   const currentPrice = Number(asset.currentPrice || 0);
+  const prevPrice = Number(asset.previousPrice || currentPrice || 0);
   const value = qty * currentPrice;
   const pnl = value - cost;
   const pnlPct = cost > 0 ? (pnl / cost) * 100 : 0;
-  const prevPrice = Number(asset.previousPrice || currentPrice);
   const daily = qty * (currentPrice - prevPrice);
-  return { qty, cost, avg, currentPrice, value, pnl, pnlPct, daily };
+  const dailyPct = prevPrice > 0 ? ((currentPrice - prevPrice) / prevPrice) * 100 : 0;
+  return { qty, cost, avg, currentPrice, prevPrice, value, pnl, pnlPct, daily, dailyPct, realized };
 }
 
 function totals() {
@@ -73,8 +98,9 @@ function totals() {
     acc.cost += c.cost;
     acc.pnl += c.pnl;
     acc.daily += c.daily;
+    acc.prevValue += c.qty * c.prevPrice;
     return acc;
-  }, { value:0, cost:0, pnl:0, daily:0 });
+  }, { value:0, cost:0, pnl:0, daily:0, prevValue:0 });
 }
 
 function render() {
@@ -100,20 +126,25 @@ function renderSummary() {
   $("dailyChange").className = t.daily >= 0 ? "positive" : "negative";
   $("assetCount").textContent = `${state.assets.length} varlık`;
 
+  const dailyPctTotal = t.prevValue > 0 ? (t.daily / t.prevValue) * 100 : 0;
   const dates = state.assets.map(a => a.lastUpdated).filter(Boolean).sort().reverse();
-  $("lastUpdated").textContent = dates[0] ? `Son veri: ${new Date(dates[0]).toLocaleString("tr-TR")}` : "Henüz güncellenmedi";
+  const updateText = dates[0] ? ` · ${new Date(dates[0]).toLocaleDateString("tr-TR")}` : "";
+  $("lastUpdated").textContent = `${pct(dailyPctTotal)}${updateText}`;
+  $("lastUpdated").className = dailyPctTotal >= 0 ? "positive" : "negative";
 }
 
 function rowHtml(asset) {
   const c = calcAsset(asset);
   const type = asset.type === "fund" ? "Fon" : "Hisse";
   const cls = c.pnl >= 0 ? "positive" : "negative";
+  const dailyCls = c.daily >= 0 ? "positive" : "negative";
   return `<tr>
     <td><span class="asset-symbol">${escapeHtml(asset.code)}</span><span class="asset-sub">${escapeHtml(asset.name || "")}</span></td>
     <td>${type}</td>
     <td>${num(c.qty)}</td>
     <td>${money(c.avg)}</td>
     <td>${money(c.currentPrice)}</td>
+    <td class="${dailyCls}"><strong>${money(c.daily)}</strong><span class="asset-sub ${dailyCls}">${pct(c.dailyPct)}</span></td>
     <td><strong>${money(c.value)}</strong></td>
     <td class="${cls}"><strong>${money(c.pnl)}</strong><span class="asset-sub ${cls}">${pct(c.pnlPct)}</span></td>
   </tr>`;
@@ -122,7 +153,7 @@ function rowHtml(asset) {
 function renderTables() {
   $("dashboardTable").innerHTML = state.assets.length
     ? state.assets.map(rowHtml).join("")
-    : `<tr><td colspan="7" class="empty-state">Henüz portföyünüze varlık eklemediniz.</td></tr>`;
+    : `<tr><td colspan="8" class="empty-state">Henüz portföyünüze varlık eklemediniz.</td></tr>`;
 }
 
 function renderCards() {
@@ -130,6 +161,7 @@ function renderCards() {
   $("assetCards").innerHTML = filtered.length ? filtered.map(asset => {
     const c = calcAsset(asset);
     const cls = c.pnl >= 0 ? "positive" : "negative";
+    const dailyCls = c.daily >= 0 ? "positive" : "negative";
     return `<article class="asset-card">
       <div class="asset-card-top">
         <div>
@@ -140,14 +172,19 @@ function renderCards() {
       </div>
       <div class="asset-value">${money(c.value)}</div>
       <div class="${cls}">${money(c.pnl)} · ${pct(c.pnlPct)}</div>
+      <div class="daily-strip ${dailyCls}">
+        <span>Günlük</span>
+        <strong>${money(c.daily)} · ${pct(c.dailyPct)}</strong>
+      </div>
       <div class="asset-stats">
         <div class="asset-stat"><span>ADET</span><strong>${num(c.qty)}</strong></div>
         <div class="asset-stat"><span>ORT. MALİYET</span><strong>${money(c.avg)}</strong></div>
         <div class="asset-stat"><span>GÜNCEL FİYAT</span><strong>${money(c.currentPrice)}</strong></div>
-        <div class="asset-stat"><span>SON GÜNCELLEME</span><strong>${asset.lastUpdated ? new Date(asset.lastUpdated).toLocaleDateString("tr-TR") : "-"}</strong></div>
+        <div class="asset-stat"><span>DÜN / ÖNCEKİ</span><strong>${money(c.prevPrice)}</strong></div>
       </div>
       <div class="card-actions">
-        ${asset.type === "fund" ? `<button class="secondary-btn" onclick="refreshOne('${asset.id}')">↻ TEFAS</button>` : ""}
+        <button class="secondary-btn" onclick="openTransaction('${asset.id}')">+ Al / Sat</button>
+        ${asset.type === "fund" ? `<button class="secondary-btn" onclick="refreshOne('${asset.id}')">↻ TEFAS</button>` : `<button class="secondary-btn" onclick="updateStockPrice('${asset.id}')">Fiyat Güncelle</button>`}
         <button class="text-btn" onclick="deleteAsset('${asset.id}')">Sil</button>
       </div>
     </article>`;
@@ -158,15 +195,19 @@ function renderTransactions() {
   const list = [...state.transactions].sort((a,b) => String(b.date).localeCompare(String(a.date)));
   $("transactionTable").innerHTML = list.length ? list.map(t => {
     const a = state.assets.find(x => x.id === t.assetId);
+    const type = t.type || "buy";
+    const typeLabel = type === "sell" ? "Satış" : "Alış";
+    const typeCls = type === "sell" ? "negative" : "positive";
     return `<tr>
       <td>${new Date(t.date + "T12:00:00").toLocaleDateString("tr-TR")}</td>
       <td><strong>${escapeHtml(a?.code || "Silinmiş varlık")}</strong></td>
+      <td class="${typeCls}"><strong>${typeLabel}</strong></td>
       <td>${num(t.qty)}</td>
       <td>${money(t.price)}</td>
       <td>${money(Number(t.qty)*Number(t.price))}</td>
       <td><button class="text-btn" onclick="deleteTx('${t.id}')">Sil</button></td>
     </tr>`;
-  }).join("") : `<tr><td colspan="6" class="empty-state">Henüz işlem eklenmedi.</td></tr>`;
+  }).join("") : `<tr><td colspan="7" class="empty-state">Henüz işlem eklenmedi.</td></tr>`;
 }
 
 function renderTopPositions() {
@@ -229,8 +270,13 @@ function addAssetFromForm(e) {
   const type = $("assetType").value;
   const code = $("assetCode").value.trim().toUpperCase();
   if (!code) return;
-  if (state.assets.some(a => a.code === code && a.type === type)) {
-    alert("Bu varlık zaten portföyde.");
+
+  const existing = state.assets.find(a => a.code === code && a.type === type);
+  if (existing) {
+    $("assetModal").close();
+    e.target.reset();
+    $("assetDate").value = todayISO();
+    openTransaction(existing.id);
     return;
   }
 
@@ -250,6 +296,7 @@ function addAssetFromForm(e) {
     state.transactions.push({
       id: crypto.randomUUID(),
       assetId: id,
+      type: "buy",
       qty, price,
       date: $("assetDate").value || todayISO()
     });
@@ -266,11 +313,28 @@ function addAssetFromForm(e) {
 function addTransaction(e) {
   e.preventDefault();
   if (!state.assets.length) return;
+
+  const assetId = $("txAsset").value;
+  const type = $("txType").value;
+  const qty = Number($("txQty").value);
+  const price = Number($("txPrice").value);
+  const asset = state.assets.find(a => a.id === assetId);
+  if (!asset || !(qty > 0) || !(price > 0)) return;
+
+  if (type === "sell") {
+    const current = calcAsset(asset).qty;
+    if (qty > current + 0.000000001) {
+      alert(`Satış adedi mevcut adetten fazla olamaz. Mevcut: ${num(current)}`);
+      return;
+    }
+  }
+
   state.transactions.push({
     id: crypto.randomUUID(),
-    assetId: $("txAsset").value,
-    qty: Number($("txQty").value),
-    price: Number($("txPrice").value),
+    assetId,
+    type,
+    qty,
+    price,
     date: $("txDate").value
   });
   save();
@@ -278,6 +342,40 @@ function addTransaction(e) {
   e.target.reset();
   $("txDate").value = todayISO();
   render();
+}
+
+
+
+function updateStockPrice(id) {
+  const asset = state.assets.find(a => a.id === id);
+  if (!asset || asset.type !== "stock") return;
+
+  const previousInput = prompt(`${asset.code} önceki gün kapanış fiyatı:`, asset.previousPrice || asset.currentPrice || "");
+  if (previousInput === null) return;
+  const currentInput = prompt(`${asset.code} güncel fiyatı:`, asset.currentPrice || "");
+  if (currentInput === null) return;
+
+  const previous = Number(String(previousInput).replace(",", "."));
+  const current = Number(String(currentInput).replace(",", "."));
+  if (!(previous > 0) || !(current > 0)) {
+    alert("Geçerli fiyat girin.");
+    return;
+  }
+
+  asset.previousPrice = previous;
+  asset.currentPrice = current;
+  asset.lastUpdated = new Date().toISOString();
+  save();
+  render();
+}
+
+function openTransaction(assetId) {
+  if (!state.assets.length) return;
+  fillTxAssets();
+  if (assetId) $("txAsset").value = assetId;
+  $("txType").value = "buy";
+  $("txDate").value = todayISO();
+  $("transactionModal").showModal();
 }
 
 function deleteAsset(id) {
@@ -474,5 +572,7 @@ load();
 render();
 
 window.refreshOne = refreshOne;
+window.openTransaction = openTransaction;
+window.updateStockPrice = updateStockPrice;
 window.deleteAsset = deleteAsset;
 window.deleteTx = deleteTx;
