@@ -164,3 +164,10 @@ portfoyum-v1/
 - Satış / portföyden çıkarma işlemi eklendi.
 - Satışlarda kalan pozisyonun ağırlıklı ortalama maliyeti korunur.
 - Eski kayıtlar otomatik olarak alış işlemi kabul edildiğinden mevcut localStorage verileriyle uyumludur.
+
+
+## v1.3 düzeltmesi
+
+- BIST hisselerinde günlük değişim, gerçek önceki seans kapanışından hesaplanır.
+- Yahoo `previousClose` meta alanındaki tutarsızlıklara karşı günlük mum verisi esas alınır.
+- Hisse bazındaki ve toplam portföy günlük getirisi aynı düzeltilmiş önceki kapanış değerini kullanır.
