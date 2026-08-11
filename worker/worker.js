@@ -2,8 +2,9 @@
  * Portföyüm - TEFAS Proxy
  * Cloudflare Workers için.
  *
- * Route:
+ * Routes:
  *   GET /api/fund/TTE
+ *   GET /api/stock/THYAO
  *
  * TEFAS 2026 API:
  *   POST https://www.tefas.gov.tr/api/funds/fonFiyatBilgiGetir
@@ -21,6 +22,15 @@ export default {
 
     if (url.pathname === "/" || url.pathname === "/health") {
       return json({ ok: true, service: "portfoyum-tefas-proxy" });
+    }
+
+    const stockMatch = url.pathname.match(/^\/api\/stock\/([A-Za-z0-9._-]+)$/);
+    if (stockMatch) {
+      const stockCode = stockMatch[1].trim().toUpperCase().replace(/\.IS$/, "");
+      if (!/^[A-Z0-9]{2,12}$/.test(stockCode)) {
+        return json({ ok:false, error:"Geçersiz hisse kodu." }, 400);
+      }
+      return await handleStock(stockCode);
     }
 
     const match = url.pathname.match(/^\/api\/fund\/([A-Za-z0-9_-]+)$/);
@@ -70,6 +80,72 @@ export default {
     }
   }
 };
+
+async function handleStock(code) {
+  const symbol = `${code}.IS`;
+  const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=5d&includePrePost=false&events=div%2Csplits`;
+
+  try {
+    const upstream = await fetch(yahooUrl, {
+      headers: {
+        "Accept": "application/json,text/plain,*/*",
+        "User-Agent": "Mozilla/5.0 (compatible; Portfoyum/1.2)"
+      }
+    });
+
+    const text = await upstream.text();
+    if (!upstream.ok) {
+      return json({ ok:false, error:`Hisse veri servisi HTTP ${upstream.status}` }, 502);
+    }
+
+    let payload;
+    try { payload = JSON.parse(text); }
+    catch { return json({ ok:false, error:"Hisse veri servisi geçersiz yanıt döndürdü." }, 502); }
+
+    const result = payload?.chart?.result?.[0];
+    if (!result) {
+      const message = payload?.chart?.error?.description || "Hisse bulunamadı.";
+      return json({ ok:false, error:message }, 404);
+    }
+
+    const meta = result.meta || {};
+    const timestamps = Array.isArray(result.timestamp) ? result.timestamp : [];
+    const closes = result?.indicators?.quote?.[0]?.close || [];
+    const valid = [];
+
+    for (let i = 0; i < closes.length; i++) {
+      const close = Number(closes[i]);
+      if (close > 0) valid.push({ price: close, ts: timestamps[i] || null });
+    }
+
+    const livePrice = Number(meta.regularMarketPrice);
+    const latest = livePrice > 0 ? livePrice : valid.at(-1)?.price;
+    const previous = Number(meta.chartPreviousClose || meta.previousClose) > 0
+      ? Number(meta.chartPreviousClose || meta.previousClose)
+      : valid.length > 1 ? valid.at(-2).price : null;
+
+    if (!(latest > 0)) return json({ ok:false, error:"Geçerli hisse fiyatı bulunamadı." }, 502);
+
+    const ts = Number(meta.regularMarketTime) || valid.at(-1)?.ts || Math.floor(Date.now()/1000);
+
+    return json({
+      ok: true,
+      source: "Yahoo Finance - delayed",
+      code,
+      symbol,
+      price: latest,
+      previousPrice: previous,
+      change: previous > 0 ? latest - previous : null,
+      changePercent: previous > 0 ? ((latest - previous) / previous) * 100 : null,
+      date: new Date(ts * 1000).toISOString(),
+      name: meta.longName || meta.shortName || code,
+      currency: meta.currency || "TRY",
+      exchange: meta.exchangeName || "IST"
+    });
+  } catch (err) {
+    return json({ ok:false, error:String(err?.message || err) }, 500);
+  }
+}
 
 function corsHeaders() {
   return {
