@@ -184,7 +184,7 @@ function renderCards() {
       </div>
       <div class="card-actions">
         <button class="secondary-btn" onclick="openTransaction('${asset.id}')">+ Al / Sat</button>
-        ${asset.type === "fund" ? `<button class="secondary-btn" onclick="refreshOne('${asset.id}')">↻ TEFAS</button>` : `<button class="secondary-btn" onclick="updateStockPrice('${asset.id}')">Fiyat Güncelle</button>`}
+        ${asset.type === "fund" ? `<button class="secondary-btn" onclick="refreshOne('${asset.id}')">↻ TEFAS</button>` : `<button class="secondary-btn" onclick="refreshStockOne('${asset.id}')">↻ BIST</button>`}
         <button class="text-btn" onclick="deleteAsset('${asset.id}')">Sil</button>
       </div>
     </article>`;
@@ -308,6 +308,7 @@ function addAssetFromForm(e) {
   render();
 
   if (type === "fund") refreshOne(id);
+  if (type === "stock") refreshStockOne(id);
 }
 
 function addTransaction(e) {
@@ -346,27 +347,39 @@ function addTransaction(e) {
 
 
 
-function updateStockPrice(id) {
+async function fetchStockPrice(code) {
+  const base = getApiBase();
+  if (!base) throw new Error("Önce Ayarlar bölümünden Worker URL adresini kaydedin.");
+
+  const cleanCode = String(code || "").trim().toUpperCase().replace(/\.IS$/, "");
+  const r = await fetch(`${base}/api/stock/${encodeURIComponent(cleanCode)}`, {
+    headers: { "Accept": "application/json" }
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.ok === false) throw new Error(data.error || `API hatası (${r.status})`);
+
+  const price = Number(data.price);
+  if (!Number.isFinite(price) || price <= 0) throw new Error("Geçerli hisse fiyatı bulunamadı.");
+  return data;
+}
+
+async function refreshStockOne(id) {
   const asset = state.assets.find(a => a.id === id);
   if (!asset || asset.type !== "stock") return;
 
-  const previousInput = prompt(`${asset.code} önceki gün kapanış fiyatı:`, asset.previousPrice || asset.currentPrice || "");
-  if (previousInput === null) return;
-  const currentInput = prompt(`${asset.code} güncel fiyatı:`, asset.currentPrice || "");
-  if (currentInput === null) return;
-
-  const previous = Number(String(previousInput).replace(",", "."));
-  const current = Number(String(currentInput).replace(",", "."));
-  if (!(previous > 0) || !(current > 0)) {
-    alert("Geçerli fiyat girin.");
-    return;
+  setStatus(`${asset.code} güncelleniyor…`);
+  try {
+    const data = await fetchStockPrice(asset.code);
+    asset.previousPrice = Number(data.previousPrice || asset.currentPrice || data.price);
+    asset.currentPrice = Number(data.price);
+    asset.lastUpdated = data.date || new Date().toISOString();
+    if ((!asset.name || asset.name === asset.code) && data.name) asset.name = data.name;
+    save(); render();
+    setStatus(`${asset.code}: ${money(asset.currentPrice)}`);
+  } catch (err) {
+    setStatus(`Hata: ${err.message}`, true);
+    alert(`${asset.code}: ${err.message}`);
   }
-
-  asset.previousPrice = previous;
-  asset.currentPrice = current;
-  asset.lastUpdated = new Date().toISOString();
-  save();
-  render();
 }
 
 function openTransaction(assetId) {
@@ -430,26 +443,30 @@ async function refreshOne(id) {
 }
 
 async function refreshAll() {
-  const funds = state.assets.filter(a => a.type === "fund");
-  if (!funds.length) {
-    setStatus("Güncellenecek fon yok");
+  const assets = state.assets.filter(a => a.type === "fund" || a.type === "stock");
+  if (!assets.length) {
+    setStatus("Güncellenecek varlık yok");
     return;
   }
+
   let success = 0;
-  for (const asset of funds) {
+  for (const asset of assets) {
     try {
-      const data = await fetchFundPrice(asset.code);
+      const data = asset.type === "fund"
+        ? await fetchFundPrice(asset.code)
+        : await fetchStockPrice(asset.code);
+
       asset.previousPrice = Number(data.previousPrice || asset.currentPrice || data.price);
       asset.currentPrice = Number(data.price);
       asset.lastUpdated = data.date || new Date().toISOString();
-      if (!asset.name && data.name) asset.name = data.name;
+      if ((!asset.name || asset.name === asset.code) && data.name) asset.name = data.name;
       success++;
     } catch (e) {
       console.warn(asset.code, e);
     }
   }
   save(); render();
-  setStatus(`${success}/${funds.length} fon güncellendi`, success !== funds.length);
+  setStatus(`${success}/${assets.length} varlık güncellendi`, success !== assets.length);
 }
 
 function setStatus(text, error=false) {
@@ -572,6 +589,7 @@ load();
 render();
 
 window.refreshOne = refreshOne;
+window.refreshStockOne = refreshStockOne;
 window.openTransaction = openTransaction;
 window.updateStockPrice = updateStockPrice;
 window.deleteAsset = deleteAsset;
