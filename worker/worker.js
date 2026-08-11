@@ -89,7 +89,7 @@ async function handleStock(code) {
     const upstream = await fetch(yahooUrl, {
       headers: {
         "Accept": "application/json,text/plain,*/*",
-        "User-Agent": "Mozilla/5.0 (compatible; Portfoyum/1.2)"
+        "User-Agent": "Mozilla/5.0 (compatible; Portfoyum/1.3)"
       }
     });
 
@@ -120,13 +120,26 @@ async function handleStock(code) {
 
     const livePrice = Number(meta.regularMarketPrice);
     const latest = livePrice > 0 ? livePrice : valid.at(-1)?.price;
-    const previous = Number(meta.chartPreviousClose || meta.previousClose) > 0
-      ? Number(meta.chartPreviousClose || meta.previousClose)
-      : valid.length > 1 ? valid.at(-2).price : null;
+
+    // BIST günlük değişimi için gerçek önceki seans kapanışını
+    // günlük mumlardan alıyoruz. Yahoo meta.previousClose alanı
+    // bazı BIST hisselerinde zaman zaman eskimiş/farklı değer döndürebiliyor.
+    let previous = null;
+    if (valid.length > 1) {
+      previous = Number(valid.at(-2).price);
+    }
+
+    // Günlük mum geçmişi gelmezse meta değeri sadece yedek olarak kullan.
+    if (!(previous > 0)) {
+      const metaPrevious = Number(meta.previousClose || meta.chartPreviousClose);
+      previous = metaPrevious > 0 ? metaPrevious : null;
+    }
 
     if (!(latest > 0)) return json({ ok:false, error:"Geçerli hisse fiyatı bulunamadı." }, 502);
 
     const ts = Number(meta.regularMarketTime) || valid.at(-1)?.ts || Math.floor(Date.now()/1000);
+    const change = previous > 0 ? latest - previous : null;
+    const changePercent = previous > 0 ? (change / previous) * 100 : null;
 
     return json({
       ok: true,
@@ -135,8 +148,8 @@ async function handleStock(code) {
       symbol,
       price: latest,
       previousPrice: previous,
-      change: previous > 0 ? latest - previous : null,
-      changePercent: previous > 0 ? ((latest - previous) / previous) * 100 : null,
+      change,
+      changePercent,
       date: new Date(ts * 1000).toISOString(),
       name: meta.longName || meta.shortName || code,
       currency: meta.currency || "TRY",
