@@ -4,11 +4,8 @@ const SETTINGS_KEY = "portfoyum_settings_v1";
 const state = {
   assets: [],
   transactions: [],
-  history: [],
   filter: "all",
-  allocationChart: null,
-  portfolioHistoryChart: null,
-  dailyPerformanceChart: null
+  allocationChart: null
 };
 
 const $ = (id) => document.getElementById(id);
@@ -27,11 +24,9 @@ function load() {
     const data = JSON.parse(localStorage.getItem(STORE_KEY) || "{}");
     state.assets = Array.isArray(data.assets) ? data.assets : [];
     state.transactions = Array.isArray(data.transactions) ? data.transactions : [];
-    state.history = Array.isArray(data.history) ? data.history : [];
   } catch {
     state.assets = [];
     state.transactions = [];
-    state.history = [];
   }
 
   const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
@@ -42,8 +37,7 @@ function load() {
 function save() {
   localStorage.setItem(STORE_KEY, JSON.stringify({
     assets: state.assets,
-    transactions: state.transactions,
-    history: state.history
+    transactions: state.transactions
   }));
 }
 
@@ -115,7 +109,7 @@ function render() {
   renderCards();
   renderTransactions();
   renderTopPositions();
-  renderCharts();
+  renderChart();
   fillTxAssets();
 }
 
@@ -233,26 +227,11 @@ function renderTopPositions() {
   }).join("") : "Henüz varlık eklenmedi.";
 }
 
-function chartTextColor() {
-  return getComputedStyle(document.documentElement).getPropertyValue("--muted").trim() || "#9aa1ad";
-}
-
-function chartGridColor() {
-  return getComputedStyle(document.documentElement).getPropertyValue("--border").trim() || "#30343a";
-}
-
-function renderCharts() {
-  renderAllocationChart();
-  renderPortfolioHistoryChart();
-  renderDailyPerformanceChart();
-}
-
-function renderAllocationChart() {
+function renderChart() {
   if (!window.Chart) return;
   const labels = state.assets.map(a => a.code);
   const data = state.assets.map(a => calcAsset(a).value);
   const ctx = $("allocationChart");
-  if (!ctx) return;
   if (state.allocationChart) state.allocationChart.destroy();
 
   state.allocationChart = new Chart(ctx, {
@@ -263,8 +242,8 @@ function renderAllocationChart() {
         data,
         borderWidth: 0,
         backgroundColor: [
-          "#7f8c99","#9aa4ae","#66717c","#b1bac2","#565f68",
-          "#8b959f","#747e88","#a4adb5","#626c75","#949ea7"
+          "#4f8cff","#7d6bff","#34c799","#ffb648","#ff6b82",
+          "#31b7c9","#a27aef","#f57c52","#73b35b","#c69b43"
         ]
       }]
     },
@@ -275,171 +254,11 @@ function renderAllocationChart() {
       plugins: {
         legend: {
           position: "bottom",
-          labels: { usePointStyle:true, boxWidth:8, color: chartTextColor() }
-        },
-        tooltip: {
-          callbacks: {
-            label: (ctx) => `${ctx.label}: ${money(ctx.raw)}`
-          }
+          labels: { usePointStyle:true, boxWidth:8, color:getComputedStyle(document.documentElement).getPropertyValue("--muted") }
         }
       }
     }
   });
-}
-
-function renderPortfolioHistoryChart() {
-  if (!window.Chart) return;
-  const ctx = $("portfolioHistoryChart");
-  if (!ctx) return;
-  if (state.portfolioHistoryChart) state.portfolioHistoryChart.destroy();
-
-  const points = [...state.history]
-    .filter(x => x && x.date && Number.isFinite(Number(x.value)))
-    .sort((a,b) => String(a.date).localeCompare(String(b.date)));
-
-  $("historyPointCount").textContent = `${points.length} kayıt`;
-  $("historyEmpty").style.display = points.length < 2 ? "block" : "none";
-  ctx.style.opacity = points.length ? "1" : ".25";
-
-  state.portfolioHistoryChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: points.map(x => new Date(x.date + "T12:00:00").toLocaleDateString("tr-TR", {day:"2-digit", month:"short"})),
-      datasets: [
-        {
-          label: "Portföy Değeri",
-          data: points.map(x => Number(x.value || 0)),
-          borderColor: "#c5ccd3",
-          backgroundColor: "rgba(197,204,211,.12)",
-          fill: true,
-          tension: .32,
-          pointRadius: points.length > 20 ? 0 : 2,
-          pointHoverRadius: 5,
-          borderWidth: 2
-        },
-        {
-          label: "Ana Para",
-          data: points.map(x => Number(x.cost || 0)),
-          borderColor: "#747f89",
-          backgroundColor: "transparent",
-          fill: false,
-          tension: .25,
-          pointRadius: 0,
-          borderDash: [6,5],
-          borderWidth: 1.5
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: { mode:"index", intersect:false },
-      scales: {
-        x: {
-          grid: { display:false },
-          ticks: { color:chartTextColor(), maxRotation:0, autoSkip:true, maxTicksLimit:8 }
-        },
-        y: {
-          grid: { color:chartGridColor() },
-          ticks: {
-            color:chartTextColor(),
-            callback: value => new Intl.NumberFormat("tr-TR", {notation:"compact", maximumFractionDigits:1}).format(value) + " ₺"
-          }
-        }
-      },
-      plugins: {
-        legend: {
-          labels: { usePointStyle:true, boxWidth:8, color:chartTextColor() }
-        },
-        tooltip: {
-          callbacks: {
-            label: ctx => `${ctx.dataset.label}: ${money(ctx.raw)}`
-          }
-        }
-      }
-    }
-  });
-}
-
-function renderDailyPerformanceChart() {
-  if (!window.Chart) return;
-  const ctx = $("dailyPerformanceChart");
-  if (!ctx) return;
-  if (state.dailyPerformanceChart) state.dailyPerformanceChart.destroy();
-
-  const rows = state.assets
-    .map(a => ({ code:a.code, dailyPct:calcAsset(a).dailyPct }))
-    .sort((a,b) => b.dailyPct - a.dailyPct);
-
-  const positive = getComputedStyle(document.documentElement).getPropertyValue("--positive").trim() || "#8fa";
-  const negative = getComputedStyle(document.documentElement).getPropertyValue("--negative").trim() || "#f88";
-  const neutral = "#747f89";
-
-  state.dailyPerformanceChart = new Chart(ctx, {
-    type: "bar",
-    data: {
-      labels: rows.map(x => x.code),
-      datasets: [{
-        label: "Günlük %",
-        data: rows.map(x => x.dailyPct),
-        backgroundColor: rows.map(x => x.dailyPct > 0 ? positive : x.dailyPct < 0 ? negative : neutral),
-        borderRadius: 7,
-        borderSkipped: false,
-        maxBarThickness: 34
-      }]
-    },
-    options: {
-      indexAxis: rows.length > 6 ? "y" : "x",
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        x: {
-          grid: { color:chartGridColor() },
-          ticks: {
-            color:chartTextColor(),
-            callback: value => `${Number(value).toFixed(1)}%`
-          }
-        },
-        y: {
-          grid: { display:false },
-          ticks: { color:chartTextColor() }
-        }
-      },
-      plugins: {
-        legend: { display:false },
-        tooltip: {
-          callbacks: {
-            label: ctx => `${Number(ctx.raw).toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2})}%`
-          }
-        }
-      }
-    }
-  });
-}
-
-function recordPortfolioSnapshot() {
-  const t = totals();
-  if (!(t.value > 0 || t.cost > 0)) return;
-
-  const date = todayISO();
-  const snapshot = {
-    date,
-    value: Number(t.value.toFixed(6)),
-    cost: Number(t.cost.toFixed(6)),
-    pnl: Number(t.pnl.toFixed(6))
-  };
-
-  const existingIndex = state.history.findIndex(x => x.date === date);
-  if (existingIndex >= 0) {
-    state.history[existingIndex] = snapshot;
-  } else {
-    state.history.push(snapshot);
-  }
-
-  // localStorage'ın gereksiz büyümemesi için yaklaşık 5 yıllık günlük kayıt yeterli.
-  state.history = state.history
-    .sort((a,b) => String(a.date).localeCompare(String(b.date)))
-    .slice(-1850);
 }
 
 function fillTxAssets() {
@@ -650,7 +469,6 @@ async function refreshAll() {
       console.warn(asset.code, e);
     }
   }
-  if (success > 0) recordPortfolioSnapshot();
   save(); render();
   setStatus(`${success}/${assets.length} varlık güncellendi`, success !== assets.length);
 }
@@ -726,11 +544,11 @@ function setupSettings() {
     const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     document.documentElement.dataset.theme = next;
     saveSettings({ theme: next });
-    renderCharts();
+    renderChart();
   });
 
   $("exportBtn").addEventListener("click", () => {
-    const blob = new Blob([JSON.stringify({assets:state.assets, transactions:state.transactions, history:state.history}, null, 2)], {type:"application/json"});
+    const blob = new Blob([JSON.stringify({assets:state.assets, transactions:state.transactions}, null, 2)], {type:"application/json"});
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `portfoyum-${todayISO()}.json`;
@@ -746,7 +564,6 @@ function setupSettings() {
       if (!Array.isArray(data.assets) || !Array.isArray(data.transactions)) throw new Error("Geçersiz dosya");
       state.assets = data.assets;
       state.transactions = data.transactions;
-      state.history = Array.isArray(data.history) ? data.history : [];
       save(); render();
       alert("Portföy içe aktarıldı.");
     } catch {
@@ -758,7 +575,6 @@ function setupSettings() {
     if (!confirm("Tüm portföy ve işlem verileri silinsin mi?")) return;
     state.assets = [];
     state.transactions = [];
-    state.history = [];
     save(); render();
   });
 }
