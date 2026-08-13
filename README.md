@@ -409,3 +409,42 @@ V1.7 ile oluşturulmuş:
 aynen kullanılmaya devam eder.
 
 Cloudflare Worker tarafında değişiklik yoktur.
+
+
+## v1.9 — iPad/Safari grafik filtre düzeltmesi
+
+Bu sürümde grafik filtrelerinin bazı iPad/Safari oturumlarında görünmesine rağmen tepki vermemesi problemi için kalıcı iyileştirmeler yapıldı.
+
+### Cache busting
+
+Frontend dosyaları artık sürüm parametresiyle yüklenir:
+
+- `style.css?v=1.9.0`
+- `app.js?v=1.9.0`
+
+Böylece GitHub Pages aynı dosya adını kullansa bile Safari eski JavaScript/CSS önbelleğini kullanmaz.
+
+### Daha sağlam tarih filtresi
+
+`1A / 3A / 6A / 1Y / Tümü` butonları artık:
+
+- event delegation
+- click
+- touchend fallback
+- `touch-action: manipulation`
+
+ile çalışır.
+
+Bu yapı iPhone ve iPadOS Safari davranış farklılıklarına karşı daha dayanıklıdır.
+
+### Aktif dönem bilgisi
+
+Grafik alanında artık açık şekilde:
+
+`Gösterilen dönem: 3 Ay · 24 kayıt`
+
+gibi bir bilgi görünür.
+
+Böylece butonun gerçekten aktif olup olmadığı ve filtre sonrası kaç günlük veri gösterildiği anında anlaşılır.
+
+Cloudflare Worker tarafında değişiklik yoktur.
