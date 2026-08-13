@@ -239,3 +239,82 @@ td { font-size:13px; }
 @media (max-width: 760px) {
   .chart-wrap-wide { height: 260px; }
 }
+
+
+/* v1.8 gelişmiş grafik kontrolleri */
+.analytics-toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 4px 0 14px;
+}
+
+.analytics-toolbar h2 {
+  margin-bottom: 4px;
+}
+
+.analytics-toolbar p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.range-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  border-radius: 12px;
+}
+
+.range-btn {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 9px;
+  padding: 7px 10px;
+  min-width: 42px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.range-btn:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+
+.range-btn.active {
+  color: var(--text);
+  background: var(--panel-2);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.analytics-grid-large {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .analytics-grid-large {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 620px) {
+  .analytics-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .range-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    width: 100%;
+  }
+
+  .range-btn {
+    min-width: 0;
+    padding-inline: 6px;
+  }
+}

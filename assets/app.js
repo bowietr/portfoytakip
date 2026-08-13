@@ -6,8 +6,11 @@ const state = {
   transactions: [],
   history: [],
   filter: "all",
+  historyRange: "ALL",
   allocationChart: null,
   portfolioHistoryChart: null,
+  pnlHistoryChart: null,
+  totalPerformanceChart: null,
   dailyPerformanceChart: null
 };
 
@@ -241,10 +244,39 @@ function chartGridColor() {
   return getComputedStyle(document.documentElement).getPropertyValue("--border").trim() || "#30343a";
 }
 
+function semanticColors() {
+  return {
+    positive: getComputedStyle(document.documentElement).getPropertyValue("--positive").trim() || "#8fa",
+    negative: getComputedStyle(document.documentElement).getPropertyValue("--negative").trim() || "#f88",
+    neutral: "#747f89"
+  };
+}
+
 function renderCharts() {
   renderAllocationChart();
   renderPortfolioHistoryChart();
+  renderPnlHistoryChart();
+  renderTotalPerformanceChart();
   renderDailyPerformanceChart();
+}
+
+function historyRangeLabel(range) {
+  return ({ "1M":"1 Ay", "3M":"3 Ay", "6M":"6 Ay", "1Y":"1 Yıl", "ALL":"Tümü" })[range] || "Tümü";
+}
+
+function getFilteredHistory() {
+  const points = [...state.history]
+    .filter(x => x && x.date && Number.isFinite(Number(x.value)))
+    .sort((a,b) => String(a.date).localeCompare(String(b.date)));
+
+  if (state.historyRange === "ALL" || !points.length) return points;
+
+  const latestDate = new Date(points.at(-1).date + "T12:00:00");
+  const from = new Date(latestDate);
+  const months = { "1M":1, "3M":3, "6M":6, "1Y":12 }[state.historyRange] || 0;
+  from.setMonth(from.getMonth() - months);
+
+  return points.filter(x => new Date(x.date + "T12:00:00") >= from);
 }
 
 function renderAllocationChart() {
@@ -287,15 +319,31 @@ function renderAllocationChart() {
   });
 }
 
+function historyChartScales(currency=true) {
+  return {
+    x: {
+      grid: { display:false },
+      ticks: { color:chartTextColor(), maxRotation:0, autoSkip:true, maxTicksLimit:8 }
+    },
+    y: {
+      grid: { color:chartGridColor() },
+      ticks: {
+        color:chartTextColor(),
+        callback: value => currency
+          ? new Intl.NumberFormat("tr-TR", {notation:"compact", maximumFractionDigits:1}).format(value) + " ₺"
+          : `${Number(value).toFixed(1)}%`
+      }
+    }
+  };
+}
+
 function renderPortfolioHistoryChart() {
   if (!window.Chart) return;
   const ctx = $("portfolioHistoryChart");
   if (!ctx) return;
   if (state.portfolioHistoryChart) state.portfolioHistoryChart.destroy();
 
-  const points = [...state.history]
-    .filter(x => x && x.date && Number.isFinite(Number(x.value)))
-    .sort((a,b) => String(a.date).localeCompare(String(b.date)));
+  const points = getFilteredHistory();
 
   $("historyPointCount").textContent = `${points.length} kayıt`;
   $("historyEmpty").style.display = points.length < 2 ? "block" : "none";
@@ -334,19 +382,7 @@ function renderPortfolioHistoryChart() {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode:"index", intersect:false },
-      scales: {
-        x: {
-          grid: { display:false },
-          ticks: { color:chartTextColor(), maxRotation:0, autoSkip:true, maxTicksLimit:8 }
-        },
-        y: {
-          grid: { color:chartGridColor() },
-          ticks: {
-            color:chartTextColor(),
-            callback: value => new Intl.NumberFormat("tr-TR", {notation:"compact", maximumFractionDigits:1}).format(value) + " ₺"
-          }
-        }
-      },
+      scales: historyChartScales(true),
       plugins: {
         legend: {
           labels: { usePointStyle:true, boxWidth:8, color:chartTextColor() }
@@ -361,35 +397,88 @@ function renderPortfolioHistoryChart() {
   });
 }
 
-function renderDailyPerformanceChart() {
+function renderPnlHistoryChart() {
   if (!window.Chart) return;
-  const ctx = $("dailyPerformanceChart");
+  const ctx = $("pnlHistoryChart");
   if (!ctx) return;
-  if (state.dailyPerformanceChart) state.dailyPerformanceChart.destroy();
+  if (state.pnlHistoryChart) state.pnlHistoryChart.destroy();
+
+  const points = getFilteredHistory();
+  const { positive, negative } = semanticColors();
+  const pnlValues = points.map(x => {
+    const explicit = Number(x.pnl);
+    return Number.isFinite(explicit) ? explicit : Number(x.value || 0) - Number(x.cost || 0);
+  });
+  const lastPnl = pnlValues.at(-1) || 0;
+
+  $("pnlRangeBadge").textContent = historyRangeLabel(state.historyRange);
+  $("pnlHistoryEmpty").style.display = points.length < 2 ? "block" : "none";
+  ctx.style.opacity = points.length ? "1" : ".25";
+
+  state.pnlHistoryChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: points.map(x => new Date(x.date + "T12:00:00").toLocaleDateString("tr-TR", {day:"2-digit", month:"short"})),
+      datasets: [{
+        label: "Kâr / Zarar",
+        data: pnlValues,
+        borderColor: lastPnl >= 0 ? positive : negative,
+        backgroundColor: lastPnl >= 0 ? "rgba(83,184,142,.10)" : "rgba(222,92,112,.10)",
+        fill: true,
+        tension: .32,
+        pointRadius: points.length > 20 ? 0 : 2,
+        pointHoverRadius: 5,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode:"index", intersect:false },
+      scales: historyChartScales(true),
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          callbacks: {
+            label: ctx => `K/Z: ${money(ctx.raw)}`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderTotalPerformanceChart() {
+  if (!window.Chart) return;
+  const ctx = $("totalPerformanceChart");
+  if (!ctx) return;
+  if (state.totalPerformanceChart) state.totalPerformanceChart.destroy();
 
   const rows = state.assets
-    .map(a => ({ code:a.code, dailyPct:calcAsset(a).dailyPct }))
-    .sort((a,b) => b.dailyPct - a.dailyPct);
+    .map(a => {
+      const c = calcAsset(a);
+      return { code:a.code, type:a.type, pnlPct:c.pnlPct, pnl:c.pnl, value:c.value };
+    })
+    .filter(x => x.value > 0 || x.pnl !== 0)
+    .sort((a,b) => b.pnlPct - a.pnlPct);
 
-  const positive = getComputedStyle(document.documentElement).getPropertyValue("--positive").trim() || "#8fa";
-  const negative = getComputedStyle(document.documentElement).getPropertyValue("--negative").trim() || "#f88";
-  const neutral = "#747f89";
+  const { positive, negative, neutral } = semanticColors();
 
-  state.dailyPerformanceChart = new Chart(ctx, {
+  state.totalPerformanceChart = new Chart(ctx, {
     type: "bar",
     data: {
       labels: rows.map(x => x.code),
       datasets: [{
-        label: "Günlük %",
-        data: rows.map(x => x.dailyPct),
-        backgroundColor: rows.map(x => x.dailyPct > 0 ? positive : x.dailyPct < 0 ? negative : neutral),
+        label: "Toplam Getiri %",
+        data: rows.map(x => x.pnlPct),
+        backgroundColor: rows.map(x => x.pnlPct > 0 ? positive : x.pnlPct < 0 ? negative : neutral),
         borderRadius: 7,
         borderSkipped: false,
         maxBarThickness: 34
       }]
     },
     options: {
-      indexAxis: rows.length > 6 ? "y" : "x",
+      indexAxis: rows.length > 5 ? "y" : "x",
       responsive: true,
       maintainAspectRatio: false,
       scales: {
@@ -409,11 +498,88 @@ function renderDailyPerformanceChart() {
         legend: { display:false },
         tooltip: {
           callbacks: {
-            label: ctx => `${Number(ctx.raw).toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2})}%`
+            label: ctx => {
+              const row = rows[ctx.dataIndex];
+              return [
+                `Getiri: ${Number(ctx.raw).toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2})}%`,
+                `K/Z: ${money(row.pnl)}`
+              ];
+            }
           }
         }
       }
     }
+  });
+}
+
+function renderDailyPerformanceChart() {
+  if (!window.Chart) return;
+  const ctx = $("dailyPerformanceChart");
+  if (!ctx) return;
+  if (state.dailyPerformanceChart) state.dailyPerformanceChart.destroy();
+
+  const rows = state.assets
+    .map(a => ({ code:a.code, dailyPct:calcAsset(a).dailyPct, daily:calcAsset(a).daily }))
+    .sort((a,b) => b.dailyPct - a.dailyPct);
+
+  const { positive, negative, neutral } = semanticColors();
+
+  state.dailyPerformanceChart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: rows.map(x => x.code),
+      datasets: [{
+        label: "Günlük %",
+        data: rows.map(x => x.dailyPct),
+        backgroundColor: rows.map(x => x.dailyPct > 0 ? positive : x.dailyPct < 0 ? negative : neutral),
+        borderRadius: 7,
+        borderSkipped: false,
+        maxBarThickness: 34
+      }]
+    },
+    options: {
+      indexAxis: rows.length > 5 ? "y" : "x",
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: {
+          grid: { color:chartGridColor() },
+          ticks: {
+            color:chartTextColor(),
+            callback: value => `${Number(value).toFixed(1)}%`
+          }
+        },
+        y: {
+          grid: { display:false },
+          ticks: { color:chartTextColor() }
+        }
+      },
+      plugins: {
+        legend: { display:false },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const row = rows[ctx.dataIndex];
+              return [
+                `Günlük: ${Number(ctx.raw).toLocaleString("tr-TR", {minimumFractionDigits:2, maximumFractionDigits:2})}%`,
+                `TL etkisi: ${money(row.daily)}`
+              ];
+            }
+          }
+        }
+      }
+    }
+  });
+}
+
+function setupHistoryRangeFilters() {
+  document.querySelectorAll("[data-range]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      state.historyRange = btn.dataset.range || "ALL";
+      document.querySelectorAll("[data-range]").forEach(x => x.classList.toggle("active", x === btn));
+      renderPortfolioHistoryChart();
+      renderPnlHistoryChart();
+    });
   });
 }
 
@@ -773,6 +939,7 @@ setupNav();
 setupModals();
 setupFilters();
 setupSettings();
+setupHistoryRangeFilters();
 load();
 render();
 
