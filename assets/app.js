@@ -1,4 +1,4 @@
-const APP_VERSION = "1.10.0";
+const APP_VERSION = "1.11.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -40,7 +40,7 @@ function load() {
 
   const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
   $("apiBaseInput").value = settings.apiBase || "";
-  document.documentElement.dataset.theme = settings.theme || "dark";
+  document.documentElement.dataset.theme = settings.theme || "light";
   if ($("dataStatus")) $("dataStatus").textContent = `Portföyüm v${APP_VERSION}`;
 }
 
@@ -326,7 +326,7 @@ function semanticColors() {
   return {
     positive: getComputedStyle(document.documentElement).getPropertyValue("--positive").trim() || "#8fa",
     negative: getComputedStyle(document.documentElement).getPropertyValue("--negative").trim() || "#f88",
-    neutral: "#747f89"
+    neutral: "#9AA39D"
   };
 }
 
@@ -379,8 +379,8 @@ function renderAllocationChart() {
         data,
         borderWidth: 0,
         backgroundColor: [
-          "#7f8c99","#9aa4ae","#66717c","#b1bac2","#565f68",
-          "#8b959f","#747e88","#a4adb5","#626c75","#949ea7"
+          "#6F8877","#A7B29E","#C9B88B","#8FA6A1","#D5C9B2",
+          "#78909C","#B49A7E","#91A689","#C2A98E","#9EA6B0"
         ]
       }]
     },
@@ -442,8 +442,8 @@ function renderPortfolioHistoryChart() {
         {
           label: "Portföy Değeri",
           data: points.map(x => Number(x.value || 0)),
-          borderColor: "#c5ccd3",
-          backgroundColor: "rgba(197,204,211,.12)",
+          borderColor: "#6F8877",
+          backgroundColor: "rgba(111,136,119,.10)",
           fill: true,
           tension: .32,
           pointRadius: points.length > 20 ? 0 : 2,
@@ -453,7 +453,7 @@ function renderPortfolioHistoryChart() {
         {
           label: "Ana Para",
           data: points.map(x => Number(x.cost || 0)),
-          borderColor: "#747f89",
+          borderColor: "#B59A6A",
           backgroundColor: "transparent",
           fill: false,
           tension: .25,
