@@ -337,3 +337,266 @@ td { font-size:13px; }
     gap: 5px;
   }
 }
+
+
+/* =========================================================
+   v1.10 — Responsive Portföy Özeti
+   Masaüstü: karşılaştırma tablosu
+   Tablet / telefon: yatay kaydırmasız premium kart görünümü
+   ========================================================= */
+
+.compact-summary-grid {
+  display: none;
+}
+
+.compact-summary-card {
+  min-width: 0;
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--panel-2) 72%, transparent),
+      color-mix(in srgb, var(--panel) 96%, transparent));
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.compact-card-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+}
+
+.compact-identity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.compact-symbol {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: .02em;
+}
+
+.compact-title {
+  min-width: 0;
+}
+
+.compact-title-line {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.compact-title-line > strong {
+  font-size: 15px;
+  letter-spacing: -.01em;
+}
+
+.compact-title > span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-type-badge {
+  flex: 0 0 auto;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 3px 6px;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+
+.compact-value {
+  text-align: right;
+  min-width: 112px;
+}
+
+.compact-value span,
+.compact-performance span,
+.compact-details span {
+  display: block;
+  color: var(--muted);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+}
+
+.compact-value strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 17px;
+  letter-spacing: -.02em;
+  white-space: nowrap;
+}
+
+.compact-performance-row {
+  display: grid;
+  grid-template-columns: 1fr 1px 1fr;
+  gap: 14px;
+  align-items: stretch;
+  margin-top: 15px;
+  padding: 13px 14px;
+  border-radius: 13px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--panel) 64%, transparent);
+}
+
+.compact-performance {
+  min-width: 0;
+}
+
+.compact-performance:nth-child(3) {
+  text-align: right;
+}
+
+.compact-performance strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.compact-performance small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.compact-divider {
+  width: 1px;
+  background: var(--border);
+}
+
+.compact-details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.compact-details > div {
+  min-width: 0;
+  padding: 10px 9px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--panel-2) 80%, transparent);
+}
+
+.compact-details strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--text);
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-summary-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 28px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 15px;
+  color: var(--muted);
+}
+
+.compact-summary-empty strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 5px;
+}
+
+.compact-summary-empty span {
+  font-size: 12px;
+}
+
+/* Tablet: tablo yerine 2 sütun kart */
+@media (max-width: 1099px) {
+  .desktop-summary-table {
+    display: none;
+  }
+
+  .compact-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  /* Portföy özeti panelinde içerik kenarlara daha iyi otursun */
+  .compact-summary-grid + * {
+    min-width: 0;
+  }
+}
+
+/* Dar tablet / büyük telefon */
+@media (max-width: 820px) {
+  .compact-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Telefon */
+@media (max-width: 520px) {
+  .compact-summary-card {
+    padding: 14px;
+  }
+
+  .compact-card-head {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .compact-value {
+    text-align: left;
+    min-width: 0;
+    padding-left: 53px;
+  }
+
+  .compact-value strong {
+    font-size: 18px;
+  }
+
+  .compact-performance-row {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .compact-performance strong {
+    font-size: 13px;
+  }
+}
+
+/* Masaüstünde tablo her zaman görünür */
+@media (min-width: 1100px) {
+  .desktop-summary-table {
+    display: block;
+  }
+}

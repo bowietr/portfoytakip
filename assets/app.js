@@ -1,4 +1,4 @@
-const APP_VERSION = "1.9.0";
+const APP_VERSION = "1.10.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -117,6 +117,7 @@ function totals() {
 function render() {
   renderSummary();
   renderTables();
+  renderDashboardCompactCards();
   renderCards();
   renderTransactions();
   renderTopPositions();
@@ -165,6 +166,81 @@ function renderTables() {
   $("dashboardTable").innerHTML = state.assets.length
     ? state.assets.map(rowHtml).join("")
     : `<tr><td colspan="8" class="empty-state">Henüz portföyünüze varlık eklemediniz.</td></tr>`;
+}
+
+function renderDashboardCompactCards() {
+  const container = $("dashboardCompactCards");
+  if (!container) return;
+
+  if (!state.assets.length) {
+    container.innerHTML = `
+      <div class="compact-summary-empty">
+        <strong>Henüz varlık yok</strong>
+        <span>Portföyüne fon veya hisse eklediğinde özet burada görünecek.</span>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = state.assets.map(asset => {
+    const c = calcAsset(asset);
+    const pnlCls = c.pnl >= 0 ? "positive" : "negative";
+    const dailyCls = c.daily >= 0 ? "positive" : "negative";
+    const typeLabel = asset.type === "fund" ? "Fon" : "Hisse";
+    const typeLong = asset.type === "fund" ? "Yatırım Fonu" : "BIST Hissesi";
+
+    return `
+      <article class="compact-summary-card">
+        <div class="compact-card-head">
+          <div class="compact-identity">
+            <div class="compact-symbol">${escapeHtml(asset.code.slice(0, 3))}</div>
+            <div class="compact-title">
+              <div class="compact-title-line">
+                <strong>${escapeHtml(asset.code)}</strong>
+                <span class="compact-type-badge">${typeLabel}</span>
+              </div>
+              <span>${escapeHtml(asset.name || typeLong)}</span>
+            </div>
+          </div>
+          <div class="compact-value">
+            <span>Portföy değeri</span>
+            <strong>${money(c.value)}</strong>
+          </div>
+        </div>
+
+        <div class="compact-performance-row">
+          <div class="compact-performance">
+            <span>Toplam K/Z</span>
+            <strong class="${pnlCls}">${money(c.pnl)}</strong>
+            <small class="${pnlCls}">${pct(c.pnlPct)}</small>
+          </div>
+          <div class="compact-divider"></div>
+          <div class="compact-performance">
+            <span>Günlük</span>
+            <strong class="${dailyCls}">${money(c.daily)}</strong>
+            <small class="${dailyCls}">${pct(c.dailyPct)}</small>
+          </div>
+        </div>
+
+        <div class="compact-details">
+          <div>
+            <span>Adet</span>
+            <strong>${num(c.qty)}</strong>
+          </div>
+          <div>
+            <span>Ort. maliyet</span>
+            <strong>${money(c.avg)}</strong>
+          </div>
+          <div>
+            <span>Güncel fiyat</span>
+            <strong>${money(c.currentPrice)}</strong>
+          </div>
+          <div>
+            <span>Önceki fiyat</span>
+            <strong>${money(c.prevPrice)}</strong>
+          </div>
+        </div>
+      </article>`;
+  }).join("");
 }
 
 function renderCards() {
