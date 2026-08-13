@@ -448,3 +448,42 @@ gibi bir bilgi görünür.
 Böylece butonun gerçekten aktif olup olmadığı ve filtre sonrası kaç günlük veri gösterildiği anında anlaşılır.
 
 Cloudflare Worker tarafında değişiklik yoktur.
+
+
+## v1.10 — Responsive Portföy Özeti
+
+Portföy Özeti bölümü tablet ve telefonlarda yeniden tasarlandı.
+
+### Masaüstü
+
+1100 px ve üzerindeki ekranlarda mevcut tablo görünümü korunur. Geniş ekranda çok sayıda metriği yan yana karşılaştırmak için tablo en verimli görünüm olmaya devam eder.
+
+### Tablet ve telefon
+
+1100 px altındaki ekranlarda yatay kaydırmalı tablo artık gösterilmez. Her varlık ayrı, kompakt bir özet kartına dönüşür.
+
+Kartlarda öne çıkarılan bilgiler:
+
+- Varlık kodu ve türü
+- Portföy değeri
+- Toplam kâr / zarar (TL + %)
+- Günlük değişim (TL + %)
+- Adet
+- Ortalama maliyet
+- Güncel fiyat
+- Önceki fiyat
+
+Tabletlerde uygun olduğunda iki sütun, daha dar ekranlarda tek sütun kullanılır.
+
+Bu düzen sayesinde Portföy Özeti bölümünde yatay kaydırma ihtiyacı ortadan kaldırılmıştır.
+
+### Cache
+
+Frontend dosyaları V1.10 için:
+
+- `style.css?v=1.10.0`
+- `app.js?v=1.10.0`
+
+olarak yüklenir.
+
+Cloudflare Worker tarafında değişiklik yoktur.

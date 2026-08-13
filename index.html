@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1220" />
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.9.0" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.10.0" />
 </head>
 <body>
   <div class="app-shell">
@@ -176,23 +176,27 @@
             </div>
             <button class="secondary-btn" data-open-modal="asset">+ Varlık Ekle</button>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Varlık</th>
-                  <th>Tür</th>
-                  <th>Adet</th>
-                  <th>Ort. Maliyet</th>
-                  <th>Güncel Fiyat</th>
-                  <th>Günlük</th>
-                  <th>Değer</th>
-                  <th>K/Z</th>
-                </tr>
-              </thead>
-              <tbody id="dashboardTable"></tbody>
-            </table>
+          <div class="desktop-summary-table">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Varlık</th>
+                    <th>Tür</th>
+                    <th>Adet</th>
+                    <th>Ort. Maliyet</th>
+                    <th>Güncel Fiyat</th>
+                    <th>Günlük</th>
+                    <th>Değer</th>
+                    <th>K/Z</th>
+                  </tr>
+                </thead>
+                <tbody id="dashboardTable"></tbody>
+              </table>
+            </div>
           </div>
+
+          <div id="dashboardCompactCards" class="compact-summary-grid" aria-live="polite"></div>
         </article>
       </section>
 
@@ -372,6 +376,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.9.0"></script>
+  <script src="./assets/app.js?v=1.10.0"></script>
 </body>
 </html>
