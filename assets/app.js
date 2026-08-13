@@ -1,3 +1,4 @@
+const APP_VERSION = "1.9.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -40,6 +41,7 @@ function load() {
   const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
   $("apiBaseInput").value = settings.apiBase || "";
   document.documentElement.dataset.theme = settings.theme || "dark";
+  if ($("dataStatus")) $("dataStatus").textContent = `Portföyüm v${APP_VERSION}`;
 }
 
 function save() {
@@ -264,6 +266,12 @@ function historyRangeLabel(range) {
   return ({ "1M":"1 Ay", "3M":"3 Ay", "6M":"6 Ay", "1Y":"1 Yıl", "ALL":"Tümü" })[range] || "Tümü";
 }
 
+function updateHistoryRangeSummary(points = getFilteredHistory()) {
+  const el = $("historyRangeSummary");
+  if (!el) return;
+  el.textContent = `Gösterilen dönem: ${historyRangeLabel(state.historyRange)} · ${points.length} kayıt`;
+}
+
 function getFilteredHistory() {
   const points = [...state.history]
     .filter(x => x && x.date && Number.isFinite(Number(x.value)))
@@ -344,6 +352,7 @@ function renderPortfolioHistoryChart() {
   if (state.portfolioHistoryChart) state.portfolioHistoryChart.destroy();
 
   const points = getFilteredHistory();
+  updateHistoryRangeSummary(points);
 
   $("historyPointCount").textContent = `${points.length} kayıt`;
   $("historyEmpty").style.display = points.length < 2 ? "block" : "none";
@@ -573,14 +582,47 @@ function renderDailyPerformanceChart() {
 }
 
 function setupHistoryRangeFilters() {
-  document.querySelectorAll("[data-range]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      state.historyRange = btn.dataset.range || "ALL";
-      document.querySelectorAll("[data-range]").forEach(x => x.classList.toggle("active", x === btn));
-      renderPortfolioHistoryChart();
-      renderPnlHistoryChart();
+  const container = $("historyRangeTabs");
+  if (!container) return;
+
+  const activateRange = (btn) => {
+    if (!btn || !btn.dataset.range) return;
+    state.historyRange = btn.dataset.range || "ALL";
+
+    container.querySelectorAll("[data-range]").forEach(x => {
+      x.classList.toggle("active", x === btn);
+      x.setAttribute("aria-pressed", x === btn ? "true" : "false");
     });
+
+    renderPortfolioHistoryChart();
+    renderPnlHistoryChart();
+  };
+
+  // Event delegation: iOS/iPadOS Safari'de dinamik/önbellek kaynaklı
+  // bireysel listener sorunlarına karşı daha dayanıklı.
+  container.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-range]");
+    if (!btn || !container.contains(btn)) return;
+    e.preventDefault();
+    activateRange(btn);
   });
+
+  // Touch fallback: bazı iPadOS sürümlerinde click gecikebilir/kaçabilir.
+  container.addEventListener("touchend", (e) => {
+    const btn = e.target.closest("[data-range]");
+    if (!btn || !container.contains(btn)) return;
+    e.preventDefault();
+    activateRange(btn);
+  }, { passive: false });
+
+  const active = container.querySelector("[data-range].active") || container.querySelector("[data-range='ALL']");
+  if (active) {
+    container.querySelectorAll("[data-range]").forEach(x => {
+      x.setAttribute("aria-pressed", x === active ? "true" : "false");
+    });
+  }
+
+  updateHistoryRangeSummary();
 }
 
 function recordPortfolioSnapshot() {

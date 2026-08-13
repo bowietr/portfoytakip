@@ -318,3 +318,22 @@ td { font-size:13px; }
     padding-inline: 6px;
   }
 }
+
+
+/* v1.9 iPad / Safari grafik filtre sağlamlaştırması */
+.range-btn {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 38px;
+}
+
+@media (min-width: 700px) and (max-width: 1100px) {
+  .range-btn {
+    min-width: 48px;
+    padding: 9px 12px;
+  }
+
+  .range-tabs {
+    gap: 5px;
+  }
+}
