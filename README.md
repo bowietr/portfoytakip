@@ -353,3 +353,59 @@ Aynı gün tekrar güncelleme yapılırsa yeni satır oluşturmak yerine o gün�
 Eski v1.6 portföy verileri korunur. Grafik geçmişi v1.7'ye geçildiği andan itibaren oluşmaya başlar.
 
 JSON dışa aktarma / içe aktarma işlemlerine grafik geçmişi de dahil edilmiştir.
+
+
+## v1.8 — Gelişmiş grafik analizi
+
+Dashboard grafik alanı genişletildi.
+
+### Tarih aralığı filtreleri
+
+Portföy Gelişimi ve Kâr/Zarar Gelişimi grafiklerinde:
+
+- 1A
+- 3A
+- 6A
+- 1Y
+- Tümü
+
+filtreleri kullanılabilir.
+
+Filtreler portföy geçmişindeki mevcut günlük snapshot kayıtları üzerinde çalışır.
+
+### Yeni grafik: Kâr / Zarar Gelişimi
+
+Portföyün her günlük kaydında:
+
+`portföy değeri - maliyet`
+
+farkını zaman içinde gösterir.
+
+Grafik pozitif bölgede yeşil, negatif bölgede kırmızı eğilim kullanır.
+
+### Yeni grafik: Toplam Getiri Karşılaştırması
+
+Portföydeki fon ve hisseleri mevcut ortalama maliyetlerine göre toplam getiri yüzdesiyle karşılaştırır.
+
+Her varlık için:
+
+`(güncel değer - kalan maliyet) / kalan maliyet * 100`
+
+kullanılır.
+
+### Günlük Performans
+
+Mevcut günlük performans grafiği korunmuştur ve tooltip içerisinde günlük TL etkisi de gösterilir.
+
+### Geriye dönük uyumluluk
+
+V1.7 ile oluşturulmuş:
+
+- varlıklar
+- işlemler
+- fiyatlar
+- portföy geçmişi
+
+aynen kullanılmaya devam eder.
+
+Cloudflare Worker tarafında değişiklik yoktur.

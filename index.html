@@ -94,7 +94,21 @@
           </article>
         </div>
 
-        <div class="analytics-grid">
+        <div class="analytics-toolbar">
+          <div>
+            <h2>Portföy Analizi</h2>
+            <p>Performansı farklı açılardan karşılaştır</p>
+          </div>
+          <div class="range-tabs" id="historyRangeTabs" aria-label="Grafik tarih aralığı">
+            <button class="range-btn" data-range="1M">1A</button>
+            <button class="range-btn" data-range="3M">3A</button>
+            <button class="range-btn" data-range="6M">6A</button>
+            <button class="range-btn" data-range="1Y">1Y</button>
+            <button class="range-btn active" data-range="ALL">Tümü</button>
+          </div>
+        </div>
+
+        <div class="analytics-grid analytics-grid-large">
           <article class="panel chart-panel">
             <div class="panel-head">
               <div>
@@ -114,9 +128,39 @@
           <article class="panel chart-panel">
             <div class="panel-head">
               <div>
+                <h2>Kâr / Zarar Gelişimi</h2>
+                <p>Portföyün ana paraya göre farkı</p>
+              </div>
+              <span class="chart-badge" id="pnlRangeBadge">Tümü</span>
+            </div>
+            <div class="chart-wrap chart-wrap-wide">
+              <canvas id="pnlHistoryChart"></canvas>
+            </div>
+            <div id="pnlHistoryEmpty" class="chart-empty">
+              En az iki günlük portföy kaydı oluştuğunda grafik burada görünecek.
+            </div>
+          </article>
+
+          <article class="panel chart-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Toplam Getiri Karşılaştırması</h2>
+                <p>Varlıkların mevcut maliyetine göre getirisi</p>
+              </div>
+              <span class="chart-badge">%</span>
+            </div>
+            <div class="chart-wrap chart-wrap-wide">
+              <canvas id="totalPerformanceChart"></canvas>
+            </div>
+          </article>
+
+          <article class="panel chart-panel">
+            <div class="panel-head">
+              <div>
                 <h2>Günlük Performans</h2>
                 <p>Fon ve hisselerin günlük değişimi</p>
               </div>
+              <span class="chart-badge">%</span>
             </div>
             <div class="chart-wrap chart-wrap-wide">
               <canvas id="dailyPerformanceChart"></canvas>
