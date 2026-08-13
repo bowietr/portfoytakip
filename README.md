@@ -487,3 +487,59 @@ Frontend dosyaları V1.10 için:
 olarak yüklenir.
 
 Cloudflare Worker tarafında değişiklik yoktur.
+
+
+## v1.11 — Premium Wealth Theme
+
+V1.11 ile uygulamanın görsel dili tamamen yenilendi.
+
+### Yeni tasarım yaklaşımı
+
+Arayüz artık klasik koyu finans terminali yerine özel bankacılık / wealth management uygulamalarına daha yakın bir görsel dile sahiptir.
+
+- Açık krem / taş zemin
+- Beyaz ve sıcak yüzey kartları
+- Adaçayı yeşili ana vurgu
+- Yumuşak altın tonlu ikincil detaylar
+- Daha düşük kontrastlı, göz yormayan çerçeveler
+- Hafif ve kontrollü gölgeler
+- Daha geniş boşluk kullanımı
+- Premium kart yüzeyleri
+
+### Tipografi
+
+Arayüzde iki font ailesi kullanılır:
+
+- **Manrope** — başlıklar, rakamlar ve önemli finansal değerler
+- **DM Sans** — gövde metinleri, açıklamalar ve kontroller
+
+Fontlar Google Fonts üzerinden yüklenir ve sistem fontları fallback olarak korunur.
+
+### Tema
+
+Açık tema artık varsayılandır.
+
+Koyu tema kaldırılmamıştır; daha sıcak, yeşilimsi grafit tonlarla yeniden tasarlanmıştır.
+
+### Grafik paleti
+
+Grafik renkleri yeni temaya uyacak şekilde:
+
+- sage / adaçayı
+- sıcak gri
+- yumuşak altın
+- mavi-gri
+- doğal bej
+
+tonlarına taşındı.
+
+### Cache
+
+Frontend:
+
+- `style.css?v=1.11.0`
+- `app.js?v=1.11.0`
+
+olarak yüklenir.
+
+Cloudflare Worker değişikliği yoktur.
