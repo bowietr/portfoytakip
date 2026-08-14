@@ -1,4 +1,4 @@
-const APP_VERSION = "1.12.0";
+const APP_VERSION = "1.13.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -12,7 +12,8 @@ const state = {
   portfolioHistoryChart: null,
   pnlHistoryChart: null,
   totalPerformanceChart: null,
-  dailyPerformanceChart: null
+  dailyPerformanceChart: null,
+  researchChart: null
 };
 
 const $ = (id) => document.getElementById(id);
@@ -939,6 +940,181 @@ async function refreshAll() {
   setStatus(`${success}/${assets.length} varlık güncellendi`, success !== assets.length);
 }
 
+
+function compactNumber(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return "—";
+  return new Intl.NumberFormat("tr-TR", { notation:"compact", maximumFractionDigits:2 }).format(v);
+}
+
+function metricValue(value, format="number") {
+  if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) return "—";
+  const n = Number(value);
+  if (format === "money") return money(n);
+  if (format === "percent") return pct(n);
+  if (format === "compactMoney") return `${compactNumber(n)} ₺`;
+  if (format === "compact") return compactNumber(n);
+  if (format === "ratio") return new Intl.NumberFormat("tr-TR", {maximumFractionDigits:2}).format(n);
+  return num(n, 2);
+}
+
+function researchMetricCard(label, value, format="number", tone="") {
+  return `<article class="research-metric-card ${tone}"><span>${escapeHtml(label)}</span><strong>${metricValue(value, format)}</strong></article>`;
+}
+
+function researchDetailItem(label, value, format="number", helper="") {
+  return `<div class="research-detail-item"><span>${escapeHtml(label)}</span><strong>${metricValue(value, format)}</strong>${helper ? `<small>${escapeHtml(helper)}</small>` : ""}</div>`;
+}
+
+async function fetchResearch(type, code) {
+  const base = getApiBase();
+  if (!base) throw new Error("Önce Ayarlar bölümünden Worker URL adresini kaydedin.");
+  const cleanCode = String(code || "").trim().toUpperCase().replace(/\.IS$/, "");
+  const r = await fetch(`${base}/api/research/${type}/${encodeURIComponent(cleanCode)}`, { headers:{"Accept":"application/json"} });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.ok === false) throw new Error(data.error || `API hatası (${r.status})`);
+  return data;
+}
+
+function renderResearchPerformanceChart(data, type) {
+  if (!window.Chart) return;
+  const ctx = $("researchChart");
+  if (!ctx) return;
+  if (state.researchChart) state.researchChart.destroy();
+
+  const p = data.performance || {};
+  const rows = [
+    ["1H", p.week], ["1A", p.month1], ["3A", p.month3], ["6A", p.month6], ["1Y", p.year1]
+  ].filter(([,v]) => Number.isFinite(Number(v)));
+  const colors = semanticColors();
+
+  $("researchChartTitle").textContent = type === "fund" ? "Fon Performansı" : "Hisse Performansı";
+  $("researchChartSubtitle").textContent = rows.length ? "Seçili dönemlerde yüzde getiri" : "Dönemsel veri bulunamadı";
+
+  state.researchChart = new Chart(ctx, {
+    type:"bar",
+    data:{
+      labels:rows.map(x => x[0]),
+      datasets:[{
+        data:rows.map(x => Number(x[1])),
+        backgroundColor:rows.map(x => Number(x[1]) >= 0 ? colors.positive : colors.negative),
+        borderRadius:8,
+        borderSkipped:false,
+        maxBarThickness:44
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      scales:{
+        x:{grid:{display:false},ticks:{color:chartTextColor()}},
+        y:{grid:{color:chartGridColor()},ticks:{color:chartTextColor(),callback:v => `${Number(v).toFixed(0)}%`}}
+      },
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx => `${Number(ctx.raw).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})}%`}}}
+    }
+  });
+}
+
+function renderFundResearch(data) {
+  const d = data.data || data;
+  const daily = Number(d.changePercent);
+  const dailyCls = daily >= 0 ? "positive" : "negative";
+  $("researchLogo").textContent = d.code?.slice(0,3) || "FON";
+  $("researchName").textContent = d.name || d.code;
+  $("researchBadge").textContent = "YATIRIM FONU";
+  $("researchMeta").textContent = `${d.code} · TEFAS · ${d.date ? new Date(d.date).toLocaleDateString("tr-TR") : "Son veri"}`;
+  $("researchPrice").textContent = money(d.price);
+  $("researchDaily").className = `research-daily ${dailyCls}`;
+  $("researchDaily").textContent = Number.isFinite(daily) ? `${daily >= 0 ? "+" : ""}${pct(daily)} · ${money(d.change)}` : "Günlük veri yok";
+
+  const perf=d.performance||{}, risk=d.risk||{}, stats=d.stats||{}, meta=d.metadata||{};
+  $("researchPrimaryMetrics").innerHTML = [
+    researchMetricCard("1 Aylık", perf.month1, "percent", Number(perf.month1)>=0?"gain":"loss"),
+    researchMetricCard("3 Aylık", perf.month3, "percent", Number(perf.month3)>=0?"gain":"loss"),
+    researchMetricCard("6 Aylık", perf.month6, "percent", Number(perf.month6)>=0?"gain":"loss"),
+    researchMetricCard("1 Yıllık", perf.year1, "percent", Number(perf.year1)>=0?"gain":"loss")
+  ].join("");
+
+  $("researchDetailTitle").textContent = "Risk ve Fiyat İstatistikleri";
+  $("researchDetailMetrics").innerHTML = [
+    researchDetailItem("52H En Yüksek", stats.high52w, "money"),
+    researchDetailItem("52H En Düşük", stats.low52w, "money"),
+    researchDetailItem("Zirveye Uzaklık", stats.distanceFromHighPct, "percent"),
+    researchDetailItem("Yıllıklandırılmış Oynaklık", risk.annualizedVolatilityPct, "percent"),
+    researchDetailItem("Maks. Düşüş", risk.maxDrawdownPct, "percent"),
+    researchDetailItem("Pozitif Gün Oranı", risk.positiveDayRatioPct, "percent"),
+    researchDetailItem("Gözlem Sayısı", stats.observations, "number"),
+    researchDetailItem("Risk Değeri", meta.riskValue, "number")
+  ].join("");
+
+  const extras=[];
+  if (Number.isFinite(Number(meta.fundTotalValue)) || Number.isFinite(Number(meta.investorCount))) {
+    extras.push(`<article class="panel research-mini-panel"><h3>Fon Büyüklüğü</h3><div class="research-detail-grid">${researchDetailItem("Fon Toplam Değeri",meta.fundTotalValue,"compactMoney")}${researchDetailItem("Yatırımcı Sayısı",meta.investorCount,"compact")}</div></article>`);
+  }
+  $("researchSecondarySections").innerHTML=extras.join("");
+  $("researchDisclaimer").textContent = "Performans ve risk metrikleri TEFAS fiyat geçmişinden hesaplanır. Geçmiş getiri gelecekteki performansı garanti etmez.";
+  renderResearchPerformanceChart(d,"fund");
+}
+
+function renderStockResearch(data) {
+  const d=data.data||data;
+  const daily=Number(d.changePercent), dailyCls=daily>=0?"positive":"negative";
+  $("researchLogo").textContent=d.code?.slice(0,3)||"BIST";
+  $("researchName").textContent=d.name||d.code;
+  $("researchBadge").textContent="BIST HİSSESİ";
+  const sector=[d.sector,d.industry].filter(Boolean).join(" · ");
+  $("researchMeta").textContent=`${d.code} · Borsa İstanbul${sector ? " · "+sector : ""}`;
+  $("researchPrice").textContent=money(d.price);
+  $("researchDaily").className=`research-daily ${dailyCls}`;
+  $("researchDaily").textContent=Number.isFinite(daily)?`${daily>=0?"+":""}${pct(daily)} · ${money(d.change)}`:"Günlük veri yok";
+
+  const f=d.fundamentals||{}, t=d.technicals||{}, s=d.stats||{};
+  $("researchPrimaryMetrics").innerHTML=[
+    researchMetricCard("Piyasa Değeri",f.marketCap,"compactMoney"),
+    researchMetricCard("F/K",f.pe,"ratio"),
+    researchMetricCard("PD/DD",f.priceToBook,"ratio"),
+    researchMetricCard("Temettü Verimi",f.dividendYield,"percent")
+  ].join("");
+
+  $("researchDetailTitle").textContent="Finansal ve Teknik Metrikler";
+  $("researchDetailMetrics").innerHTML=[
+    researchDetailItem("Hacim",d.volume,"compact"),
+    researchDetailItem("Hisse Başına Kâr (TTM)",f.epsTtm,"money"),
+    researchDetailItem("Beta (1Y)",f.beta1y,"ratio"),
+    researchDetailItem("52H En Yüksek",s.high52w,"money"),
+    researchDetailItem("52H En Düşük",s.low52w,"money"),
+    researchDetailItem("RSI",t.rsi,"ratio"),
+    researchDetailItem("SMA50",t.sma50,"money"),
+    researchDetailItem("SMA200",t.sma200,"money")
+  ].join("");
+
+  const perf=d.performance||{};
+  $("researchSecondarySections").innerHTML=`<article class="panel research-mini-panel"><div class="panel-head"><div><h2>Performans Özeti</h2><p>Farklı dönemlerde fiyat değişimi</p></div></div><div class="research-detail-grid">${researchDetailItem("1 Hafta",perf.week,"percent")}${researchDetailItem("1 Ay",perf.month1,"percent")}${researchDetailItem("3 Ay",perf.month3,"percent")}${researchDetailItem("6 Ay",perf.month6,"percent")}${researchDetailItem("1 Yıl",perf.year1,"percent")}${researchDetailItem("Teknik Skor",t.recommendation,"ratio","-1 güçlü sat / +1 güçlü al")}</div></article>`;
+  $("researchDisclaimer").textContent="BIST metrikleri gecikmeli piyasa/veri tarayıcı verisinden gelir. Gösterilen değerler yatırım tavsiyesi değildir.";
+  renderResearchPerformanceChart(d,"stock");
+}
+
+function setupResearch() {
+  const form=$("researchForm");
+  if (!form) return;
+  form.addEventListener("submit", async e => {
+    e.preventDefault();
+    const type=$("researchType").value;
+    const code=$("researchCode").value.trim().toUpperCase().replace(/\.IS$/,"");
+    if (!code) return;
+    $("researchStatus").textContent=`${code} verileri getiriliyor…`;
+    $("researchResult").hidden=true;
+    try {
+      const data=await fetchResearch(type,code);
+      $("researchResult").hidden=false;
+      type==="fund"?renderFundResearch(data):renderStockResearch(data);
+      $("researchStatus").textContent=`${code} başarıyla yüklendi.`;
+    } catch(err) {
+      $("researchStatus").textContent=`Hata: ${err.message}`;
+    }
+  });
+}
+
 function setStatus(text, error=false) {
   const el = $("dataStatus");
   el.textContent = text;
@@ -950,7 +1126,7 @@ function escapeHtml(s="") {
 }
 
 function setupNav() {
-  const titles = { dashboard:"Genel Bakış", portfolio:"Portföy", transactions:"İşlemler", settings:"Ayarlar" };
+  const titles = { dashboard:"Genel Bakış", portfolio:"Portföy", transactions:"İşlemler", research:"Varlık Araştır", settings:"Ayarlar" };
   document.querySelectorAll(".nav-item").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-item").forEach(x => x.classList.remove("active"));
@@ -1058,6 +1234,7 @@ setupModals();
 setupFilters();
 setupSettings();
 setupHistoryRangeFilters();
+setupResearch();
 load();
 render();
 
