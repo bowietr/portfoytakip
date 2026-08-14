@@ -1,4 +1,4 @@
-const APP_VERSION = "1.14.2";
+const APP_VERSION = "1.14.3";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1209,9 +1209,9 @@ function renderFundResearch(data) {
 
   $("researchDetailTitle").textContent = "Risk ve Fiyat İstatistikleri";
   $("researchDetailMetrics").innerHTML = [
-    researchDetailItem("Sharpe Oranı", risk.sharpe, "ratio", "0% risksiz faiz varsayımı"),
-    researchDetailItem("Sortino Oranı", risk.sortino, "ratio", "Sadece aşağı yönlü risk"),
-    researchDetailItem("Calmar Oranı", risk.calmar, "ratio", "Yıllık getiri / maks. düşüş"),
+    researchDetailItem("Sharpe Oranı", risk.sharpe, "ratio", "Günlük excess getiri · √252"),
+    researchDetailItem("Sortino Oranı", risk.sortino, "ratio", "MAR %0 · downside deviation"),
+    researchDetailItem("Calmar Oranı", risk.calmar, "ratio", "CAGR / |maks. drawdown|"),
     researchDetailItem("Yıllıklandırılmış Getiri", perf.annualizedReturnPct, "percent"),
     researchDetailItem("Yıllıklandırılmış Oynaklık", risk.annualizedVolatilityPct, "percent"),
     researchDetailItem("30G Oynaklık", risk.volatility30dPct, "percent"),
@@ -1251,15 +1251,15 @@ function renderFundResearch(data) {
   const scorePanel = `<article class="panel research-mini-panel research-score-panel">
     <div class="panel-head"><div><h2>Risk-Getiri Özeti</h2><p>1 yıllık fiyat geçmişinden hesaplanır</p></div></div>
     <div class="research-score-grid">
-      ${researchScoreCard("Sharpe",risk.sharpe,"Yüksek daha iyi")}
-      ${researchScoreCard("Sortino",risk.sortino,"Aşağı risk odaklı")}
-      ${researchScoreCard("Calmar",risk.calmar,"Drawdown odaklı")}
+      ${researchScoreCard("Sharpe",risk.sharpe,"Günlük excess · √252")}
+      ${researchScoreCard("Sortino",risk.sortino,"MAR %0")}
+      ${researchScoreCard("Calmar",risk.calmar,"CAGR / Drawdown")}
       ${researchScoreCard("Risk",meta.riskValue,meta.riskLabel||"TEFAS")}
     </div>
   </article>`;
 
   $("researchSecondarySections").innerHTML = sizePanel + feePanel + scorePanel;
-  $("researchDisclaimer").textContent = "Sharpe ve Sortino hesaplarında risksiz faiz %0 varsayılmıştır. Performans, risk ve grafikler TEFAS fiyat geçmişinden; ücret bilgileri bulunabildiğinde KAP'tan alınır. Geçmiş getiri gelecekteki performansı garanti etmez.";
+  $("researchDisclaimer").textContent = "Sharpe için risksiz faiz, Sortino için minimum kabul edilebilir getiri %0 varsayılmıştır. Sharpe günlük excess getirilerden, Sortino tüm dönemlerdeki downside deviation ile, Calmar CAGR / maksimum drawdown olarak hesaplanır. Performans, risk ve grafikler TEFAS fiyat geçmişinden; ücret bilgileri bulunabildiğinde KAP'tan alınır. Geçmiş getiri gelecekteki performansı garanti etmez.";
 
   renderResearchPerformanceChart(d,"fund");
   renderFundAdvancedCharts(d);

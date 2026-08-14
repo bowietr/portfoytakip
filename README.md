@@ -824,3 +824,41 @@ Değişiklikler:
 - Koyu tema değiştirilmeden ayrı seçenek olarak korunur.
 
 Frontend, Worker ve README sürümü `1.14.2` olarak senkronlanmıştır.
+
+
+## V1.14.3 — Sharpe / Sortino / Calmar Formül Düzeltmesi
+
+Risk ayarlı getiri oranları standart dönemsel getiri yaklaşımına göre yeniden hesaplanmıştır.
+
+### Sharpe
+Eski sürümde kullanılan `CAGR / yıllık volatilite` yaklaşımı kaldırıldı.
+
+Yeni formül:
+
+`Sharpe = Ortalama Günlük Excess Getiri / Günlük Excess Getiri Standart Sapması × √252`
+
+Risksiz faiz şu an `%0` varsayılır.
+
+### Sortino
+Downside deviation artık yalnızca negatif gün sayısına bölünmez.
+
+Yeni yaklaşım:
+
+`Downside = sqrt( mean( min(R - MAR, 0)^2 ) )`
+
+Buradaki ortalama tüm gözlem dönemlerini kapsar.
+
+Annualized Sortino:
+
+`(Ortalama günlük excess getiri × 252) / (Günlük downside deviation × √252)`
+
+MAR (minimum kabul edilebilir getiri) `%0` varsayılır.
+
+### Calmar
+Aynı 1 yıllık TEFAS fiyat serisi için:
+
+`Calmar = CAGR / |Maximum Drawdown|`
+
+kullanılır.
+
+Kartların alt açıklamaları da kullanılan yöntemi gösterecek şekilde güncellenmiştir.

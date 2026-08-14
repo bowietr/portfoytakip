@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.14.2" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.14.3" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -690,29 +690,73 @@ function dailyReturns(hist) {
   return out;
 }
 
-function downsideDeviationAnnualPct(returns) {
-  const vals = returns.map(x => x.value).filter(x => Number.isFinite(x) && x < 0);
-  if (!vals.length) return 0;
-  const meanSq = vals.reduce((a,b) => a + b*b, 0) / vals.length;
+function arithmeticMean(values) {
+  const vals = values.filter(Number.isFinite);
+  if (!vals.length) return null;
+  return vals.reduce((a,b) => a+b, 0) / vals.length;
+}
+
+function downsideDeviationAnnualPct(returns, targetDaily = 0) {
+  // Sortino downside deviation:
+  // sqrt( mean( min(Rt - MAR, 0)^2 ) ) * sqrt(252)
+  // Önemli: payda yalnızca negatif gün sayısı değil, TÜM dönem sayısıdır.
+  const vals = returns.map(x => x.value).filter(Number.isFinite);
+  if (!vals.length) return null;
+
+  const downsideSquares = vals.map(r => {
+    const diff = r - targetDaily;
+    return diff < 0 ? diff * diff : 0;
+  });
+
+  const meanSq = downsideSquares.reduce((a,b) => a+b, 0) / downsideSquares.length;
   return Math.sqrt(meanSq) * Math.sqrt(252) * 100;
 }
 
-function sharpeRatio(annualReturnPct, annualVolPct) {
-  if (!Number.isFinite(annualReturnPct) || !(annualVolPct > 0)) return null;
-  // Risk-free oran bilinçli olarak 0 kabul edilir; frontend bunu açıkça belirtir.
-  return annualReturnPct / annualVolPct;
+function sharpeRatioFromDailyReturns(returns, riskFreeAnnualPct = 0) {
+  // Annualized Sharpe = mean(daily excess return) / sd(daily excess return) * sqrt(252)
+  const vals = returns.map(x => x.value).filter(Number.isFinite);
+  if (vals.length < 2) return null;
+
+  const rfDaily = Math.pow(1 + riskFreeAnnualPct / 100, 1 / 252) - 1;
+  const excess = vals.map(r => r - rfDaily);
+  const avg = arithmeticMean(excess);
+  const sd = stdev(excess);
+
+  if (!Number.isFinite(avg) || !(sd > 0)) return null;
+  return (avg / sd) * Math.sqrt(252);
 }
 
-function sortinoRatio(annualReturnPct, downsideDevPct) {
-  if (!Number.isFinite(annualReturnPct)) return null;
-  if (downsideDevPct === 0) return annualReturnPct > 0 ? null : 0;
-  if (!(downsideDevPct > 0)) return null;
-  return annualReturnPct / downsideDevPct;
+function sortinoRatioFromDailyReturns(returns, targetAnnualPct = 0) {
+  // Annualized arithmetic Sortino:
+  // annualized average excess return / annualized downside deviation.
+  const vals = returns.map(x => x.value).filter(Number.isFinite);
+  if (!vals.length) return null;
+
+  const targetDaily = Math.pow(1 + targetAnnualPct / 100, 1 / 252) - 1;
+  const excess = vals.map(r => r - targetDaily);
+  const avgExcess = arithmeticMean(excess);
+  if (!Number.isFinite(avgExcess)) return null;
+
+  const downsideSquares = excess.map(x => x < 0 ? x*x : 0);
+  const downsideDaily = Math.sqrt(
+    downsideSquares.reduce((a,b) => a+b, 0) / downsideSquares.length
+  );
+
+  if (!(downsideDaily > 0)) return null;
+
+  const annualizedArithmeticExcess = avgExcess * 252;
+  const annualizedDownside = downsideDaily * Math.sqrt(252);
+  return annualizedArithmeticExcess / annualizedDownside;
 }
 
-function calmarRatio(annualReturnPct, maxDrawdownPct) {
-  if (!Number.isFinite(annualReturnPct) || !Number.isFinite(maxDrawdownPct) || maxDrawdownPct === 0) return null;
-  return annualReturnPct / Math.abs(maxDrawdownPct);
+function calmarRatioFromHistory(hist, maxDrawdownPct) {
+  // Calmar = CAGR / |Maximum Drawdown|
+  // Aynı fiyat geçmişi dönemi kullanılır.
+  const cagrPct = annualizedReturnPct(hist);
+  if (!Number.isFinite(cagrPct) || !Number.isFinite(maxDrawdownPct) || !(Math.abs(maxDrawdownPct) > 0)) {
+    return null;
+  }
+  return cagrPct / Math.abs(maxDrawdownPct);
 }
 
 function rollingVolatilitySeries(hist, windowSize) {
@@ -917,7 +961,16 @@ async function handleFundResearch(code) {
       : null;
     const annualReturnPct = annualizedReturnPct(prices);
     const maxDdPct = maxDrawdown(prices);
-    const downsideDevPct = downsideDeviationAnnualPct(returns);
+
+    // Risk-free / minimum acceptable return currently 0%.
+    // Oranlar aynı günlük TEFAS return serisinden hesaplanır.
+    const riskFreeAnnualPct = 0;
+    const targetAnnualPct = 0;
+    const downsideDevPct = downsideDeviationAnnualPct(returns, 0);
+    const sharpe = sharpeRatioFromDailyReturns(returns, riskFreeAnnualPct);
+    const sortino = sortinoRatioFromDailyReturns(returns, targetAnnualPct);
+    const calmar = calmarRatioFromHistory(prices, maxDdPct);
+
     const bestWorst = bestWorstDay(returns);
 
     const rolling30 = rollingVolatilitySeries(prices, 30);
@@ -1012,9 +1065,11 @@ async function handleFundResearch(code) {
           maxDrawdownPct:maxDdPct,
           positiveDayRatioPct:positiveRatio,
           downsideDeviationPct:downsideDevPct,
-          sharpe:sharpeRatio(annualReturnPct, annualVolPct),
-          sortino:sortinoRatio(annualReturnPct, downsideDevPct),
-          calmar:calmarRatio(annualReturnPct, maxDdPct)
+          sharpe,
+          sortino,
+          calmar,
+          riskFreeAnnualPct,
+          targetAnnualPct
         },
 
         metadata:{
