@@ -657,3 +657,16 @@ Bu yöntem TEFAS'ın alan isimlerinde küçük değişiklikler olsa bile kartlar
 ihtimalini azaltır.
 
 Cloudflare Worker'ın V1.13.2 ile güncellenmesi gerekir.
+
+
+## Sürüm Senkronizasyonu — V1.13.3
+
+Bu sürümden itibaren uygulamanın tüm parçaları aynı sürüm numarasını kullanır:
+
+- Frontend: `V1.13.3`
+- `app.js`: `APP_VERSION = "1.13.3"`
+- CSS cache: `style.css?v=1.13.3`
+- JS cache: `app.js?v=1.13.3`
+- Cloudflare Worker `/health`: `version: "1.13.3"`
+
+Bundan sonraki her sürümde frontend, Worker ve README birlikte aynı sürüme yükseltilecektir.
