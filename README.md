@@ -1122,3 +1122,12 @@ defansif olarak tasarlanmıştır.
   bunun için ilave API çağrısı yapılmaz.
 - Benchmark parser farklı wrapper ve alan isimlerini destekler.
 - Holdings parser `holdings/positions/assets/stocks/top_holdings` ve nested wrapper şekillerini destekler.
+
+
+## V1.16.2 — Arayüz Sadeleştirme
+
+- `Risk-Getiri Özeti` kartı kaldırıldı. Sharpe, Sortino, Calmar ve risk verileri üstteki detaylı
+  metriklerde zaten bulunduğu için tekrar eden özet bölümü artık render edilmiyor.
+- Sol menünün altındaki tema düğmesi kaldırıldı.
+- Tema kontrolü `Ayarlar > Görünüm > Tema` bölümüne taşındı.
+- Mevcut açık/koyu tema mantığı ve localStorage ayarı değiştirilmedi.

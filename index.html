@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.16.1" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.16.2" />
 </head>
 <body>
   <div class="app-shell">
@@ -31,7 +31,6 @@
       </nav>
 
       <div class="sidebar-bottom">
-        <button id="themeToggle" class="ghost-btn">◐ Tema</button>
         <small>Veriler bu cihazda saklanır.</small>
       </div>
     </aside>
@@ -369,6 +368,17 @@
       </section>
 
       <section id="settingsView" class="view">
+        <article class="panel settings-panel theme-settings-panel">
+          <div class="settings-row">
+            <div>
+              <p class="settings-kicker">GÖRÜNÜM</p>
+              <h2>Tema</h2>
+              <p>Açık ve koyu görünüm arasında geçiş yap.</p>
+            </div>
+            <button id="themeToggle" class="secondary-btn theme-settings-btn">◐ Tema Değiştir</button>
+          </div>
+        </article>
+
         <article class="panel settings-panel">
           <h2>TEFAS Veri Bağlantısı</h2>
           <p>
@@ -503,6 +513,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.16.1"></script>
+  <script src="./assets/app.js?v=1.16.2"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const APP_VERSION = "1.16.1";
+const APP_VERSION = "1.16.2";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1587,17 +1587,7 @@ function renderFundResearch(data) {
     </div>
   </article>`;
 
-  const scorePanel = `<article class="panel research-mini-panel research-score-panel">
-    <div class="panel-head"><div><h2>Risk-Getiri Özeti</h2><p>Fonoloji hazır risk metrikleri · erişilemezse yerel fallback</p></div></div>
-    <div class="research-score-grid">
-      ${researchScoreCard("Sharpe",risk.sharpe,risk.source==="Fonoloji"?"Fonoloji · 90G":"Fallback")}
-      ${researchScoreCard("Sortino",risk.sortino,risk.source==="Fonoloji"?"Fonoloji · 90G":"Fallback")}
-      ${researchScoreCard("Calmar",risk.calmar,risk.source==="Fonoloji"?"Fonoloji · 1Y":"Fallback")}
-      ${researchScoreCard("Risk",meta.riskValue,meta.riskLabel||"TEFAS")}
-    </div>
-  </article>`;
-
-  $("researchSecondarySections").innerHTML = sizePanel + profilePanel + feePanel + scorePanel;
+  $("researchSecondarySections").innerHTML = sizePanel + profilePanel + feePanel;
   $("researchDisclaimer").textContent = "Fon ana metrikleri Fonoloji API’den; ücret bilgileri bulunabildiğinde KAP’tan alınır. Fiyat/geçmiş tarafında Fonoloji timeseries önceliklidir, TEFAS fallback olarak korunur. Geçmiş performans gelecekteki getiriyi garanti etmez.";
 
   renderResearchPerformanceChart(d,"fund");

@@ -1493,3 +1493,39 @@ html:not([data-theme="dark"]) .chart-badge {
 .provider-grid-1 > .panel {
   min-width:0;
 }
+
+
+/* =========================================================
+   V1.16.2 — Settings theme control
+   ========================================================= */
+.theme-settings-panel .settings-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+}
+.theme-settings-panel h2 {
+  margin:2px 0 6px;
+}
+.theme-settings-panel p {
+  margin:0;
+}
+.settings-kicker {
+  color:var(--accent-strong);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.12em;
+}
+.theme-settings-btn {
+  flex:0 0 auto;
+  min-width:150px;
+}
+@media(max-width:700px){
+  .theme-settings-panel .settings-row {
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  .theme-settings-btn {
+    width:100%;
+  }
+}
