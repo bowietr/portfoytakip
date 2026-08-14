@@ -670,3 +670,18 @@ Bu sürümden itibaren uygulamanın tüm parçaları aynı sürüm numarasını 
 - Cloudflare Worker `/health`: `version: "1.13.3"`
 
 Bundan sonraki her sürümde frontend, Worker ve README birlikte aynı sürüme yükseltilecektir.
+
+
+## V1.13.4 — Araştırma Kod Alanı
+
+Varlık Araştır ekranındaki **Kod** giriş alanı (`#researchCode`) artık kullanıcı yazarken
+otomatik olarak büyük harfe dönüştürülür.
+
+Örnekler:
+
+- `tte` → `TTE`
+- `froto` → `FROTO`
+- `thyao` → `THYAO`
+
+Önceki yanlış V1.13.4 denemesindeki sonuç başlığı büyük harf değişikliği bu pakette yoktur.
+Bu sürüm V1.13.3 tabanı üzerinden hazırlanmıştır.

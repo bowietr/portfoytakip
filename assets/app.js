@@ -1,4 +1,4 @@
-const APP_VERSION = "1.13.3";
+const APP_VERSION = "1.13.4";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1244,3 +1244,22 @@ window.openTransaction = openTransaction;
 window.updateStockPrice = updateStockPrice;
 window.deleteAsset = deleteAsset;
 window.deleteTx = deleteTx;
+
+
+// V1.13.4 — Varlık Araştır kod alanını yazarken otomatik büyük harfe çevir.
+const researchCodeUppercaseInput = document.getElementById("researchCode");
+if (researchCodeUppercaseInput) {
+  researchCodeUppercaseInput.setAttribute("autocapitalize", "characters");
+  researchCodeUppercaseInput.setAttribute("spellcheck", "false");
+  researchCodeUppercaseInput.addEventListener("input", (event) => {
+    const el = event.currentTarget;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const upper = el.value.toLocaleUpperCase("tr-TR");
+    if (el.value !== upper) {
+      el.value = upper;
+      if (start !== null && end !== null) el.setSelectionRange(start, end);
+    }
+  });
+}
+
