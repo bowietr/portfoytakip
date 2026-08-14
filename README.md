@@ -638,3 +638,22 @@ Yıllıklandırılmış oynaklık, maksimum düşüş ve pozitif gün oranı da 
 1 yıllık fiyat geçmişi üzerinden hesaplandığı için daha anlamlı hale gelmiştir.
 
 Cloudflare Worker'ın güncellenmesi gerekir.
+
+
+## v1.13.2 — Fon Büyüklüğü ve Yatırımcı Sayısı
+
+Fon araştırma ekranındaki **Fon Büyüklüğü** bölümü tamamlandı.
+
+Yeni yapı şu sırayla veri arar:
+
+1. `fonProfilBilgiGetir` cevabındaki alanları esnek anahtar eşleştirmesiyle tarar.
+2. Gerekirse fiyat/geçmiş cevabındaki aynı metrikleri kontrol eder.
+3. API cevabında bulunamazsa resmi TEFAS fon detay sayfasındaki:
+   - `Fon Toplam Değer (TL)`
+   - `Yatırımcı Sayısı`
+   alanlarını fallback olarak kullanır.
+
+Bu yöntem TEFAS'ın alan isimlerinde küçük değişiklikler olsa bile kartların boş kalma
+ihtimalini azaltır.
+
+Cloudflare Worker'ın V1.13.2 ile güncellenmesi gerekir.
