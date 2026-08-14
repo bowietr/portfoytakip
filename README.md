@@ -1109,3 +1109,16 @@ Aynı fon tekrar açıldığında cache HIT varsa Fonoloji kotası harcanmaz.
 
 Fonoloji endpoint response shape'ları farklı wrapper'larla gelebileceği için tüm parser'lar
 defansif olarak tasarlanmıştır.
+
+
+## V1.16.1 — Empty-State Cleanup & Defensive Fonoloji Parsers
+
+- Fonoloji'de veri bulunmayan premium insight kartları artık hiç render edilmez.
+- Benchmark verisi yoksa dev boş benchmark paneli oluşturulmaz.
+- Holdings/pozisyon listesi yoksa `En Büyük Pozisyonlar` paneli gizlenir.
+- Tarihsel AUM / yatırımcı verisinde en az 2 nokta yoksa ilgili grafik gizlenir.
+- Monthly parser `monthly`, `monthly_returns`, wrapper `points/series/data/returns` şekillerini destekler.
+- Fonoloji monthly bloğu boşsa aylık getiriler mevcut NAV timeseries'inden ay sonlarıyla hesaplanır;
+  bunun için ilave API çağrısı yapılmaz.
+- Benchmark parser farklı wrapper ve alan isimlerini destekler.
+- Holdings parser `holdings/positions/assets/stocks/top_holdings` ve nested wrapper şekillerini destekler.

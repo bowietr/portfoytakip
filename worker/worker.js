@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.16.0" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.16.1" });
     }
 
     const fonolojiTestMatch = url.pathname.match(/^\/api\/fonoloji-test\/([A-Za-z0-9._-]+)$/);
@@ -1155,7 +1155,7 @@ async function fonolojiGet(path, env, options={}) {
     headers: {
       "X-API-Key": key,
       "Accept": "application/json",
-      "User-Agent": "Portfoyum/1.16.0"
+      "User-Agent": "Portfoyum/1.16.1"
     }
   });
 
@@ -1322,18 +1322,42 @@ function fonolojiBenchmarkSeries(ts) {
 
   const candidates = [
     ts?.benchmark,
+    ts?.benchmarks,
+    ts?.benchmark_series,
     ts?.timeseries?.benchmark,
-    ts?.data?.benchmark
+    ts?.timeseries?.benchmarks,
+    ts?.data?.benchmark,
+    ts?.data?.benchmarks
   ];
-  const rows = candidates.find(Array.isArray) || [];
+
+  let rows = candidates.find(Array.isArray) || null;
+
+  // Some providers wrap benchmark rows under points/series/data.
+  if (!rows) {
+    const obj = candidates.find(x => x && typeof x === "object" && !Array.isArray(x));
+    rows =
+      (Array.isArray(obj?.points) && obj.points) ||
+      (Array.isArray(obj?.series) && obj.series) ||
+      (Array.isArray(obj?.data) && obj.data) ||
+      null;
+  }
+
+  if (!rows) return [];
 
   return rows.map(row => ({
-    date:row?.date ?? row?.tarih ?? row?.time ?? null,
+    date:
+      row?.date ??
+      row?.tarih ??
+      row?.time ??
+      row?.period ??
+      null,
     value:Number(
       row?.value ??
       row?.price ??
+      row?.index ??
       row?.benchmark ??
       row?.return ??
+      row?.return_pct ??
       row?.pct
     )
   })).filter(row => row.date && Number.isFinite(row.value));
@@ -1342,27 +1366,93 @@ function fonolojiBenchmarkSeries(ts) {
 function fonolojiMonthlyReturns(ts) {
   if (!ts || typeof ts !== "object") return [];
 
-  const candidate =
-    ts?.monthly ??
-    ts?.timeseries?.monthly ??
-    ts?.data?.monthly ??
-    null;
+  const candidates = [
+    ts?.monthly,
+    ts?.monthly_returns,
+    ts?.monthlyReturns,
+    ts?.timeseries?.monthly,
+    ts?.timeseries?.monthly_returns,
+    ts?.data?.monthly,
+    ts?.data?.monthly_returns
+  ];
 
-  if (Array.isArray(candidate)) {
-    return candidate.map(row => ({
-      date:row?.date ?? row?.month ?? row?.period ?? null,
-      value:Number(row?.value ?? row?.return ?? row?.pct ?? row?.change)
-    })).filter(row => row.date && Number.isFinite(row.value));
-  }
+  const candidate = candidates.find(x => x != null) ?? null;
+
+  const parseRows = rows => rows.map(row => ({
+    date:
+      row?.date ??
+      row?.month ??
+      row?.period ??
+      row?.year_month ??
+      row?.ym ??
+      null,
+    value:Number(
+      row?.value ??
+      row?.return ??
+      row?.return_pct ??
+      row?.monthly_return ??
+      row?.change ??
+      row?.pct
+    )
+  })).filter(row => row.date && Number.isFinite(row.value));
+
+  if (Array.isArray(candidate)) return parseRows(candidate);
 
   if (candidate && typeof candidate === "object") {
+    for (const key of ["points","series","data","returns","months"]) {
+      if (Array.isArray(candidate[key])) return parseRows(candidate[key]);
+    }
+
     return Object.entries(candidate).map(([date,value]) => ({
       date,
-      value:Number(value?.value ?? value?.return ?? value?.pct ?? value)
+      value:Number(
+        value?.value ??
+        value?.return ??
+        value?.return_pct ??
+        value?.monthly_return ??
+        value?.pct ??
+        value
+      )
     })).filter(row => row.date && Number.isFinite(row.value));
   }
 
   return [];
+}
+
+function monthlyReturnsFromNav(navRows) {
+  if (!Array.isArray(navRows) || navRows.length < 2) return [];
+
+  const byMonth = new Map();
+
+  for (const row of navRows) {
+    const d = new Date(row?.date);
+    const price = Number(row?.value ?? row?.price);
+    if (Number.isNaN(d.getTime()) || !(price > 0)) continue;
+
+    const key = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}`;
+    const existing = byMonth.get(key);
+
+    if (!existing || d > existing.date) {
+      byMonth.set(key,{date:d,price});
+    }
+  }
+
+  const months=[...byMonth.entries()]
+    .map(([month,x])=>({month,date:x.date,price:x.price}))
+    .sort((a,b)=>a.date-b.date);
+
+  const result=[];
+  for (let i=1;i<months.length;i++) {
+    const prev=months[i-1], cur=months[i];
+    if (!(prev.price>0) || !(cur.price>0)) continue;
+    result.push({
+      date:cur.month,
+      value:(cur.price/prev.price-1) * 100,
+      unit:"percent"
+    });
+  }
+
+  return result;
 }
 
 function fonolojiHistoryPoints(history) {
@@ -1410,17 +1500,62 @@ function normalizeAllocation(allocation) {
 }
 
 function normalizeHoldings(portfolioRoot) {
-  const rows =
-    arrayFromPossible(portfolioRoot,["holdings"]) ||
-    arrayFromPossible(portfolioRoot?.portfolio,["holdings"]);
+  if (!portfolioRoot || typeof portfolioRoot !== "object") return [];
 
-  if (!Array.isArray(rows)) return [];
+  const candidates = [
+    portfolioRoot?.holdings,
+    portfolioRoot?.positions,
+    portfolioRoot?.assets,
+    portfolioRoot?.stocks,
+    portfolioRoot?.top_holdings,
+    portfolioRoot?.portfolio?.holdings,
+    portfolioRoot?.portfolio?.positions,
+    portfolioRoot?.portfolio?.assets,
+    portfolioRoot?.data?.holdings,
+    portfolioRoot?.data?.positions,
+    portfolioRoot?.data?.assets
+  ];
+
+  let rows=candidates.find(Array.isArray) || [];
+
+  if (!rows.length) {
+    const wrapper=candidates.find(x=>x && typeof x==="object" && !Array.isArray(x));
+    rows =
+      (Array.isArray(wrapper?.items) && wrapper.items) ||
+      (Array.isArray(wrapper?.rows) && wrapper.rows) ||
+      (Array.isArray(wrapper?.data) && wrapper.data) ||
+      [];
+  }
 
   return rows.map(row => ({
-    code:row?.code ?? row?.symbol ?? row?.ticker ?? row?.asset_code ?? null,
-    name:row?.name ?? row?.title ?? row?.asset_name ?? null,
-    weight:Number(row?.weight ?? row?.ratio ?? row?.percentage ?? row?.pct),
-    type:row?.type ?? row?.asset_type ?? null
+    code:
+      row?.code ??
+      row?.symbol ??
+      row?.ticker ??
+      row?.asset_code ??
+      row?.security_code ??
+      null,
+    name:
+      row?.name ??
+      row?.title ??
+      row?.asset_name ??
+      row?.security_name ??
+      row?.company_name ??
+      null,
+    weight:Number(
+      row?.weight ??
+      row?.ratio ??
+      row?.percentage ??
+      row?.allocation ??
+      row?.weight_pct ??
+      row?.pct
+    ),
+    type:
+      row?.type ??
+      row?.asset_type ??
+      row?.security_type ??
+      row?.category ??
+      null
   }))
   .filter(row => row.code || row.name)
   .sort((a,b) => (Number(b.weight)||0)-(Number(a.weight)||0))
@@ -1592,7 +1727,10 @@ async function handleFundResearch(code, env) {
 
     const allocation = normalizeAllocation(fPortfolio);
     const benchmark = fonolojiBenchmarkSeries(fonolojiTs);
-    const monthly = fonolojiMonthlyReturns(fonolojiTs);
+    const providerMonthly = fonolojiMonthlyReturns(fonolojiTs);
+    const monthly = providerMonthly.length
+      ? providerMonthly
+      : monthlyReturnsFromNav(fonolojiNav);
 
     return json({
       ok:true,

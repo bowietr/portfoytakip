@@ -1,4 +1,4 @@
-const APP_VERSION = "1.16.0";
+const APP_VERSION = "1.16.1";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1195,10 +1195,11 @@ function formatDateShort(v) {
 
 
 
-function normalizeMonthlyDisplayValue(v) {
+function normalizeMonthlyDisplayValue(v, unit="") {
   const n=Number(v);
   if (!Number.isFinite(n)) return null;
-  // API blocks may expose either decimal return or percentage points.
+  if (unit === "percent") return n;
+  // Fonoloji return fields are generally decimal ratios; derived NAV values are percentage points.
   return Math.abs(n) <= 3 ? n*100 : n;
 }
 
@@ -1208,7 +1209,7 @@ function renderMonthlyHeatmap(rows=[]) {
   }
 
   const normalized=rows
-    .map(x=>({date:x.date,value:normalizeMonthlyDisplayValue(x.value)}))
+    .map(x=>({date:x.date,value:normalizeMonthlyDisplayValue(x.value,x.unit)}))
     .filter(x=>x.date && Number.isFinite(x.value))
     .slice(-18);
 
@@ -1281,19 +1282,18 @@ function renderQuotaBadge(q) {
 function renderFundProviderInsights(d) {
   const host=$("fundProviderInsights");
   if (!host) return;
-  host.hidden=false;
 
   const allocation=Array.isArray(d.portfolio?.allocation)?d.portfolio.allocation:[];
   const monthly=Array.isArray(d.providerInsights?.monthly)?d.providerInsights.monthly:[];
   const benchmark=Array.isArray(d.providerInsights?.benchmark)?d.providerInsights.benchmark:[];
 
-  host.innerHTML=`
-    <div class="provider-insight-header">
-      <div><p class="eyebrow">FONOLOJİ DETAYLARI</p><h2>Fonun İçini Gör</h2></div>
-      <div id="fonolojiQuotaBadge">${renderQuotaBadge(null)}</div>
-    </div>
+  // Lazy details (holdings/history) may still arrive later, so keep the host visible.
+  host.hidden=false;
 
-    <div class="provider-grid">
+  const topCards=[];
+
+  if (allocation.length) {
+    topCards.push(`
       <article class="panel provider-allocation-panel">
         <div class="panel-head source-panel-head">
           <div><h2>Portföy Dağılımı</h2><p>Son Fonoloji portföy snapshot'ı</p></div>
@@ -1303,30 +1303,42 @@ function renderFundProviderInsights(d) {
           <div class="provider-chart-square"><canvas id="fundAllocationDetailChart"></canvas></div>
           ${renderAllocationList(allocation)}
         </div>
-      </article>
+      </article>`);
+  }
 
+  if (monthly.length) {
+    topCards.push(`
       <article class="panel provider-monthly-panel">
         <div class="panel-head source-panel-head">
           <div><h2>Aylık Getiri Haritası</h2><p>Son dönemlerin aylık performansı</p></div>
           <span class="source-badge source-fonoloji">FONOLOJİ</span>
         </div>
         ${renderMonthlyHeatmap(monthly)}
-      </article>
-    </div>
+      </article>`);
+  }
 
+  const benchmarkPanel=benchmark.length ? `
     <article class="panel provider-benchmark-panel">
       <div class="panel-head source-panel-head">
         <div><h2>Benchmark Karşılaştırması</h2><p>Fon performansı ile karşılaştırma serisi</p></div>
         <span class="source-badge source-fonoloji">FONOLOJİ</span>
       </div>
       <div class="chart-wrap provider-benchmark-chart"><canvas id="fundBenchmarkChart"></canvas></div>
-      ${benchmark.length ? "" : `<div class="provider-empty overlay-empty">Bu fon için benchmark serisi bulunamadı.</div>`}
-    </article>
+    </article>` : "";
+
+  host.innerHTML=`
+    <div class="provider-insight-header">
+      <div><p class="eyebrow">FONOLOJİ DETAYLARI</p><h2>Fonun İçini Gör</h2></div>
+      <div id="fonolojiQuotaBadge">${renderQuotaBadge(null)}</div>
+    </div>
+
+    ${topCards.length ? `<div class="provider-grid provider-grid-${topCards.length}">${topCards.join("")}</div>` : ""}
+    ${benchmarkPanel}
 
     <div id="fundLazyExtras" class="fund-lazy-extras">
       <article class="panel provider-loading-panel">
         <div class="provider-spinner"></div>
-        <div><strong>Detaylı pozisyonlar yükleniyor</strong><span>Cloudflare cache varsa Fonoloji kotası kullanılmaz.</span></div>
+        <div><strong>Detaylı veriler kontrol ediliyor</strong><span>Veri yoksa bölüm otomatik gizlenir.</span></div>
       </article>
     </div>
   `;
@@ -1438,31 +1450,48 @@ async function loadFundExtras(code) {
     const quotaEl=$("fonolojiQuotaBadge");
     if (quotaEl) quotaEl.innerHTML=renderQuotaBadge(extra.quota);
 
-    host.innerHTML=`
-      <article class="panel provider-holdings-panel">
-        <div class="panel-head source-panel-head">
-          <div><h2>En Büyük Pozisyonlar</h2><p>${extra.portfolioDate ? formatDateShort(extra.portfolioDate)+" portföyü" : "Fonoloji portföy detayı"}</p></div>
-          <span class="source-badge source-fonoloji">FONOLOJİ</span>
-        </div>
-        ${renderHoldings(holdings)}
-      </article>
+    const cards=[];
 
-      <div class="provider-grid history-grid">
+    if (holdings.length) {
+      cards.push(`
+        <article class="panel provider-holdings-panel">
+          <div class="panel-head source-panel-head">
+            <div><h2>En Büyük Pozisyonlar</h2><p>${extra.portfolioDate ? formatDateShort(extra.portfolioDate)+" portföyü" : "Fonoloji portföy detayı"}</p></div>
+            <span class="source-badge source-fonoloji">FONOLOJİ</span>
+          </div>
+          ${renderHoldings(holdings)}
+        </article>`);
+    }
+
+    const historyCards=[];
+    if (aum.length>=2) {
+      historyCards.push(`
         <article class="panel">
           <div class="panel-head"><div><h2>Fon Büyüklüğü Geçmişi</h2><p>1 yıllık yönetilen varlık değişimi</p></div></div>
           <div class="chart-wrap provider-history-chart"><canvas id="fundAumHistoryChart"></canvas></div>
-          ${aum.length<2?`<div class="provider-empty">Tarihsel fon büyüklüğü verisi bulunamadı.</div>`:""}
-        </article>
+        </article>`);
+    }
+    if (investors.length>=2) {
+      historyCards.push(`
         <article class="panel">
           <div class="panel-head"><div><h2>Yatırımcı Sayısı Geçmişi</h2><p>1 yıllık yatırımcı değişimi</p></div></div>
           <div class="chart-wrap provider-history-chart"><canvas id="fundInvestorHistoryChart"></canvas></div>
-          ${investors.length<2?`<div class="provider-empty">Tarihsel yatırımcı verisi bulunamadı.</div>`:""}
-        </article>
-      </div>
-    `;
+        </article>`);
+    }
 
-    renderFundHistoryChart("fundAumHistoryChart","fundAumHistoryChart",aum,"Fon Büyüklüğü",v=>`${compactNumber(v)} ₺`);
-    renderFundHistoryChart("fundInvestorHistoryChart","fundInvestorHistoryChart",investors,"Yatırımcı",v=>compactNumber(v));
+    if (historyCards.length) {
+      cards.push(`<div class="provider-grid history-grid provider-grid-${historyCards.length}">${historyCards.join("")}</div>`);
+    }
+
+    if (!cards.length) {
+      host.remove();
+      return;
+    }
+
+    host.innerHTML=cards.join("");
+
+    if (aum.length>=2) renderFundHistoryChart("fundAumHistoryChart","fundAumHistoryChart",aum,"Fon Büyüklüğü",v=>`${compactNumber(v)} ₺`);
+    if (investors.length>=2) renderFundHistoryChart("fundInvestorHistoryChart","fundInvestorHistoryChart",investors,"Yatırımcı",v=>compactNumber(v));
   } catch(err) {
     host.innerHTML=`<article class="panel provider-loading-panel provider-error">
       <div><strong>Detay verileri yüklenemedi</strong><span>${escapeHtml(err.message)}</span></div>

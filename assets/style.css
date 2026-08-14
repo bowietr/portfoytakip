@@ -1484,3 +1484,12 @@ html:not([data-theme="dark"]) .chart-badge {
   .monthly-heatmap { grid-template-columns:repeat(3,minmax(0,1fr)); }
   .holdings-row { grid-template-columns:minmax(120px,1fr) 70px 70px; padding:10px 8px; }
 }
+
+
+/* V1.16.1 — empty provider cards never reserve space */
+.provider-grid-1 {
+  grid-template-columns:1fr;
+}
+.provider-grid-1 > .panel {
+  min-width:0;
+}
