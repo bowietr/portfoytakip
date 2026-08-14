@@ -1,4 +1,4 @@
-const APP_VERSION = "1.14.0";
+const APP_VERSION = "1.14.1";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1023,17 +1023,32 @@ function getFundResearchMetaCache() {
   catch { return {}; }
 }
 
+function validResearchNumber(v, { allowZero=false } = {}) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = Number(v);
+  if (!Number.isFinite(n)) return null;
+  if (!allowZero && n === 0) return null;
+  return n;
+}
+
 function mergeFundResearchMeta(code, meta={}) {
   const cache = getFundResearchMetaCache();
   const old = cache[code] || {};
+
+  const fundTotalValue = validResearchNumber(meta.fundTotalValue);
+  const investorCount = validResearchNumber(meta.investorCount);
+  const shareCount = validResearchNumber(meta.shareCount);
+  const riskValue = validResearchNumber(meta.riskValue, {allowZero:false});
+
   const merged = {
-    fundTotalValue: Number.isFinite(Number(meta.fundTotalValue)) ? Number(meta.fundTotalValue) : old.fundTotalValue ?? null,
-    investorCount: Number.isFinite(Number(meta.investorCount)) ? Number(meta.investorCount) : old.investorCount ?? null,
-    shareCount: Number.isFinite(Number(meta.shareCount)) ? Number(meta.shareCount) : old.shareCount ?? null,
-    riskValue: Number.isFinite(Number(meta.riskValue)) ? Number(meta.riskValue) : old.riskValue ?? null,
+    fundTotalValue: fundTotalValue ?? old.fundTotalValue ?? null,
+    investorCount: investorCount ?? old.investorCount ?? null,
+    shareCount: shareCount ?? old.shareCount ?? null,
+    riskValue: riskValue ?? old.riskValue ?? null,
     riskLabel: meta.riskLabel || old.riskLabel || null,
     savedAt: Date.now()
   };
+
   cache[code] = merged;
   try { localStorage.setItem(FUND_META_CACHE_KEY, JSON.stringify(cache)); } catch {}
   return merged;

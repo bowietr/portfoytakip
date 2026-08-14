@@ -773,3 +773,36 @@ Bulunabildiğinde:
 KAP sayfasında açık biçimde bulunamayan alanlar `—` gösterilir.
 
 `Gözlem Sayısı` kartı kaldırılmıştır.
+
+
+## V1.14.1 — Fon Büyüklüğü ve KAP Ücret Düzeltmesi
+
+### Fon büyüklüğü
+JavaScript'teki `Number(null) === 0` davranışı nedeniyle boş TEFAS metrikleri yanlışlıkla
+`0` olarak gösterilebiliyordu.
+
+Artık:
+- `null`
+- `undefined`
+- boş string
+- geçersiz sayı
+- yanlışlıkla gelen 0
+
+gerçek fon büyüklüğü/yatırımcı/pay verisi olarak kabul edilmez.
+
+Son başarılı gerçek değer varsa localStorage fallback'i kullanılır; yoksa `—` gösterilir.
+
+### KAP ücret/giderleri
+Eski regex parser KAP sayfasındaki günlük yönetim oranı gibi ilk küçük sayıları yanlış sütunlara
+eşleyebiliyordu.
+
+Yeni parser:
+- ilgili KAP yönetim ücreti tablosunu bulur,
+- sütun başlıklarını tek tek eşler,
+- yıllık yönetim ücreti,
+- giriş komisyonu,
+- çıkış komisyonu,
+- performans ücreti
+değerlerini kendi hücresinden okur.
+
+Kesin eşleşmeyen alanlarda yanlış değer göstermek yerine `—` gösterilir.

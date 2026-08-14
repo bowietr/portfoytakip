@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.14.0" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.14.1" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -644,31 +644,27 @@ async function fetchTefasGeneralMetrics(code) {
   rows.sort((a,b) => getDate(a) - getDate(b));
   const row = rows.at(-1);
 
-  const fundTotalValue = toNumber(
+  const fundTotalValue = nullablePositiveNumber(
     row?.portfoyBuyukluk ??
     row?.PORTFOYBUYUKLUK ??
     row?.portföyBuyukluk ??
     row?.portfolioSize
   );
 
-  const investorCount = toNumber(
+  const investorCount = nullablePositiveNumber(
     row?.kisiSayisi ??
     row?.KISISAYISI ??
     row?.yatirimciSayisi ??
     row?.investorCount
   );
 
-  const shareCount = toNumber(
+  const shareCount = nullablePositiveNumber(
     row?.tedPaySayisi ??
     row?.TEDPAYSAYISI ??
     row?.tedavuldekiPaySayisi
   );
 
-  return {
-    fundTotalValue: Number.isFinite(fundTotalValue) ? fundTotalValue : null,
-    investorCount: Number.isFinite(investorCount) ? investorCount : null,
-    shareCount: Number.isFinite(shareCount) ? shareCount : null
-  };
+  return { fundTotalValue, investorCount, shareCount };
 }
 
 
@@ -759,6 +755,15 @@ function bestWorstDay(returns) {
   };
 }
 
+
+function nullablePositiveNumber(v, { allowZero=false } = {}) {
+  if (v === null || v === undefined || v === "") return null;
+  const n = toNumber(v);
+  if (!Number.isFinite(n)) return null;
+  if (!allowZero && n === 0) return null;
+  return n;
+}
+
 function riskLabel(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return null;
@@ -777,15 +782,79 @@ function slugifyKapTr(value) {
     .replace(/^-+|-+$/g,"");
 }
 
-function parseKapPercent(text, labelRegex) {
-  const m = text.match(labelRegex);
+function parseKapNumberCell(s) {
+  const t = String(s ?? "").replace(/\s+/g," ").trim();
+  if (!t) return null;
+  const m = t.match(/^-?\d+(?:[.,]\d+)?$/);
   if (!m) return null;
-  return parseTurkishMetricNumber(m[1]);
+  return parseTurkishMetricNumber(m[0]);
+}
+
+function stripHtmlToCells(rowHtml) {
+  const cells = [];
+  const re = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi;
+  let m;
+  while ((m = re.exec(rowHtml))) {
+    const text = decodeBasicHtmlEntities(
+      m[1]
+        .replace(/<br\s*\/?>/gi," ")
+        .replace(/<[^>]+>/g," ")
+    ).replace(/\s+/g," ").trim();
+    cells.push(text);
+  }
+  return cells;
+}
+
+function findKapFeeTable(html) {
+  // Yönetim ücreti tablosunu başlık metninden bulup ilk veri satırını döndürür.
+  const tableMatches = html.match(/<table\b[\s\S]*?<\/table>/gi) || [];
+  for (const table of tableMatches) {
+    const plain = decodeBasicHtmlEntities(table.replace(/<[^>]+>/g," ")).replace(/\s+/g," ");
+    if (!/Yönetim Ücreti Oranı \(Yıllık\) \(%\)/i.test(plain)) continue;
+    if (!/Giriş Komisyonu \(%\)/i.test(plain)) continue;
+    if (!/Çıkış Komisyonu \(%\)/i.test(plain)) continue;
+
+    const rows = table.match(/<tr\b[\s\S]*?<\/tr>/gi) || [];
+    if (rows.length < 2) continue;
+
+    const headerCells = stripHtmlToCells(rows[0]);
+    const headers = headerCells.map(normalizeMetricKey);
+
+    const findHeaderIndex = tokenGroups => headers.findIndex(h =>
+      tokenGroups.some(group => group.every(token => h.includes(normalizeMetricKey(token))))
+    );
+
+    const annualIdx = findHeaderIndex([
+      ["yonetim","ucreti","orani","yillik"],
+    ]);
+    const entryIdx = findHeaderIndex([["giris","komisyonu"]]);
+    const exitIdx = findHeaderIndex([["cikis","komisyonu"]]);
+    const perfIdx = findHeaderIndex([["performans","ucreti","orani"]]);
+
+    for (let i=1;i<rows.length;i++) {
+      const cells=stripHtmlToCells(rows[i]);
+      if (!cells.length) continue;
+
+      const annual = annualIdx >= 0 ? parseKapNumberCell(cells[annualIdx]) : null;
+      const entry = entryIdx >= 0 ? parseKapNumberCell(cells[entryIdx]) : null;
+      const exit = exitIdx >= 0 ? parseKapNumberCell(cells[exitIdx]) : null;
+      const perf = perfIdx >= 0 ? parseKapNumberCell(cells[perfIdx]) : null;
+
+      // En az yıllık yönetim oranı veya komisyon alanlarından biri doğrulanmış olmalı.
+      if ([annual,entry,exit,perf].some(v => Number.isFinite(v))) {
+        return {
+          annualManagementFeePct: Number.isFinite(annual) ? annual : null,
+          entryCommissionPct: Number.isFinite(entry) ? entry : null,
+          exitCommissionPct: Number.isFinite(exit) ? exit : null,
+          performanceFeePct: Number.isFinite(perf) ? perf : null
+        };
+      }
+    }
+  }
+  return {};
 }
 
 async function fetchKapFundFees(code, fundName) {
-  // KAP fon URL'leri çoğunlukla kod + fon adının slug'ı şeklinde çalışır.
-  // Bulunamazsa ekran — gösterir; araştırma endpoint'i kırılmaz.
   try {
     const slug = `${String(code).toLocaleLowerCase("tr-TR")}-${slugifyKapTr(fundName)}`;
     const url = `https://www.kap.org.tr/tr/fon-bilgileri/genel/${encodeURIComponent(slug)}`;
@@ -797,45 +866,24 @@ async function fetchKapFundFees(code, fundName) {
       }
     });
     if (!r.ok) return { url:null };
+
     const html = await r.text();
-    const text = decodeBasicHtmlEntities(
-      html.replace(/<script[\s\S]*?<\/script>/gi," ")
-          .replace(/<style[\s\S]*?<\/style>/gi," ")
-          .replace(/<[^>]+>/g," ")
-    ).replace(/\s+/g," ").trim();
+    const parsed = findKapFeeTable(html);
 
-    // Yönetim ücret tablosu satırında yıllık oran, giriş, çıkış, performans ücreti aranır.
-    const annualMgmt = parseKapPercent(text,
-      /Yönetim Ücreti Oranı \(Yıllık\) \(%\)[\s\S]{0,700}?([0-9]+(?:[.,][0-9]+)?)/i
-    );
-    const entryFee = parseKapPercent(text,
-      /Giriş Komisyonu \(%\)[\s\S]{0,700}?([0-9]+(?:[.,][0-9]+)?)/i
-    );
-    const exitFee = parseKapPercent(text,
-      /Çıkış Komisyonu \(%\)[\s\S]{0,700}?([0-9]+(?:[.,][0-9]+)?)/i
-    );
-    const performanceFee = parseKapPercent(text,
-      /Performans Ücreti Oranı \(%\)[\s\S]{0,700}?([0-9]+(?:[.,][0-9]+)?)/i
-    );
-
-    // Fon Toplam Gider Oranı bazı sayfalarda görünür metinde oran ile yer alabilir.
-    const totalExpenseRatio = parseKapPercent(text,
-      /Fon Toplam Gider Oranı[\s\S]{0,500}?([0-9]+(?:[.,][0-9]+)?)\s*%/i
-    );
-
+    // "Fon Toplam Gider Oranı" bölümü ayrı detay ekranında/tabloda olabilir.
+    // Güvenilir hücre bulunmadıkça yanlış oran göstermiyoruz.
     return {
       url,
-      annualManagementFeePct: Number.isFinite(annualMgmt) ? annualMgmt : null,
-      entryCommissionPct: Number.isFinite(entryFee) ? entryFee : null,
-      exitCommissionPct: Number.isFinite(exitFee) ? exitFee : null,
-      performanceFeePct: Number.isFinite(performanceFee) ? performanceFee : null,
-      totalExpenseRatioPct: Number.isFinite(totalExpenseRatio) ? totalExpenseRatio : null
+      annualManagementFeePct: parsed.annualManagementFeePct ?? null,
+      entryCommissionPct: parsed.entryCommissionPct ?? null,
+      exitCommissionPct: parsed.exitCommissionPct ?? null,
+      performanceFeePct: parsed.performanceFeePct ?? null,
+      totalExpenseRatioPct: null
     };
   } catch {
     return { url:null };
   }
 }
-
 
 async function handleFundResearch(code) {
   try {
@@ -901,21 +949,23 @@ async function handleFundResearch(code) {
       ]) ??
       deepFindNumberByKeyTokens(historyPayload, [["yatirimci","sayi"]]);
 
-    const fundTotalValue = Number.isFinite(Number(generalMetrics?.fundTotalValue))
-      ? Number(generalMetrics.fundTotalValue)
-      : Number.isFinite(profileFundTotalValue)
-        ? profileFundTotalValue
-        : Number(detailMetrics?.fundTotalValue);
+    const generalFundTotalValue = nullablePositiveNumber(generalMetrics?.fundTotalValue);
+    const detailFundTotalValue = nullablePositiveNumber(detailMetrics?.fundTotalValue);
+    const generalInvestorCount = nullablePositiveNumber(generalMetrics?.investorCount);
+    const detailInvestorCount = nullablePositiveNumber(detailMetrics?.investorCount);
+    const generalShareCount = nullablePositiveNumber(generalMetrics?.shareCount);
 
-    const investorCount = Number.isFinite(Number(generalMetrics?.investorCount))
-      ? Number(generalMetrics.investorCount)
-      : Number.isFinite(profileInvestorCount)
-        ? profileInvestorCount
-        : Number(detailMetrics?.investorCount);
+    const fundTotalValue =
+      generalFundTotalValue ??
+      (Number.isFinite(profileFundTotalValue) && profileFundTotalValue > 0 ? profileFundTotalValue : null) ??
+      detailFundTotalValue;
 
-    const shareCount = Number.isFinite(Number(generalMetrics?.shareCount))
-      ? Number(generalMetrics.shareCount)
-      : null;
+    const investorCount =
+      generalInvestorCount ??
+      (Number.isFinite(profileInvestorCount) && profileInvestorCount > 0 ? profileInvestorCount : null) ??
+      detailInvestorCount;
+
+    const shareCount = generalShareCount;
 
     const high52w = Math.max(...prices.map(x => x.price));
     const low52w = Math.min(...prices.map(x => x.price));
