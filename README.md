@@ -989,3 +989,34 @@ Fonoloji'den doğrudan kullanılan başlıca alanlar:
 
 Eski `Hesaplama Doğrulama` paneli tamamen kaldırılmıştır.
 Yerel hesaplama motoru ekranda gösterilmez; yalnızca Fonoloji erişilemezse fallback olarak kullanılır.
+
+
+## V1.15.3 — Kaynak Etiketleri ve KAP Ücret Parser
+
+Fon araştırma ekranında veri kaynakları görünür hale getirildi.
+
+### Fon Büyüklüğü
+Başlıkta `FONOLOJİ` rozeti gösterilir.
+
+Ana kaynak:
+- AUM / Fon Toplam Değeri
+- Yatırımcı Sayısı
+- Risk skoru
+
+Fonoloji'dir. Eksik alanlarda mevcut fallback mimarisi korunur.
+
+### Ücret ve Giderler
+Başlıkta `KAP` rozeti gösterilir.
+
+KAP parser artık:
+- yönetim ücreti tablosunun gerçek header satırını bulur,
+- yıllık yönetim ücreti,
+- giriş komisyonu,
+- çıkış komisyonu,
+- performans ücreti
+sütunlarını ayrı ayrı eşler,
+- birden fazla farklı sonuç varsa yanlış değer seçmek yerine `—` gösterir.
+
+Fon Toplam Gider Oranı yalnızca KAP HTML'inde açıkça doğrulanabilen yüzde değeri varsa gösterilir.
+
+Amaç yanlış oran göstermek yerine güvenilir olmayan alanı boş bırakmaktır.

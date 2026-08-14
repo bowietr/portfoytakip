@@ -1,4 +1,4 @@
-const APP_VERSION = "1.15.2";
+const APP_VERSION = "1.15.3";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1235,7 +1235,10 @@ function renderFundResearch(data) {
   ].join("");
 
   const sizePanel = `<article class="panel research-mini-panel">
-    <div class="panel-head"><div><h2>Fon Büyüklüğü</h2><p>Son başarılı TEFAS verisi korunur</p></div></div>
+    <div class="panel-head source-panel-head">
+      <div><h2>Fon Büyüklüğü</h2><p>Fonoloji ana kaynak · son başarılı değer korunur</p></div>
+      <span class="source-badge source-fonoloji">FONOLOJİ</span>
+    </div>
     <div class="research-detail-grid">
       ${researchDetailItem("Fon Toplam Değeri",meta.fundTotalValue,"compactMoney")}
       ${researchDetailItem("Yatırımcı Sayısı",meta.investorCount,"compact")}
@@ -1257,7 +1260,10 @@ function renderFundResearch(data) {
   </article>`;
 
   const feePanel = `<article class="panel research-mini-panel">
-    <div class="panel-head"><div><h2>Ücret ve Giderler</h2><p>KAP'ta bulunabilen güncel oranlar</p></div></div>
+    <div class="panel-head source-panel-head">
+      <div><h2>Ücret ve Giderler</h2><p>KAP'ta doğrulanabilen güncel oranlar</p></div>
+      <span class="source-badge source-kap">KAP</span>
+    </div>
     <div class="research-detail-grid">
       ${researchDetailItem("Yıllık Yönetim Ücreti",fees.annualManagementFeePct,"percent")}
       ${researchDetailItem("Toplam Gider Oranı",fees.totalExpenseRatioPct,"percent")}

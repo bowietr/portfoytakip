@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.2" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.3" });
     }
 
     const fonolojiTestMatch = url.pathname.match(/^\/api\/fonoloji-test\/([A-Za-z0-9._-]+)$/);
@@ -836,11 +836,17 @@ function slugifyKapTr(value) {
 }
 
 function parseKapNumberCell(s) {
-  const t = String(s ?? "").replace(/\s+/g," ").trim();
-  if (!t) return null;
-  const m = t.match(/^-?\d+(?:[.,]\d+)?$/);
-  if (!m) return null;
-  return parseTurkishMetricNumber(m[0]);
+  const t = decodeBasicHtmlEntities(String(s ?? ""))
+    .replace(/\s+/g," ")
+    .trim();
+
+  if (!t || t === "-" || t === "—") return null;
+
+  // Hücrede yalnızca tek bir oran/sayı varsa kabul et.
+  const matches = t.match(/-?\d+(?:[.,]\d+)?/g) || [];
+  if (matches.length !== 1) return null;
+
+  return parseTurkishMetricNumber(matches[0]);
 }
 
 function stripHtmlToCells(rowHtml) {
@@ -858,34 +864,57 @@ function stripHtmlToCells(rowHtml) {
   return cells;
 }
 
-function findKapFeeTable(html) {
-  // Yönetim ücreti tablosunu başlık metninden bulup ilk veri satırını döndürür.
-  const tableMatches = html.match(/<table\b[\s\S]*?<\/table>/gi) || [];
-  for (const table of tableMatches) {
-    const plain = decodeBasicHtmlEntities(table.replace(/<[^>]+>/g," ")).replace(/\s+/g," ");
-    if (!/Yönetim Ücreti Oranı \(Yıllık\) \(%\)/i.test(plain)) continue;
-    if (!/Giriş Komisyonu \(%\)/i.test(plain)) continue;
-    if (!/Çıkış Komisyonu \(%\)/i.test(plain)) continue;
+function normalizeKapHeader(s) {
+  return normalizeMetricKey(
+    String(s ?? "")
+      .replace(/\(.*?\)/g," ")
+      .replace(/%/g," ")
+  );
+}
 
+function findHeaderIndex(headers, groups) {
+  const normalized = headers.map(normalizeKapHeader);
+  return normalized.findIndex(h =>
+    groups.some(group => group.every(token => h.includes(normalizeMetricKey(token))))
+  );
+}
+
+function extractKapFeeRows(html) {
+  const tables = html.match(/<table\b[\s\S]*?<\/table>/gi) || [];
+  const candidates = [];
+
+  for (const table of tables) {
     const rows = table.match(/<tr\b[\s\S]*?<\/tr>/gi) || [];
     if (rows.length < 2) continue;
 
-    const headerCells = stripHtmlToCells(rows[0]);
-    const headers = headerCells.map(normalizeMetricKey);
+    // Header satırı ilk satır olmak zorunda değil.
+    let headerRowIndex = -1;
+    let headers = [];
 
-    const findHeaderIndex = tokenGroups => headers.findIndex(h =>
-      tokenGroups.some(group => group.every(token => h.includes(normalizeMetricKey(token))))
-    );
+    for (let i=0; i<Math.min(rows.length,5); i++) {
+      const cells = stripHtmlToCells(rows[i]);
+      const joined = cells.join(" ");
+      if (/Yönetim Ücreti/i.test(joined) &&
+          /Giriş Komisyonu/i.test(joined) &&
+          /Çıkış Komisyonu/i.test(joined)) {
+        headerRowIndex = i;
+        headers = cells;
+        break;
+      }
+    }
 
-    const annualIdx = findHeaderIndex([
+    if (headerRowIndex < 0) continue;
+
+    const annualIdx = findHeaderIndex(headers, [
       ["yonetim","ucreti","orani","yillik"],
+      ["yillik","yonetim","ucreti"]
     ]);
-    const entryIdx = findHeaderIndex([["giris","komisyonu"]]);
-    const exitIdx = findHeaderIndex([["cikis","komisyonu"]]);
-    const perfIdx = findHeaderIndex([["performans","ucreti","orani"]]);
+    const entryIdx = findHeaderIndex(headers, [["giris","komisyonu"]]);
+    const exitIdx = findHeaderIndex(headers, [["cikis","komisyonu"]]);
+    const perfIdx = findHeaderIndex(headers, [["performans","ucreti"]]);
 
-    for (let i=1;i<rows.length;i++) {
-      const cells=stripHtmlToCells(rows[i]);
+    for (let i=headerRowIndex+1; i<rows.length; i++) {
+      const cells = stripHtmlToCells(rows[i]);
       if (!cells.length) continue;
 
       const annual = annualIdx >= 0 ? parseKapNumberCell(cells[annualIdx]) : null;
@@ -893,229 +922,105 @@ function findKapFeeTable(html) {
       const exit = exitIdx >= 0 ? parseKapNumberCell(cells[exitIdx]) : null;
       const perf = perfIdx >= 0 ? parseKapNumberCell(cells[perfIdx]) : null;
 
-      // En az yıllık yönetim oranı veya komisyon alanlarından biri doğrulanmış olmalı.
       if ([annual,entry,exit,perf].some(v => Number.isFinite(v))) {
-        return {
+        candidates.push({
           annualManagementFeePct: Number.isFinite(annual) ? annual : null,
           entryCommissionPct: Number.isFinite(entry) ? entry : null,
           exitCommissionPct: Number.isFinite(exit) ? exit : null,
           performanceFeePct: Number.isFinite(perf) ? perf : null
-        };
+        });
       }
     }
   }
-  return {};
+
+  return candidates;
+}
+
+function extractTotalExpenseRatioFromHtml(html) {
+  const tables = html.match(/<table\b[\s\S]*?<\/table>/gi) || [];
+  for (const table of tables) {
+    const plain = decodeBasicHtmlEntities(table.replace(/<[^>]+>/g," "))
+      .replace(/\s+/g," ")
+      .trim();
+
+    if (!/Fon Toplam Gider Oranı/i.test(plain)) continue;
+
+    // Aynı tablo içindeki açık yüzde oranını kabul et.
+    const matches = plain.match(/Fon Toplam Gider Oranı[\s\S]{0,220}?(-?\d+(?:[.,]\d+)?)\s*%/i);
+    if (matches) {
+      const n = parseTurkishMetricNumber(matches[1]);
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return null;
 }
 
 async function fetchKapFundFees(code, fundName) {
   try {
     const slug = `${String(code).toLocaleLowerCase("tr-TR")}-${slugifyKapTr(fundName)}`;
     const url = `https://www.kap.org.tr/tr/fon-bilgileri/genel/${encodeURIComponent(slug)}`;
+
     const r = await fetch(url, {
-      headers: {
+      headers:{
         "Accept":"text/html,application/xhtml+xml",
         "User-Agent":"Mozilla/5.0",
         "Referer":"https://www.kap.org.tr/"
       }
     });
-    if (!r.ok) return { url:null };
+
+    if (!r.ok) {
+      return {
+        source:"KAP",
+        verified:false,
+        url:null,
+        annualManagementFeePct:null,
+        totalExpenseRatioPct:null,
+        entryCommissionPct:null,
+        exitCommissionPct:null,
+        performanceFeePct:null
+      };
+    }
 
     const html = await r.text();
-    const parsed = findKapFeeTable(html);
+    const feeRows = extractKapFeeRows(html);
 
-    // "Fon Toplam Gider Oranı" bölümü ayrı detay ekranında/tabloda olabilir.
-    // Güvenilir hücre bulunmadıkça yanlış oran göstermiyoruz.
+    // Birden fazla tablo/sınıf varsa birbirinden farklı oranları körlemesine seçme.
+    // Tek doğrulanmış değer veya tüm adaylarda aynı değer varsa kabul et.
+    const consensus = key => {
+      const vals = feeRows
+        .map(r => r[key])
+        .filter(v => Number.isFinite(v));
+
+      if (!vals.length) return null;
+
+      const rounded = [...new Set(vals.map(v => Number(v.toFixed(8))))];
+      return rounded.length === 1 ? rounded[0] : null;
+    };
+
+    const totalExpenseRatioPct = extractTotalExpenseRatioFromHtml(html);
+
     return {
+      source:"KAP",
+      verified:true,
       url,
-      annualManagementFeePct: parsed.annualManagementFeePct ?? null,
-      entryCommissionPct: parsed.entryCommissionPct ?? null,
-      exitCommissionPct: parsed.exitCommissionPct ?? null,
-      performanceFeePct: parsed.performanceFeePct ?? null,
-      totalExpenseRatioPct: null
+      annualManagementFeePct:consensus("annualManagementFeePct"),
+      totalExpenseRatioPct:Number.isFinite(totalExpenseRatioPct) ? totalExpenseRatioPct : null,
+      entryCommissionPct:consensus("entryCommissionPct"),
+      exitCommissionPct:consensus("exitCommissionPct"),
+      performanceFeePct:consensus("performanceFeePct")
     };
   } catch {
-    return { url:null };
+    return {
+      source:"KAP",
+      verified:false,
+      url:null,
+      annualManagementFeePct:null,
+      totalExpenseRatioPct:null,
+      entryCommissionPct:null,
+      exitCommissionPct:null,
+      performanceFeePct:null
+    };
   }
-}
-
-
-
-async function handleFonolojiTest(code, env) {
-  const keyPresent = !!env?.FONOLOJI_KEY;
-
-  if (!keyPresent) {
-    return json({
-      ok:false,
-      status:"NO_KEY",
-      keyPresent:false,
-      code,
-      message:"FONOLOJI_KEY Worker ortamında bulunamadı."
-    }, 500);
-  }
-
-  const endpoint = `https://fonoloji.com/v1/funds/${encodeURIComponent(code)}`;
-
-  try {
-    const response = await fetch(endpoint, {
-      method:"GET",
-      headers:{
-        "X-API-Key": env.FONOLOJI_KEY,
-        "Accept":"application/json",
-        "User-Agent":"Portfoyum/1.15.1"
-      }
-    });
-
-    const text = await response.text();
-    let parsed = null;
-    try { parsed = JSON.parse(text); } catch {}
-
-    const fund = parsed?.fund || parsed?.data || parsed || null;
-
-    let status = "UNKNOWN";
-    if (response.ok) status = "OK";
-    else if (response.status === 401) status = "API_KEY_INVALID";
-    else if (response.status === 403) status = "ACCOUNT_FORBIDDEN";
-    else if (response.status === 404) status = "FUND_NOT_FOUND";
-    else if (response.status === 429) status = "QUOTA_EXCEEDED";
-    else if (response.status >= 500) status = "FONOLOJI_SERVER_ERROR";
-
-    return json({
-      ok: response.ok,
-      status,
-      keyPresent:true,
-      keyMasked:true,
-      httpStatus:response.status,
-      code,
-      endpoint,
-      fundCode: fund?.code ?? null,
-      fundName: fund?.name ?? fund?.title ?? null,
-      sampleMetrics:{
-        sharpe90: fund?.sharpe_90 ?? null,
-        sortino90: fund?.sortino_90 ?? null,
-        calmar1y: fund?.calmar_1y ?? null,
-        beta1y: fund?.beta_1y ?? null,
-        maxDrawdown1y: fund?.max_drawdown_1y ?? null,
-        volatility90: fund?.volatility_90 ?? null,
-        aum: fund?.aum ?? null,
-        investorCount: fund?.investor_count ?? null
-      },
-      responseShape: parsed && typeof parsed === "object"
-        ? Object.keys(parsed).slice(0,20)
-        : null,
-      preview: response.ok ? null : text.slice(0,300)
-    }, response.ok ? 200 : response.status);
-
-  } catch (err) {
-    return json({
-      ok:false,
-      status:"NETWORK_ERROR",
-      keyPresent:true,
-      keyMasked:true,
-      code,
-      message:String(err?.message || err)
-    }, 502);
-  }
-}
-
-async function fonolojiGet(path, env) {
-  const key = env?.FONOLOJI_KEY;
-  if (!key) throw new Error("FONOLOJI_KEY tanımlı değil.");
-
-  const url = `https://fonoloji.com/v1${path}`;
-  const res = await fetch(url, {
-    method:"GET",
-    headers:{
-      "X-API-Key": key,
-      "Accept":"application/json",
-      "User-Agent":"Portfoyum/1.15.2"
-    }
-  });
-
-  const text = await res.text();
-  if (!res.ok) {
-    throw new Error(`Fonoloji HTTP ${res.status}${text ? `: ${text.slice(0,180)}` : ""}`);
-  }
-
-  try { return JSON.parse(text); }
-  catch { throw new Error("Fonoloji geçersiz JSON döndürdü."); }
-}
-
-async function fetchFonolojiFund(code, env) {
-  const body = await fonolojiGet(`/funds/${encodeURIComponent(String(code).toUpperCase())}`, env);
-  const fund = body?.fund;
-  if (!fund || String(fund.code||"").toUpperCase() !== String(code).toUpperCase()) {
-    throw new Error("Fonoloji /funds/:code yanıtında fund objesi bulunamadı.");
-  }
-  return {
-    fund,
-    portfolio: body?.portfolio ?? null,
-    lifetime: body?.lifetime ?? null,
-    flows: body?.flows ?? null
-  };
-}
-
-async function fetchFonolojiTimeseries(code, env) {
-  return fonolojiGet(
-    `/funds/${encodeURIComponent(String(code).toUpperCase())}/timeseries?include=nav,drawdown,monthly,benchmark,allocation-history`,
-    env
-  );
-}
-
-async function fetchFonolojiPortfolio(code, env) {
-  return fonolojiGet(
-    `/funds/${encodeURIComponent(String(code).toUpperCase())}/portfolio?include=allocation,holdings,dates,fundamentals,analysts`,
-    env
-  );
-}
-
-async function fetchFonolojiAnalysis(code, env) {
-  return fonolojiGet(
-    `/funds/${encodeURIComponent(String(code).toUpperCase())}/analysis?include=summary,percentile,advanced`,
-    env
-  );
-}
-
-function arrayFromPossible(obj, keys=[]) {
-  for (const key of keys) {
-    if (Array.isArray(obj?.[key])) return obj[key];
-  }
-  if (Array.isArray(obj)) return obj;
-  return [];
-}
-
-function fonolojiNavSeries(ts) {
-  if (!ts || typeof ts !== "object") return [];
-  const candidates = [
-    ts.nav, ts?.timeseries?.nav, ts?.data?.nav,
-    ts.points, ts?.timeseries?.points, ts?.data?.points
-  ];
-  let rows = candidates.find(Array.isArray) || [];
-  return rows.map(x => ({
-    date: x?.date ?? x?.tarih ?? x?.time ?? null,
-    value: Number(x?.price ?? x?.nav ?? x?.value ?? x?.current_price)
-  })).filter(x => x.date && Number.isFinite(x.value) && x.value > 0);
-}
-
-function fonolojiDrawdownSeries(ts) {
-  if (!ts || typeof ts !== "object") return [];
-  const candidates = [ts.drawdown, ts?.timeseries?.drawdown, ts?.data?.drawdown];
-  const rows = candidates.find(Array.isArray) || [];
-  return rows.map(x => ({
-    date:x?.date ?? x?.tarih ?? null,
-    value:Number(x?.value ?? x?.drawdown ?? x?.pct)
-  })).filter(x => x.date && Number.isFinite(x.value));
-}
-
-function fonolojiAllocation(portfolioRoot, fundRootPortfolio) {
-  const p = portfolioRoot?.allocation ?? portfolioRoot?.portfolio?.allocation ??
-            portfolioRoot?.data?.allocation ?? fundRootPortfolio ?? null;
-  if (!p || typeof p !== "object") return null;
-  return p;
-}
-
-function fonolojiPct(v) {
-  const n=Number(v);
-  return Number.isFinite(n) ? n*100 : null;
 }
 
 async function handleFundResearch(code, env) {

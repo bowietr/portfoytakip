@@ -1252,3 +1252,35 @@ html:not([data-theme="dark"]) .chart-badge {
 }
 
 
+
+
+/* =========================================================
+   V1.15.3 — Veri Kaynağı Rozetleri
+   ========================================================= */
+.source-panel-head {
+  align-items:flex-start;
+  gap:12px;
+}
+.source-badge {
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:27px;
+  padding:0 9px;
+  border-radius:999px;
+  border:1px solid var(--border);
+  font:800 9px "Manrope",sans-serif;
+  letter-spacing:.08em;
+  line-height:1;
+}
+.source-fonoloji {
+  color:var(--accent-strong);
+  background:var(--accent-soft);
+  border-color:color-mix(in srgb,var(--accent) 26%,var(--border));
+}
+.source-kap {
+  color:color-mix(in srgb,var(--gold) 78%,var(--text));
+  background:var(--gold-soft);
+  border-color:color-mix(in srgb,var(--gold) 28%,var(--border));
+}
