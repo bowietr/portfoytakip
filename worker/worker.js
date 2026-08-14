@@ -21,7 +21,15 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.6" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13" });
+    }
+
+    const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
+    if (researchMatch) {
+      const type = researchMatch[1];
+      const researchCode = researchMatch[2].trim().toUpperCase().replace(/\.IS$/, "");
+      if (!/^[A-Z0-9]{2,12}$/.test(researchCode)) return json({ok:false,error:"Geçersiz varlık kodu."},400);
+      return type === "fund" ? await handleFundResearch(researchCode) : await handleStockResearch(researchCode);
     }
 
     const stockMatch = url.pathname.match(/^\/api\/stock\/([A-Za-z0-9._-]+)$/);
@@ -80,6 +88,87 @@ export default {
     }
   }
 };
+
+
+async function fetchTefasPayload(code) {
+  const upstream = await fetch(TEFAS_URL, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Accept":"application/json, text/plain, */*","User-Agent":"Mozilla/5.0","Origin":"https://www.tefas.gov.tr","Referer":"https://www.tefas.gov.tr/"},
+    body:JSON.stringify({fonKodu:code,dil:"TR",periyod:13})
+  });
+  const text=await upstream.text();
+  if(!upstream.ok) throw new Error(`TEFAS HTTP ${upstream.status}`);
+  try{return JSON.parse(text);}catch{throw new Error("TEFAS geçersiz JSON döndürdü.");}
+}
+
+function tefasHistory(payload) {
+  const rows=collectRows(payload), map=new Map();
+  for(const row of rows){
+    if(!row||typeof row!=="object") continue;
+    const price=firstNumber(row,["fiyat","Fiyat","price","Price","birimPayDegeri","birimPayDeğeri","fonFiyati","fonFiyat","nav","close","value"]);
+    const date=parseDate(firstValue(row,["tarih","Tarih","date","Date","islemTarihi","fiyatTarihi","priceDate"]));
+    if(!(price>0)||!date) continue;
+    const key=date.slice(0,10);
+    const name=firstValue(row,["fonUnvan","fonUnvani","FonUnvan","fundName","name","FonAdi","fonAdi"]);
+    map.set(key,{date,price,name:typeof name==="string"?name:""});
+  }
+  return [...map.values()].sort((a,b)=>new Date(a.date)-new Date(b.date));
+}
+function retFromDays(hist,days){
+  if(hist.length<2)return null; const last=hist.at(-1), target=new Date(last.date).getTime()-days*86400000;
+  let base=hist[0]; for(const p of hist){if(new Date(p.date).getTime()<=target) base=p; else break;}
+  if(!(base.price>0)||base===last)return null; return (last.price/base.price-1)*100;
+}
+function stdev(arr){ if(arr.length<2)return null; const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1)); }
+function maxDrawdown(hist){let peak=-Infinity,max=0; for(const p of hist){peak=Math.max(peak,p.price); if(peak>0)max=Math.min(max,(p.price/peak-1)*100);} return max;}
+function deepFindValue(payload,keys){let found=null; const lower=keys.map(k=>k.toLocaleLowerCase("tr-TR")); function walk(v,d=0){if(d>7||found!==null||v==null)return;if(Array.isArray(v))return v.forEach(x=>walk(x,d+1));if(typeof v!=="object")return;for(const [k,val] of Object.entries(v)){if(lower.includes(k.toLocaleLowerCase("tr-TR"))&&val!==null&&val!==""){found=val;return;}}Object.values(v).forEach(x=>walk(x,d+1));}walk(payload);return found;}
+
+async function handleFundResearch(code){
+  try{
+    const payload=await fetchTefasPayload(code), hist=tefasHistory(payload);
+    if(hist.length<2)return json({ok:false,error:`${code} için yeterli TEFAS fiyat geçmişi bulunamadı.`},404);
+    const latest=hist.at(-1), prev=hist.at(-2), change=latest.price-prev.price, changePercent=change/prev.price*100;
+    const yearStart=new Date(latest.date).getTime()-365*86400000, year=hist.filter(x=>new Date(x.date).getTime()>=yearStart), prices=year.length?year:hist;
+    const rets=[]; for(let i=1;i<hist.length;i++) rets.push(hist[i].price/hist[i-1].price-1);
+    const vol=stdev(rets); const positives=rets.length?rets.filter(x=>x>0).length/rets.length*100:null;
+    const name=[...hist].reverse().find(x=>x.name)?.name||code;
+    const fundTotalValue=toNumber(deepFindValue(payload,["fonToplamDeger","fonToplamDegeri","toplamDeger","fundTotalValue"]));
+    const investorCount=toNumber(deepFindValue(payload,["yatirimciSayisi","yatırımcıSayısı","investorCount"]));
+    const riskValue=toNumber(deepFindValue(payload,["riskDegeri","riskDeğeri","riskValue","risk"]));
+    return json({ok:true,data:{type:"fund",source:"TEFAS",code,name,price:latest.price,previousPrice:prev.price,change,changePercent,date:latest.date,
+      performance:{week:retFromDays(hist,7),month1:retFromDays(hist,30),month3:retFromDays(hist,90),month6:retFromDays(hist,180),year1:retFromDays(hist,365)},
+      stats:{high52w:Math.max(...prices.map(x=>x.price)),low52w:Math.min(...prices.map(x=>x.price)),distanceFromHighPct:(latest.price/Math.max(...prices.map(x=>x.price))-1)*100,observations:hist.length},
+      risk:{annualizedVolatilityPct:vol===null?null:vol*Math.sqrt(252)*100,maxDrawdownPct:maxDrawdown(prices),positiveDayRatioPct:positives},
+      metadata:{fundTotalValue:Number.isFinite(fundTotalValue)?fundTotalValue:null,investorCount:Number.isFinite(investorCount)?investorCount:null,riskValue:Number.isFinite(riskValue)?riskValue:null}
+    }});
+  }catch(err){return json({ok:false,error:String(err?.message||err)},500);}
+}
+
+async function tvScan(symbol,columns){
+  const endpoint="https://scanner.tradingview.com/turkey/scan";
+  const r=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json","Accept":"application/json,text/plain,*/*","Origin":"https://www.tradingview.com","Referer":"https://www.tradingview.com/","User-Agent":"Mozilla/5.0 (compatible; Portfoyum/1.13)"},body:JSON.stringify({symbols:{tickers:[symbol],query:{types:[]}},columns})});
+  if(!r.ok)return null; let p; try{p=await r.json();}catch{return null;} const row=p?.data?.[0]; if(!row||!Array.isArray(row.d))return null; const out={}; columns.forEach((c,i)=>out[c]=row.d[i]); return out;
+}
+async function handleStockResearch(code){
+  try{
+    const symbol=`BIST:${code}`;
+    const base=await tvScan(symbol,["name","description","close","change","change_abs","volume","currency","update_mode"]);
+    if(!base||!(Number(base.close)>0))return json({ok:false,error:`${code} için BIST verisi bulunamadı.`},404);
+    const [fund,perf,tech]=await Promise.all([
+      tvScan(symbol,["market_cap_basic","price_earnings_ttm","price_book_ratio","earnings_per_share_diluted_ttm","dividends_yield","beta_1_year","sector","industry"]),
+      tvScan(symbol,["Perf.W","Perf.1M","Perf.3M","Perf.6M","Perf.Y","price_52_week_high","price_52_week_low"]),
+      tvScan(symbol,["RSI","SMA50","SMA200","Recommend.All"])
+    ]);
+    const price=Number(base.close), providerAbs=Number(base.change_abs), providerPct=Number(base.change); let previous=null;
+    if(Number.isFinite(providerAbs)&&price-providerAbs>0)previous=price-providerAbs; else if(Number.isFinite(providerPct)&&providerPct>-100)previous=price/(1+providerPct/100);
+    const change=previous>0?price-previous:(Number.isFinite(providerAbs)?providerAbs:null), changePercent=previous>0?change/previous*100:(Number.isFinite(providerPct)?providerPct:null);
+    const n=v=>Number.isFinite(Number(v))?Number(v):null;
+    return json({ok:true,data:{type:"stock",source:"TradingView delayed scanner",code,symbol,name:base.description||base.name||code,price,previousPrice:previous,change,changePercent,volume:n(base.volume),currency:base.currency||"TRY",sector:fund?.sector||null,industry:fund?.industry||null,
+      fundamentals:{marketCap:n(fund?.market_cap_basic),pe:n(fund?.price_earnings_ttm),priceToBook:n(fund?.price_book_ratio),epsTtm:n(fund?.earnings_per_share_diluted_ttm),dividendYield:n(fund?.dividends_yield),beta1y:n(fund?.beta_1_year)},
+      performance:{week:n(perf?.["Perf.W"]),month1:n(perf?.["Perf.1M"]),month3:n(perf?.["Perf.3M"]),month6:n(perf?.["Perf.6M"]),year1:n(perf?.["Perf.Y"])},
+      stats:{high52w:n(perf?.price_52_week_high),low52w:n(perf?.price_52_week_low)},technicals:{rsi:n(tech?.RSI),sma50:n(tech?.SMA50),sma200:n(tech?.SMA200),recommendation:n(tech?.["Recommend.All"])},delayed:true,date:new Date().toISOString()}});
+  }catch(err){return json({ok:false,error:String(err?.message||err)},500);}
+}
 
 async function handleStock(code, env) {
   // v1.6 — BIST hisseleri için TradingView delayed scanner.
