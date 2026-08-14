@@ -1,1 +1,110 @@
+name: Portfoyum ZIP Update
 
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "update.zip"
+
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  install-update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository'yi al
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: ZIP paketini kontrol et
+        run: |
+          test -f update.zip || {
+            echo "update.zip bulunamadı."
+            exit 1
+          }
+
+      - name: Paketi geçici klasöre aç
+        run: |
+          rm -rf /tmp/portfoyum-update
+          mkdir -p /tmp/portfoyum-update
+          unzip -q update.zip -d /tmp/portfoyum-update
+
+          # ZIP'in içinde tek bir üst klasör varsa onun içeriğini kullan.
+          ITEM_COUNT=$(find /tmp/portfoyum-update -mindepth 1 -maxdepth 1 | wc -l)
+          DIR_COUNT=$(find /tmp/portfoyum-update -mindepth 1 -maxdepth 1 -type d | wc -l)
+
+          if [ "$ITEM_COUNT" -eq 1 ] && [ "$DIR_COUNT" -eq 1 ]; then
+            ONLY_DIR=$(find /tmp/portfoyum-update -mindepth 1 -maxdepth 1 -type d)
+            mv "$ONLY_DIR" /tmp/portfoyum-package
+            rm -rf /tmp/portfoyum-update
+          else
+            mv /tmp/portfoyum-update /tmp/portfoyum-package
+          fi
+
+      - name: Paketi doğrula
+        run: |
+          test -f /tmp/portfoyum-package/index.html || {
+            echo "Pakette index.html yok. İşlem durduruldu."
+            exit 1
+          }
+
+          test -f /tmp/portfoyum-package/assets/app.js || {
+            echo "Pakette assets/app.js yok. İşlem durduruldu."
+            exit 1
+          }
+
+          test -f /tmp/portfoyum-package/assets/style.css || {
+            echo "Pakette assets/style.css yok. İşlem durduruldu."
+            exit 1
+          }
+
+      - name: Proje dosyalarını güncelle
+        run: |
+          # Workflow klasörüne asla dokunma.
+          rm -rf assets worker
+          rm -f index.html README.md
+
+          cp -R /tmp/portfoyum-package/assets ./assets
+          cp /tmp/portfoyum-package/index.html ./index.html
+
+          if [ -d /tmp/portfoyum-package/worker ]; then
+            cp -R /tmp/portfoyum-package/worker ./worker
+          fi
+
+          if [ -f /tmp/portfoyum-package/README.md ]; then
+            cp /tmp/portfoyum-package/README.md ./README.md
+          fi
+
+          rm -f update.zip
+
+      - name: Değişiklikleri commit et
+        id: commit
+        run: |
+          git config user.name "Portfoyum Updater"
+          git config user.email "actions@github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Dosyalarda değişiklik yok."
+          else
+            git commit -m "Update Portfoyum from ZIP"
+            git push origin main
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: GitHub Pages build iste
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/${{ github.repository }}/pages/builds"
