@@ -974,3 +974,54 @@ select:focus {
     min-height: 118px;
   }
 }
+
+
+/* =========================================================
+   v1.12 — Sabit masaüstü/tablet sol navigasyon
+   ========================================================= */
+
+@media (min-width: 761px) {
+  .app-shell {
+    display: block;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    position: fixed;
+    z-index: 100;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 240px;
+    height: 100vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .main {
+    width: auto;
+    max-width: none;
+    margin-left: 240px;
+    min-height: 100vh;
+  }
+}
+
+@supports (-webkit-touch-callout: none) {
+  @media (min-width: 761px) {
+    .sidebar {
+      position: fixed;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+    }
+  }
+}
+
+@media (max-width: 760px) {
+  .app-shell {
+    display: block;
+  }
+
+  .main {
+    margin-left: 0;
+  }
+}
