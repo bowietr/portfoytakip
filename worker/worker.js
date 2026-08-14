@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.3" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.4" });
     }
 
     const fonolojiTestMatch = url.pathname.match(/^\/api\/fonoloji-test\/([A-Za-z0-9._-]+)$/);
@@ -1021,6 +1021,144 @@ async function fetchKapFundFees(code, fundName) {
       performanceFeePct:null
     };
   }
+}
+
+
+async function fonolojiGet(path, env) {
+  const key = env?.FONOLOJI_KEY;
+  if (!key) throw new Error("FONOLOJI_KEY tanımlı değil.");
+
+  const url = `https://fonoloji.com/v1${path}`;
+  const response = await fetch(url, {
+    method: "GET",
+    headers: {
+      "X-API-Key": key,
+      "Accept": "application/json",
+      "User-Agent": "Portfoyum/1.15.4"
+    }
+  });
+
+  const text = await response.text();
+
+  if (!response.ok) {
+    throw new Error(
+      `Fonoloji HTTP ${response.status}${text ? `: ${text.slice(0,180)}` : ""}`
+    );
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Fonoloji geçersiz JSON döndürdü.");
+  }
+}
+
+async function fetchFonolojiFund(code, env) {
+  const normalized = String(code || "").trim().toUpperCase();
+  const body = await fonolojiGet(`/funds/${encodeURIComponent(normalized)}`, env);
+
+  const fund = body?.fund;
+  if (!fund) {
+    throw new Error("Fonoloji /funds/:code yanıtında fund objesi bulunamadı.");
+  }
+
+  if (String(fund.code || "").toUpperCase() !== normalized) {
+    throw new Error(
+      `Fonoloji farklı fon döndürdü: ${String(fund.code || "bilinmiyor")}`
+    );
+  }
+
+  return {
+    fund,
+    portfolio: body?.portfolio ?? null,
+    lifetime: body?.lifetime ?? null,
+    flows: body?.flows ?? null
+  };
+}
+
+async function fetchFonolojiTimeseries(code, env) {
+  const normalized = String(code || "").trim().toUpperCase();
+  return fonolojiGet(
+    `/funds/${encodeURIComponent(normalized)}/timeseries?include=nav,drawdown,monthly,benchmark,allocation-history`,
+    env
+  );
+}
+
+async function fetchFonolojiPortfolio(code, env) {
+  const normalized = String(code || "").trim().toUpperCase();
+  return fonolojiGet(
+    `/funds/${encodeURIComponent(normalized)}/portfolio?include=allocation,holdings,dates,fundamentals,analysts`,
+    env
+  );
+}
+
+async function fetchFonolojiAnalysis(code, env) {
+  const normalized = String(code || "").trim().toUpperCase();
+  return fonolojiGet(
+    `/funds/${encodeURIComponent(normalized)}/analysis?include=summary,percentile,advanced`,
+    env
+  );
+}
+
+function fonolojiNavSeries(ts) {
+  if (!ts || typeof ts !== "object") return [];
+
+  const candidates = [
+    ts?.nav,
+    ts?.timeseries?.nav,
+    ts?.data?.nav,
+    ts?.points,
+    ts?.timeseries?.points,
+    ts?.data?.points
+  ];
+
+  const rows = candidates.find(Array.isArray) || [];
+
+  return rows
+    .map(row => ({
+      date: row?.date ?? row?.tarih ?? row?.time ?? null,
+      value: Number(
+        row?.price ??
+        row?.nav ??
+        row?.value ??
+        row?.current_price
+      )
+    }))
+    .filter(row => row.date && Number.isFinite(row.value) && row.value > 0);
+}
+
+function fonolojiDrawdownSeries(ts) {
+  if (!ts || typeof ts !== "object") return [];
+
+  const candidates = [
+    ts?.drawdown,
+    ts?.timeseries?.drawdown,
+    ts?.data?.drawdown
+  ];
+
+  const rows = candidates.find(Array.isArray) || [];
+
+  return rows
+    .map(row => ({
+      date: row?.date ?? row?.tarih ?? null,
+      value: Number(row?.value ?? row?.drawdown ?? row?.pct)
+    }))
+    .filter(row => row.date && Number.isFinite(row.value));
+}
+
+function fonolojiAllocation(portfolioRoot, fundRootPortfolio) {
+  return (
+    portfolioRoot?.allocation ??
+    portfolioRoot?.portfolio?.allocation ??
+    portfolioRoot?.data?.allocation ??
+    fundRootPortfolio ??
+    null
+  );
+}
+
+function fonolojiPct(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n * 100 : null;
 }
 
 async function handleFundResearch(code, env) {

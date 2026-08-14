@@ -1020,3 +1020,25 @@ sütunlarını ayrı ayrı eşler,
 Fon Toplam Gider Oranı yalnızca KAP HTML'inde açıkça doğrulanabilen yüzde değeri varsa gösterilir.
 
 Amaç yanlış oran göstermek yerine güvenilir olmayan alanı boş bırakmaktır.
+
+
+## V1.15.4 — Fonoloji Client Fix
+
+V1.15.3'te `handleFundResearch()` içinde kullanılan `fetchFonolojiFund()` helper'ı
+build edilen Worker dosyasında eksik kalmıştı ve araştırma ekranında:
+
+`fetchFonolojiFund is not defined`
+
+hatasına neden oluyordu.
+
+Fonoloji client bu sürümde tek ve canonical bir blok olarak yeniden tanımlandı:
+
+- `fonolojiGet`
+- `fetchFonolojiFund`
+- `fetchFonolojiTimeseries`
+- `fetchFonolojiPortfolio`
+- `fetchFonolojiAnalysis`
+- timeseries / drawdown / allocation yardımcıları
+
+Fon araştırma route'u `env` parametresini açıkça geçirir ve `FONOLOJI_KEY` secret'ını
+aynı client üzerinden kullanır.
