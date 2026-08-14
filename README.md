@@ -1042,3 +1042,23 @@ Fonoloji client bu sürümde tek ve canonical bir blok olarak yeniden tanımland
 
 Fon araştırma route'u `env` parametresini açıkça geçirir ve `FONOLOJI_KEY` secret'ını
 aynı client üzerinden kullanır.
+
+
+## V1.15.5 — Worker Undefined Helper Audit
+
+V1.15.4 sonrası Worker dosyası yalnızca syntax açısından değil, tanımsız yardımcı fonksiyon
+çağrıları açısından da tarandı.
+
+Eksik olduğu tespit edilen iki helper düzeltildi:
+
+- `arrayFromPossible`
+- `handleFonolojiTest`
+
+`arrayFromPossible`, Fonoloji portfolio endpoint'indeki farklı wrapper şekillerinden array
+verilerini güvenli biçimde çıkarır.
+
+`handleFonolojiTest`, mevcut canonical `fonolojiGet` istemcisini kullanır ve API key'i hiçbir
+zaman dışarı döndürmez.
+
+Bu sürüm oluşturulurken Worker içindeki plain function çağrıları ile function declaration /
+yerel function assignment'ları karşılaştırılarak statik undefined-call kontrolü yapılmıştır.
