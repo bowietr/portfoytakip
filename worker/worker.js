@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.1" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.2" });
     }
 
     const fonolojiTestMatch = url.pathname.match(/^\/api\/fonoloji-test\/([A-Za-z0-9._-]+)$/);
@@ -38,7 +38,7 @@ export default {
       const type = researchMatch[1];
       const researchCode = researchMatch[2].trim().toUpperCase().replace(/\.IS$/, "");
       if (!/^[A-Z0-9]{2,12}$/.test(researchCode)) return json({ok:false,error:"Geçersiz varlık kodu."},400);
-      return type === "fund" ? await handleFundResearch(researchCode) : await handleStockResearch(researchCode);
+      return type === "fund" ? await handleFundResearch(researchCode, env) : await handleStockResearch(researchCode);
     }
 
     const stockMatch = url.pathname.match(/^\/api\/stock\/([A-Za-z0-9._-]+)$/);
@@ -1017,34 +1017,100 @@ async function handleFonolojiTest(code, env) {
   }
 }
 
-async function fetchFonolojiFund(code, env) {
+async function fonolojiGet(path, env) {
   const key = env?.FONOLOJI_KEY;
   if (!key) throw new Error("FONOLOJI_KEY tanımlı değil.");
 
-  const url = `https://fonoloji.com/v1/funds/${encodeURIComponent(String(code).toUpperCase())}`;
+  const url = `https://fonoloji.com/v1${path}`;
   const res = await fetch(url, {
     method:"GET",
     headers:{
       "X-API-Key": key,
       "Accept":"application/json",
-      "User-Agent":"Portfoyum/1.15.1"
+      "User-Agent":"Portfoyum/1.15.2"
     }
   });
 
   const text = await res.text();
   if (!res.ok) {
-    throw new Error(`Fonoloji HTTP ${res.status}${text ? `: ${text.slice(0,120)}` : ""}`);
+    throw new Error(`Fonoloji HTTP ${res.status}${text ? `: ${text.slice(0,180)}` : ""}`);
   }
 
-  let body;
-  try { body=JSON.parse(text); }
+  try { return JSON.parse(text); }
   catch { throw new Error("Fonoloji geçersiz JSON döndürdü."); }
+}
 
-  const fund=body?.fund || body?.data || body;
+async function fetchFonolojiFund(code, env) {
+  const body = await fonolojiGet(`/funds/${encodeURIComponent(String(code).toUpperCase())}`, env);
+  const fund = body?.fund;
   if (!fund || String(fund.code||"").toUpperCase() !== String(code).toUpperCase()) {
-    throw new Error("Fonoloji fon verisi bulunamadı.");
+    throw new Error("Fonoloji /funds/:code yanıtında fund objesi bulunamadı.");
   }
-  return fund;
+  return {
+    fund,
+    portfolio: body?.portfolio ?? null,
+    lifetime: body?.lifetime ?? null,
+    flows: body?.flows ?? null
+  };
+}
+
+async function fetchFonolojiTimeseries(code, env) {
+  return fonolojiGet(
+    `/funds/${encodeURIComponent(String(code).toUpperCase())}/timeseries?include=nav,drawdown,monthly,benchmark,allocation-history`,
+    env
+  );
+}
+
+async function fetchFonolojiPortfolio(code, env) {
+  return fonolojiGet(
+    `/funds/${encodeURIComponent(String(code).toUpperCase())}/portfolio?include=allocation,holdings,dates,fundamentals,analysts`,
+    env
+  );
+}
+
+async function fetchFonolojiAnalysis(code, env) {
+  return fonolojiGet(
+    `/funds/${encodeURIComponent(String(code).toUpperCase())}/analysis?include=summary,percentile,advanced`,
+    env
+  );
+}
+
+function arrayFromPossible(obj, keys=[]) {
+  for (const key of keys) {
+    if (Array.isArray(obj?.[key])) return obj[key];
+  }
+  if (Array.isArray(obj)) return obj;
+  return [];
+}
+
+function fonolojiNavSeries(ts) {
+  if (!ts || typeof ts !== "object") return [];
+  const candidates = [
+    ts.nav, ts?.timeseries?.nav, ts?.data?.nav,
+    ts.points, ts?.timeseries?.points, ts?.data?.points
+  ];
+  let rows = candidates.find(Array.isArray) || [];
+  return rows.map(x => ({
+    date: x?.date ?? x?.tarih ?? x?.time ?? null,
+    value: Number(x?.price ?? x?.nav ?? x?.value ?? x?.current_price)
+  })).filter(x => x.date && Number.isFinite(x.value) && x.value > 0);
+}
+
+function fonolojiDrawdownSeries(ts) {
+  if (!ts || typeof ts !== "object") return [];
+  const candidates = [ts.drawdown, ts?.timeseries?.drawdown, ts?.data?.drawdown];
+  const rows = candidates.find(Array.isArray) || [];
+  return rows.map(x => ({
+    date:x?.date ?? x?.tarih ?? null,
+    value:Number(x?.value ?? x?.drawdown ?? x?.pct)
+  })).filter(x => x.date && Number.isFinite(x.value));
+}
+
+function fonolojiAllocation(portfolioRoot, fundRootPortfolio) {
+  const p = portfolioRoot?.allocation ?? portfolioRoot?.portfolio?.allocation ??
+            portfolioRoot?.data?.allocation ?? fundRootPortfolio ?? null;
+  if (!p || typeof p !== "object") return null;
+  return p;
 }
 
 function fonolojiPct(v) {
@@ -1054,7 +1120,12 @@ function fonolojiPct(v) {
 
 async function handleFundResearch(code, env) {
   try {
-    const fonolojiPromise = fetchFonolojiFund(code, env).catch(() => null);
+    // Fonoloji is the primary fund-research provider.
+    // TEFAS remains the fallback for historical NAV and locally computed metrics.
+    const fonolojiRootPromise = fetchFonolojiFund(code, env).catch(() => null);
+    const fonolojiTsPromise = fetchFonolojiTimeseries(code, env).catch(() => null);
+    const fonolojiPortfolioPromise = fetchFonolojiPortfolio(code, env).catch(() => null);
+    const fonolojiAnalysisPromise = fetchFonolojiAnalysis(code, env).catch(() => null);
 
     const [historyPayload, profilePayload, detailMetrics, generalMetrics] = await Promise.all([
       fetchTefasPayload(code, 12),
@@ -1062,182 +1133,190 @@ async function handleFundResearch(code, env) {
       fetchTefasDetailMetrics(code),
       fetchTefasGeneralMetrics(code).catch(() => ({}))
     ]);
-    const fonoloji = await fonolojiPromise;
 
-    const hist = tefasHistory(historyPayload);
-    if (hist.length < 2) {
-      return json({ok:false,error:`${code} için yeterli TEFAS fiyat geçmişi bulunamadı.`},404);
+    const [fonolojiRoot, fonolojiTs, fonolojiPortfolioRoot, fonolojiAnalysis] = await Promise.all([
+      fonolojiRootPromise,
+      fonolojiTsPromise,
+      fonolojiPortfolioPromise,
+      fonolojiAnalysisPromise
+    ]);
+
+    const f = fonolojiRoot?.fund ?? null;
+
+    const tefasHist = tefasHistory(historyPayload);
+    const fonolojiNav = fonolojiNavSeries(fonolojiTs);
+    const hist = fonolojiNav.length >= 2
+      ? fonolojiNav.map(x => ({date:x.date, price:x.value, name:f?.name || ""}))
+      : tefasHist;
+
+    if (hist.length < 2 && !f) {
+      return json({ok:false,error:`${code} için yeterli fon verisi bulunamadı.`},404);
     }
 
-    const latest = hist.at(-1);
-    const prev = hist.at(-2);
-    const change = latest.price - prev.price;
-    const changePercent = change / prev.price * 100;
+    const latest = hist.at(-1) || null;
+    const prev = hist.at(-2) || null;
 
-    const oneYearAgo = new Date(new Date(latest.date).getTime() - 365 * 86400000);
-    const year = hist.filter(x => new Date(x.date) >= oneYearAgo);
-    const prices = year.length >= 2 ? year : hist;
+    const price = Number.isFinite(Number(f?.current_price))
+      ? Number(f.current_price)
+      : Number(latest?.price);
+
+    const previousPrice = Number.isFinite(Number(f?.return_1d)) && price > 0
+      ? price / (1 + Number(f.return_1d))
+      : Number(prev?.price);
+
+    const change = price > 0 && previousPrice > 0 ? price - previousPrice : null;
+    const changePercent = Number.isFinite(Number(f?.return_1d))
+      ? fonolojiPct(f.return_1d)
+      : (previousPrice > 0 ? (price/previousPrice - 1)*100 : null);
+
+    const oneYearAgo = latest
+      ? new Date(new Date(latest.date).getTime() - 365*86400000)
+      : null;
+    const prices = oneYearAgo
+      ? hist.filter(x => new Date(x.date) >= oneYearAgo)
+      : hist;
 
     const returns = dailyReturns(prices);
     const returnValues = returns.map(x => x.value);
     const vol = stdev(returnValues);
-    const annualVolPct = vol === null ? null : vol * Math.sqrt(252) * 100;
+    const annualVolPct = vol === null ? null : vol*Math.sqrt(252)*100;
     const positiveRatio = returns.length
       ? returns.filter(x => x.value > 0).length / returns.length * 100
       : null;
     const annualReturnPct = annualizedReturnPct(prices);
-    const maxDdPct = maxDrawdown(prices);
-
-    // Risk-free / minimum acceptable return currently 0%.
-    // Oranlar aynı günlük TEFAS return serisinden hesaplanır.
-    const riskFreeAnnualPct = 0;
-    const targetAnnualPct = 0;
-    const downsideDevPct = downsideDeviationAnnualPct(returns, 0);
-    const sharpe = sharpeRatioFromDailyReturns(returns, riskFreeAnnualPct);
-    const sortino = sortinoRatioFromDailyReturns(returns, targetAnnualPct);
-    const calmar = calmarRatioFromHistory(prices, maxDdPct);
-
+    const localMaxDdPct = maxDrawdown(prices);
+    const downsideDevPct = downsideDeviationAnnualPct(returns,0);
+    const localSharpe = sharpeRatioFromDailyReturns(returns,0);
+    const localSortino = sortinoRatioFromDailyReturns(returns,0);
+    const localCalmar = calmarRatioFromHistory(prices,localMaxDdPct);
     const bestWorst = bestWorstDay(returns);
 
-    const rolling30 = rollingVolatilitySeries(prices, 30);
-    const rolling90 = rollingVolatilitySeries(prices, 90);
-    const ddSeries = drawdownSeries(prices);
+    const rolling30 = rollingVolatilitySeries(prices,30);
+    const rolling90 = rollingVolatilitySeries(prices,90);
 
-    const last30Vol = rolling30.at(-1)?.value ?? null;
-    const last90Vol = rolling90.at(-1)?.value ?? null;
-
-    const name =
-      [...hist].reverse().find(x => x.name)?.name ||
-      String(deepFindValue(profilePayload, ["fonUnvan","fonUnvani"]) || code);
+    const providerDd = fonolojiDrawdownSeries(fonolojiTs);
+    const ddSeries = providerDd.length ? providerDd : drawdownSeries(prices);
 
     const riskValue =
-      validRiskValue(deepFindValue(profilePayload, ["riskDegeri","riskDeğeri","riskValue"])) ??
-      validRiskValue(deepFindValue(historyPayload, ["riskDegeri","riskDeğeri","riskValue"]));
+      validRiskValue(f?.risk_score) ??
+      validRiskValue(deepFindValue(profilePayload,["riskDegeri","riskDeğeri","riskValue"]));
 
     const profileFundTotalValue =
-      deepFindNumberByKeyTokens(profilePayload, [
-        ["fon","toplam","deger"],["port","buyukluk"],["fund","total","value"]
-      ]) ??
-      deepFindNumberByKeyTokens(historyPayload, [
-        ["fon","toplam","deger"],["port","buyukluk"]
-      ]);
-
+      deepFindNumberByKeyTokens(profilePayload,[["fon","toplam","deger"],["port","buyukluk"]]);
     const profileInvestorCount =
-      deepFindNumberByKeyTokens(profilePayload, [
-        ["yatirimci","sayi"],["investor","count"]
-      ]) ??
-      deepFindNumberByKeyTokens(historyPayload, [["yatirimci","sayi"]]);
+      deepFindNumberByKeyTokens(profilePayload,[["yatirimci","sayi"]]);
 
-    const generalFundTotalValue = nullablePositiveNumber(generalMetrics?.fundTotalValue);
-    const detailFundTotalValue = nullablePositiveNumber(detailMetrics?.fundTotalValue);
-    const generalInvestorCount = nullablePositiveNumber(generalMetrics?.investorCount);
-    const detailInvestorCount = nullablePositiveNumber(detailMetrics?.investorCount);
-    const generalShareCount = nullablePositiveNumber(generalMetrics?.shareCount);
-
-    const fundTotalValue =
-      generalFundTotalValue ??
+    const fallbackFundTotalValue =
+      nullablePositiveNumber(generalMetrics?.fundTotalValue) ??
       (Number.isFinite(profileFundTotalValue) && profileFundTotalValue > 0 ? profileFundTotalValue : null) ??
-      detailFundTotalValue;
+      nullablePositiveNumber(detailMetrics?.fundTotalValue);
 
-    const investorCount =
-      generalInvestorCount ??
+    const fallbackInvestorCount =
+      nullablePositiveNumber(generalMetrics?.investorCount) ??
       (Number.isFinite(profileInvestorCount) && profileInvestorCount > 0 ? profileInvestorCount : null) ??
-      detailInvestorCount;
+      nullablePositiveNumber(detailMetrics?.investorCount);
 
-    const shareCount = generalShareCount;
+    const fundTotalValue = nullablePositiveNumber(f?.aum) ?? fallbackFundTotalValue;
+    const investorCount = nullablePositiveNumber(f?.investor_count) ?? fallbackInvestorCount;
+    const shareCount = nullablePositiveNumber(generalMetrics?.shareCount);
 
-    const high52w = Math.max(...prices.map(x => x.price));
-    const low52w = Math.min(...prices.map(x => x.price));
+    const high52w = prices.length ? Math.max(...prices.map(x=>x.price)) : null;
+    const low52w = prices.length ? Math.min(...prices.map(x=>x.price)) : null;
 
-    const fees = await fetchKapFundFees(code, name);
+    const fees = await fetchKapFundFees(code, f?.name || latest?.name || code);
+
+    const allocation = fonolojiAllocation(fonolojiPortfolioRoot, fonolojiRoot?.portfolio);
+    const holdings =
+      arrayFromPossible(fonolojiPortfolioRoot,["holdings"]) ||
+      arrayFromPossible(fonolojiPortfolioRoot?.portfolio,["holdings"]);
 
     return json({
       ok:true,
       data:{
         type:"fund",
-        source:"TEFAS",
+        source:f ? "Fonoloji" : "TEFAS fallback",
         code,
-        name,
-        price:latest.price,
-        previousPrice:prev.price,
+        name:f?.name || latest?.name || code,
+        category:f?.category ?? null,
+        managementCompany:f?.management_company ?? null,
+        isin:f?.isin ?? null,
+        tradingStatus:f?.trading_status ?? null,
+        tradingStart:f?.trading_start ?? null,
+        tradingEnd:f?.trading_end ?? null,
+        buyValor:Number.isFinite(Number(f?.buy_valor)) ? Number(f.buy_valor) : null,
+        sellValor:Number.isFinite(Number(f?.sell_valor)) ? Number(f.sell_valor) : null,
+        kapUrl:f?.kap_url ?? fees?.url ?? null,
+
+        price,
+        previousPrice,
         change,
         changePercent,
-        date:latest.date,
+        date:f?.current_date ?? latest?.date ?? null,
 
         performance:{
-          week:Number.isFinite(Number(fonoloji?.return_1w)) ? fonolojiPct(fonoloji.return_1w) : returnFromDaysStrict(hist,7),
-          month1:Number.isFinite(Number(fonoloji?.return_1m)) ? fonolojiPct(fonoloji.return_1m) : returnFromMonths(hist,1),
-          month3:Number.isFinite(Number(fonoloji?.return_3m)) ? fonolojiPct(fonoloji.return_3m) : returnFromMonths(hist,3),
-          month6:Number.isFinite(Number(fonoloji?.return_6m)) ? fonolojiPct(fonoloji.return_6m) : returnFromMonths(hist,6),
-          year1:Number.isFinite(Number(fonoloji?.return_1y)) ? fonolojiPct(fonoloji.return_1y) : returnFromMonths(hist,12),
-          ytd:Number.isFinite(Number(fonoloji?.return_ytd)) ? fonolojiPct(fonoloji.return_ytd) : null,
-          realReturn1yPct:Number.isFinite(Number(fonoloji?.real_return_1y)) ? fonolojiPct(fonoloji.real_return_1y) : null,
+          day1:Number.isFinite(Number(f?.return_1d)) ? fonolojiPct(f.return_1d) : changePercent,
+          week:Number.isFinite(Number(f?.return_1w)) ? fonolojiPct(f.return_1w) : returnFromDaysStrict(hist,7),
+          month1:Number.isFinite(Number(f?.return_1m)) ? fonolojiPct(f.return_1m) : returnFromMonths(hist,1),
+          month3:Number.isFinite(Number(f?.return_3m)) ? fonolojiPct(f.return_3m) : returnFromMonths(hist,3),
+          month6:Number.isFinite(Number(f?.return_6m)) ? fonolojiPct(f.return_6m) : returnFromMonths(hist,6),
+          year1:Number.isFinite(Number(f?.return_1y)) ? fonolojiPct(f.return_1y) : returnFromMonths(hist,12),
+          ytd:Number.isFinite(Number(f?.return_ytd)) ? fonolojiPct(f.return_ytd) : null,
+          realReturn1yPct:Number.isFinite(Number(f?.real_return_1y)) ? fonolojiPct(f.real_return_1y) : null,
           annualizedReturnPct
         },
 
         stats:{
           high52w,
           low52w,
-          distanceFromHighPct:(latest.price/high52w - 1) * 100,
+          distanceFromHighPct:high52w > 0 && price > 0 ? (price/high52w - 1)*100 : null,
           bestDayPct:bestWorst.best?.value ?? null,
           bestDayDate:bestWorst.best?.date ?? null,
           worstDayPct:bestWorst.worst?.value ?? null,
           worstDayDate:bestWorst.worst?.date ?? null,
-          historyPeriod:"1Y"
+          ma30:Number.isFinite(Number(f?.ma_30)) ? Number(f.ma_30) : null,
+          ma90:Number.isFinite(Number(f?.ma_90)) ? Number(f.ma_90) : null,
+          ma200:Number.isFinite(Number(f?.ma_200)) ? Number(f.ma_200) : null
         },
 
         risk:{
+          source:f ? "Fonoloji" : "Calculated fallback",
+          volatility90dPct:Number.isFinite(Number(f?.volatility_90)) ? fonolojiPct(f.volatility_90) : (rolling90.at(-1)?.value ?? null),
           annualizedVolatilityPct:annualVolPct,
-          volatility30dPct:last30Vol,
-          volatility90dPct:Number.isFinite(Number(fonoloji?.volatility_90)) ? fonolojiPct(fonoloji.volatility_90) : last90Vol,
-          maxDrawdownPct:Number.isFinite(Number(fonoloji?.max_drawdown_1y)) ? fonolojiPct(fonoloji.max_drawdown_1y) : maxDdPct,
+          volatility30dPct:rolling30.at(-1)?.value ?? null,
+          maxDrawdownPct:Number.isFinite(Number(f?.max_drawdown_1y)) ? fonolojiPct(f.max_drawdown_1y) : localMaxDdPct,
           positiveDayRatioPct:positiveRatio,
           downsideDeviationPct:downsideDevPct,
-          sharpe:Number.isFinite(Number(fonoloji?.sharpe_90)) ? Number(fonoloji.sharpe_90) : sharpe,
-          sortino:Number.isFinite(Number(fonoloji?.sortino_90)) ? Number(fonoloji.sortino_90) : sortino,
-          calmar:Number.isFinite(Number(fonoloji?.calmar_1y)) ? Number(fonoloji.calmar_1y) : calmar,
-          beta1y:Number.isFinite(Number(fonoloji?.beta_1y)) ? Number(fonoloji.beta_1y) : null,
-          riskFreeAnnualPct,
-          targetAnnualPct,
-          source:fonoloji ? "Fonoloji" : "Calculated",
-          calculatedFallback:{sharpe,sortino,calmar,maxDrawdownPct:maxDdPct,volatility90dPct:last90Vol}
+          sharpe:Number.isFinite(Number(f?.sharpe_90)) ? Number(f.sharpe_90) : localSharpe,
+          sortino:Number.isFinite(Number(f?.sortino_90)) ? Number(f.sortino_90) : localSortino,
+          calmar:Number.isFinite(Number(f?.calmar_1y)) ? Number(f.calmar_1y) : localCalmar,
+          beta1y:Number.isFinite(Number(f?.beta_1y)) ? Number(f.beta_1y) : null
         },
 
         metadata:{
-          fundTotalValue:Number.isFinite(Number(fonoloji?.aum)) ? Number(fonoloji.aum) : (Number.isFinite(fundTotalValue) ? fundTotalValue : null),
-          investorCount:Number.isFinite(Number(fonoloji?.investor_count)) ? Number(fonoloji.investor_count) : (Number.isFinite(investorCount) ? investorCount : null),
-          shareCount:Number.isFinite(shareCount) ? shareCount : null,
-          riskValue:Number.isFinite(Number(fonoloji?.risk_score)) ? Number(fonoloji.risk_score) : riskValue,
-          riskLabel:riskLabel(Number.isFinite(Number(fonoloji?.risk_score)) ? Number(fonoloji.risk_score) : riskValue),
-          category:fonoloji?.category ?? null,
-          managementCompany:fonoloji?.management_company ?? null,
-          isin:fonoloji?.isin ?? null,
-          buyValor:Number.isFinite(Number(fonoloji?.buy_valor)) ? Number(fonoloji.buy_valor) : null,
-          sellValor:Number.isFinite(Number(fonoloji?.sell_valor)) ? Number(fonoloji.sell_valor) : null,
-          tradingStatus:fonoloji?.trading_status ?? null
+          fundTotalValue,
+          investorCount,
+          shareCount,
+          riskValue,
+          riskLabel:riskLabel(riskValue),
+          firstSeen:f?.first_seen ?? null,
+          lastSeen:f?.last_seen ?? null
         },
 
         fees,
-
+        portfolio:{
+          allocation,
+          holdings:Array.isArray(holdings) ? holdings : [],
+          rawAvailable:!!fonolojiPortfolioRoot
+        },
+        analysis:fonolojiAnalysis ?? null,
         series:{
-          price:prices.map(x => ({date:x.date, value:x.price})),
+          price:prices.map(x=>({date:x.date,value:x.price})),
           drawdown:ddSeries,
           volatility30:rolling30,
           volatility90:rolling90
-        },
-
-        calculationMeta:{
-          startDate:prices[0]?.date ?? null,
-          endDate:prices.at(-1)?.date ?? null,
-          pricePoints:prices.length,
-          returnObservations:returns.length,
-          annualizationFactor:252,
-          riskFreeAnnualPct,
-          targetAnnualPct
         }
       }
     });
-
   } catch(err) {
     return json({ok:false,error:String(err?.message||err)},500);
   }

@@ -1,4 +1,4 @@
-const APP_VERSION = "1.15.1";
+const APP_VERSION = "1.15.2";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -948,6 +948,7 @@ function compactNumber(n) {
 }
 
 function metricValue(value, format="number") {
+  if (format === "text") return value ? escapeHtml(String(value)) : "—";
   if (value === null || value === undefined || value === "" || !Number.isFinite(Number(value))) return "—";
   const n = Number(value);
   if (format === "money") return money(n);
@@ -1185,167 +1186,6 @@ function formatDateShort(v) {
 
 
 
-function browserValidationMetrics(priceSeries, riskFreeAnnualPct=0, targetAnnualPct=0) {
-  const rows = (Array.isArray(priceSeries) ? priceSeries : [])
-    .map(x => ({date:x.date, value:Number(x.value)}))
-    .filter(x => x.date && Number.isFinite(x.value) && x.value > 0)
-    .sort((a,b) => new Date(a.date) - new Date(b.date));
-
-  if (rows.length < 3) return null;
-
-  const returns = [];
-  for (let i=1; i<rows.length; i++) {
-    const r = rows[i].value / rows[i-1].value - 1;
-    if (Number.isFinite(r)) returns.push(r);
-  }
-  if (returns.length < 2) return null;
-
-  // Independent sample standard deviation implementation.
-  const mean = returns.reduce((a,b)=>a+b,0) / returns.length;
-  const variance = returns.reduce((sum,r)=>sum + (r-mean)*(r-mean),0) / (returns.length-1);
-  const sd = Math.sqrt(variance);
-
-  const rfDaily = Math.pow(1 + Number(riskFreeAnnualPct||0)/100, 1/252) - 1;
-  const excess = returns.map(r => r-rfDaily);
-  const excessMean = excess.reduce((a,b)=>a+b,0) / excess.length;
-  const excessVariance = excess.reduce((sum,r)=>sum+(r-excessMean)*(r-excessMean),0) / (excess.length-1);
-  const excessSd = Math.sqrt(excessVariance);
-  const sharpe = excessSd > 0 ? (excessMean/excessSd)*Math.sqrt(252) : null;
-
-  const marDaily = Math.pow(1 + Number(targetAnnualPct||0)/100, 1/252) - 1;
-  const targetExcess = returns.map(r => r-marDaily);
-  const targetMean = targetExcess.reduce((a,b)=>a+b,0) / targetExcess.length;
-  const downsideMeanSquare = targetExcess.reduce((sum,x)=>sum + (x<0 ? x*x : 0),0) / targetExcess.length;
-  const downsideDaily = Math.sqrt(downsideMeanSquare);
-  const sortino = downsideDaily > 0
-    ? (targetMean*252)/(downsideDaily*Math.sqrt(252))
-    : null;
-
-  const first = rows[0], last = rows.at(-1);
-  const calendarDays = Math.max(1,(new Date(last.date)-new Date(first.date))/86400000);
-  const years = calendarDays/365.25;
-  const cagrPct = years > 0 ? (Math.pow(last.value/first.value,1/years)-1)*100 : null;
-
-  let peak = -Infinity;
-  let maxDrawdownPct = 0;
-  for (const row of rows) {
-    peak = Math.max(peak,row.value);
-    if (peak > 0) {
-      const dd = (row.value/peak-1)*100;
-      if (dd < maxDrawdownPct) maxDrawdownPct=dd;
-    }
-  }
-
-  const calmar = Number.isFinite(cagrPct) && Math.abs(maxDrawdownPct)>0
-    ? cagrPct/Math.abs(maxDrawdownPct)
-    : null;
-
-  return {
-    sharpe,
-    sortino,
-    calmar,
-    cagrPct,
-    annualVolatilityPct: Number.isFinite(sd) ? sd*Math.sqrt(252)*100 : null,
-    maxDrawdownPct,
-    pricePoints: rows.length,
-    returnObservations: returns.length,
-    startDate:first.date,
-    endDate:last.date
-  };
-}
-
-function validationDelta(workerValue, browserValue) {
-  const a=Number(workerValue), b=Number(browserValue);
-  if (!Number.isFinite(a) || !Number.isFinite(b)) return null;
-  return Math.abs(a-b);
-}
-
-function validationPass(metric, workerValue, browserValue) {
-  const d=validationDelta(workerValue,browserValue);
-  if (d===null) return false;
-  // Oranlarda 0.005, yüzde metriklerinde 0.02 yüzde puan tolerans.
-  return metric==="ratio" ? d <= 0.005 : d <= 0.02;
-}
-
-function validationValue(v, type="ratio") {
-  if (!Number.isFinite(Number(v))) return "—";
-  return Number(v).toLocaleString("tr-TR",{
-    minimumFractionDigits: type==="ratio" ? 3 : 2,
-    maximumFractionDigits: type==="ratio" ? 3 : 2
-  }) + (type==="percent" ? "%" : "");
-}
-
-function fundValidationPanel(d) {
-  const risk=d.risk||{}, perf=d.performance||{}, meta=d.calculationMeta||{};
-  const browser=browserValidationMetrics(
-    d.series?.price,
-    Number(meta.riskFreeAnnualPct ?? risk.riskFreeAnnualPct ?? 0),
-    Number(meta.targetAnnualPct ?? risk.targetAnnualPct ?? 0)
-  );
-
-  if (!browser) {
-    return `<article class="panel research-validation-panel">
-      <div class="panel-head"><div><h2>Hesaplama Doğrulama</h2><p>Bağımsız tarayıcı hesabı için yeterli fiyat serisi yok.</p></div></div>
-    </article>`;
-  }
-
-  const checks=[
-    ["Sharpe","ratio",risk.sharpe,browser.sharpe],
-    ["Sortino","ratio",risk.sortino,browser.sortino],
-    ["Calmar","ratio",risk.calmar,browser.calmar],
-    ["CAGR","percent",perf.annualizedReturnPct,browser.cagrPct],
-    ["Yıllık Volatilite","percent",risk.annualizedVolatilityPct,browser.annualVolatilityPct],
-    ["Maks. Drawdown","percent",risk.maxDrawdownPct,browser.maxDrawdownPct]
-  ];
-
-  const passed=checks.filter(x=>validationPass(x[1],x[2],x[3])).length;
-  const allPassed=passed===checks.length;
-  const statusClass=allPassed ? "validation-ok" : "validation-warning";
-  const statusText=risk.source==="Fonoloji" ? "Fonoloji + yerel referans" : (allPassed ? "Tüm hesaplamalar doğrulandı" : `${passed}/${checks.length} hesap doğrulandı`);
-
-  const rows=checks.map(([label,type,backend,browserValue])=>{
-    const ok=validationPass(type,backend,browserValue);
-    const delta=validationDelta(backend,browserValue);
-    return `<div class="validation-row">
-      <div><strong>${escapeHtml(label)}</strong><small>${ok ? "Doğrulandı" : "Uyuşmazlık"}</small></div>
-      <span>${validationValue(backend,type)}</span>
-      <span>${validationValue(browserValue,type)}</span>
-      <b class="${ok ? "validation-pass" : "validation-fail"}">${delta===null ? "—" : (ok ? "✓" : "!")}</b>
-    </div>`;
-  }).join("");
-
-  const start=formatDateShort(meta.startDate||browser.startDate);
-  const end=formatDateShort(meta.endDate||browser.endDate);
-  const points=Number(meta.pricePoints||browser.pricePoints);
-  const returns=Number(meta.returnObservations||browser.returnObservations);
-
-  return `<article class="panel research-validation-panel">
-    <div class="panel-head validation-head">
-      <div>
-        <h2>Hesaplama Doğrulama</h2>
-        <p>Fonoloji metrikleri ile uygulamanın TEFAS fiyat serisinden bağımsız hesapladığı referans değerler yan yana gösterilir. Dönem/metodoloji farkı nedeniyle birebir eşleşme beklenmez.</p>
-      </div>
-      <span class="validation-status ${statusClass}">${statusText}</span>
-    </div>
-
-    <div class="validation-table">
-      <div class="validation-row validation-header">
-        <div>Metrik</div><span>Worker</span><span>Tarayıcı</span><b>Kontrol</b>
-      </div>
-      ${rows}
-    </div>
-
-    <div class="validation-method">
-      <div><span>Dönem</span><strong>${start || "—"} → ${end || "—"}</strong></div>
-      <div><span>Fiyat noktası</span><strong>${Number.isFinite(points)?points:"—"}</strong></div>
-      <div><span>Getiri gözlemi</span><strong>${Number.isFinite(returns)?returns:"—"}</strong></div>
-      <div><span>Yıllıklandırma</span><strong>√252 / 252</strong></div>
-      <div><span>Risksiz faiz</span><strong>%${Number(meta.riskFreeAnnualPct??0).toLocaleString("tr-TR")}</strong></div>
-      <div><span>Sortino MAR</span><strong>%${Number(meta.targetAnnualPct??0).toLocaleString("tr-TR")}</strong></div>
-    </div>
-  </article>`;
-}
-
 function renderFundResearch(data) {
   const d = data.data || data;
   const daily = Number(d.changePercent);
@@ -1371,9 +1211,9 @@ function renderFundResearch(data) {
 
   $("researchDetailTitle").textContent = "Risk ve Fiyat İstatistikleri";
   $("researchDetailMetrics").innerHTML = [
-    researchDetailItem("Sharpe Oranı", risk.sharpe, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 90G" : "Hesaplanan fallback"),
-    researchDetailItem("Sortino Oranı", risk.sortino, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 90G" : "Hesaplanan fallback"),
-    researchDetailItem("Calmar Oranı", risk.calmar, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 1Y" : "Hesaplanan fallback"),
+    researchDetailItem("Sharpe Oranı", risk.sharpe, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 90G" : "Yerel fallback"),
+    researchDetailItem("Sortino Oranı", risk.sortino, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 90G" : "Yerel fallback"),
+    researchDetailItem("Calmar Oranı", risk.calmar, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 1Y" : "Yerel fallback"),
     researchDetailItem("Yıllıklandırılmış Getiri", perf.annualizedReturnPct, "percent"),
     researchDetailItem("Yıllıklandırılmış Oynaklık", risk.annualizedVolatilityPct, "percent"),
     researchDetailItem("30G Oynaklık", risk.volatility30dPct, "percent"),
@@ -1386,6 +1226,9 @@ function renderFundResearch(data) {
     researchDetailItem("En İyi Gün", stats.bestDayPct, "percent", formatDateShort(stats.bestDayDate)),
     researchDetailItem("En Kötü Gün", stats.worstDayPct, "percent", formatDateShort(stats.worstDayDate)),
     researchDetailItem("Beta (1Y)", risk.beta1y, "ratio", "Fonoloji"),
+    researchDetailItem("MA 30", stats.ma30, "money", "Fonoloji"),
+    researchDetailItem("MA 90", stats.ma90, "money", "Fonoloji"),
+    researchDetailItem("MA 200", stats.ma200, "money", "Fonoloji"),
     researchDetailItem("Reel Getiri (1Y)", perf.realReturn1yPct, "percent", "Fonoloji"),
     researchDetailItem("Risk Değeri", meta.riskValue, "number", meta.riskLabel || "1–7"),
     researchDetailItem("Aşağı Yönlü Sapma", risk.downsideDeviationPct, "percent")
@@ -1401,6 +1244,18 @@ function renderFundResearch(data) {
     </div>
   </article>`;
 
+  const profilePanel = `<article class="panel research-mini-panel">
+    <div class="panel-head"><div><h2>Fon Profili</h2><p>Fonoloji fon kimliği ve işlem bilgileri</p></div></div>
+    <div class="research-detail-grid">
+      ${researchDetailItem("Kategori",d.category,"text")}
+      ${researchDetailItem("Yönetim Şirketi",d.managementCompany,"text")}
+      ${researchDetailItem("ISIN",d.isin,"text")}
+      ${researchDetailItem("İşlem Durumu",d.tradingStatus,"text")}
+      ${researchDetailItem("Alış Valörü",d.buyValor,"number")}
+      ${researchDetailItem("Satış Valörü",d.sellValor,"number")}
+    </div>
+  </article>`;
+
   const feePanel = `<article class="panel research-mini-panel">
     <div class="panel-head"><div><h2>Ücret ve Giderler</h2><p>KAP'ta bulunabilen güncel oranlar</p></div></div>
     <div class="research-detail-grid">
@@ -1413,7 +1268,7 @@ function renderFundResearch(data) {
   </article>`;
 
   const scorePanel = `<article class="panel research-mini-panel research-score-panel">
-    <div class="panel-head"><div><h2>Risk-Getiri Özeti</h2><p>1 yıllık fiyat geçmişinden hesaplanır</p></div></div>
+    <div class="panel-head"><div><h2>Risk-Getiri Özeti</h2><p>Fonoloji hazır risk metrikleri · erişilemezse yerel fallback</p></div></div>
     <div class="research-score-grid">
       ${researchScoreCard("Sharpe",risk.sharpe,risk.source==="Fonoloji"?"Fonoloji · 90G":"Fallback")}
       ${researchScoreCard("Sortino",risk.sortino,risk.source==="Fonoloji"?"Fonoloji · 90G":"Fallback")}
@@ -1422,8 +1277,8 @@ function renderFundResearch(data) {
     </div>
   </article>`;
 
-  $("researchSecondarySections").innerHTML = sizePanel + feePanel + scorePanel + fundValidationPanel(d);
-  $("researchDisclaimer").textContent = "Sharpe için risksiz faiz, Sortino için minimum kabul edilebilir getiri %0 varsayılmıştır. Sharpe günlük excess getirilerden, Sortino tüm dönemlerdeki downside deviation ile, Calmar CAGR / maksimum drawdown olarak hesaplanır. Performans, risk ve grafikler TEFAS fiyat geçmişinden; ücret bilgileri bulunabildiğinde KAP'tan alınır. Geçmiş getiri gelecekteki performansı garanti etmez.";
+  $("researchSecondarySections").innerHTML = sizePanel + profilePanel + feePanel + scorePanel;
+  $("researchDisclaimer").textContent = "Fon ana metrikleri Fonoloji API’den; ücret bilgileri bulunabildiğinde KAP’tan alınır. Fiyat/geçmiş tarafında Fonoloji timeseries önceliklidir, TEFAS fallback olarak korunur. Geçmiş performans gelecekteki getiriyi garanti etmez.";
 
   renderResearchPerformanceChart(d,"fund");
   renderFundAdvancedCharts(d);

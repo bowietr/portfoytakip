@@ -959,3 +959,33 @@ Olası statüler:
 - `QUOTA_EXCEEDED`
 - `FONOLOJI_SERVER_ERROR`
 - `NETWORK_ERROR`
+
+
+## V1.15.2 — Fonoloji Birincil Veri Mimarisi
+
+Fon araştırma ekranı Fonoloji'nin güncel resmi endpoint mimarisine geçirildi.
+
+Birincil kaynaklar:
+- `/v1/funds/:code` — fon kimliği, NAV, getiriler, risk metrikleri, AUM, yatırımcı sayısı
+- `/v1/funds/:code/timeseries?include=nav,drawdown,monthly,benchmark,allocation-history`
+- `/v1/funds/:code/portfolio?include=allocation,holdings,dates,fundamentals,analysts`
+- `/v1/funds/:code/analysis?include=summary,percentile,advanced`
+
+TEFAS artık fon araştırmada tarihsel fiyat ve yerel hesaplama için fallback kaynağıdır.
+
+Fonoloji'den doğrudan kullanılan başlıca alanlar:
+- Sharpe 90G
+- Sortino 90G
+- Calmar 1Y
+- Beta 1Y
+- Max Drawdown 1Y
+- Volatilite 90G
+- Reel Getiri 1Y
+- AUM
+- Yatırımcı sayısı
+- Risk skoru
+- MA30 / MA90 / MA200
+- kategori, yönetim şirketi, ISIN, işlem durumu ve valör bilgileri
+
+Eski `Hesaplama Doğrulama` paneli tamamen kaldırılmıştır.
+Yerel hesaplama motoru ekranda gösterilmez; yalnızca Fonoloji erişilemezse fallback olarak kullanılır.
