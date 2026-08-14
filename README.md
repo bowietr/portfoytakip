@@ -543,3 +543,21 @@ Frontend:
 olarak yüklenir.
 
 Cloudflare Worker değişikliği yoktur.
+
+
+## v1.12 — Sabit Sol Menü
+
+Masaüstü ve tablet görünümünde sol navigasyon viewport'a sabitlenmiştir.
+
+- Sayfa aşağı veya yukarı kaydırıldığında sidebar yerinde kalır.
+- Yalnızca ana içerik bölümü kayar.
+- Ana içerik sidebar genişliği kadar sağa offset alır.
+- iPadOS / Safari için fixed-position stabilizasyonu eklenmiştir.
+- Mobil görünümde mevcut alt sabit navigasyon korunur.
+
+Frontend cache sürümü:
+
+- `style.css?v=1.12.0`
+- `app.js?v=1.12.0`
+
+Cloudflare Worker tarafında değişiklik yoktur.
