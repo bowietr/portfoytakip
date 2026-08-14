@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.14.3" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.14.4" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -1087,6 +1087,16 @@ async function handleFundResearch(code) {
           drawdown:ddSeries,
           volatility30:rolling30,
           volatility90:rolling90
+        },
+
+        calculationMeta:{
+          startDate:prices[0]?.date ?? null,
+          endDate:prices.at(-1)?.date ?? null,
+          pricePoints:prices.length,
+          returnObservations:returns.length,
+          annualizationFactor:252,
+          riskFreeAnnualPct,
+          targetAnnualPct
         }
       }
     });

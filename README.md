@@ -862,3 +862,48 @@ Aynı 1 yıllık TEFAS fiyat serisi için:
 kullanılır.
 
 Kartların alt açıklamaları da kullanılan yöntemi gösterecek şekilde güncellenmiştir.
+
+
+## V1.14.4 — Bağımsız Hesaplama Doğrulama Katmanı
+
+Fon analizinde risk ayarlı getiri metrikleri artık iki ayrı implementasyonla doğrulanır.
+
+Worker'ın hesapladığı:
+- Sharpe
+- Sortino
+- Calmar
+- CAGR
+- Yıllık volatilite
+- Maksimum drawdown
+
+değerleri, Worker'dan gelen aynı TEFAS 1 yıllık fiyat serisi kullanılarak tarayıcıda
+bağımsız JavaScript koduyla yeniden hesaplanır.
+
+### Doğrulama ekranı
+
+Varlık Araştır bölümüne `Hesaplama Doğrulama` paneli eklendi.
+
+Her metrik için:
+- Worker sonucu
+- Tarayıcı sonucu
+- Doğrulama durumu
+
+yan yana gösterilir.
+
+Tolerans:
+- Sharpe / Sortino / Calmar: `0.005`
+- Yüzde metrikleri: `0.02 yüzde puan`
+
+Tüm sonuçlar tolerans içindeyse `Tüm hesaplamalar doğrulandı` gösterilir.
+
+Panel ayrıca:
+- başlangıç/bitiş tarihi
+- fiyat noktası sayısı
+- günlük getiri gözlemi sayısı
+- yıllıklandırma faktörü
+- risksiz faiz varsayımı
+- Sortino MAR varsayımı
+
+bilgilerini gösterir.
+
+Bu yapı backend formül hatalarının frontend tarafından otomatik fark edilmesini sağlar.
