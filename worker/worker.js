@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.1" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.2" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -282,13 +282,207 @@ function validRiskValue(v) {
   return Number.isFinite(n) && n >= 1 && n <= 7 ? n : null;
 }
 
+
+function normalizeMetricKey(s) {
+  return String(s ?? "")
+    .toLocaleLowerCase("tr-TR")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ı/g, "i")
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function deepFindNumberByKeyTokens(payload, tokenGroups) {
+  let found = null;
+
+  function walk(v, depth=0) {
+    if (depth > 10 || found !== null || v == null) return;
+
+    if (Array.isArray(v)) {
+      for (const item of v) walk(item, depth + 1);
+      return;
+    }
+
+    if (typeof v !== "object") return;
+
+    for (const [key, value] of Object.entries(v)) {
+      const nk = normalizeMetricKey(key);
+
+      const matched = tokenGroups.some(group =>
+        group.every(token => nk.includes(normalizeMetricKey(token)))
+      );
+
+      if (matched) {
+        const n = toNumber(value);
+        if (Number.isFinite(n)) {
+          found = n;
+          return;
+        }
+
+        // Bazı TEFAS cevaplarında değer bir alt objenin içinde olabilir.
+        if (value && typeof value === "object") {
+          const nested = deepFirstNumber(value);
+          if (Number.isFinite(nested)) {
+            found = nested;
+            return;
+          }
+        }
+      }
+    }
+
+    for (const value of Object.values(v)) walk(value, depth + 1);
+  }
+
+  walk(payload);
+  return found;
+}
+
+function deepFirstNumber(payload) {
+  let found = null;
+
+  function walk(v, depth=0) {
+    if (depth > 6 || found !== null || v == null) return;
+
+    const n = toNumber(v);
+    if (Number.isFinite(n)) {
+      found = n;
+      return;
+    }
+
+    if (Array.isArray(v)) {
+      for (const item of v) walk(item, depth + 1);
+      return;
+    }
+
+    if (typeof v === "object") {
+      for (const value of Object.values(v)) walk(value, depth + 1);
+    }
+  }
+
+  walk(payload);
+  return found;
+}
+
+function decodeBasicHtmlEntities(s) {
+  return String(s ?? "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&ccedil;/gi, "ç")
+    .replace(/&Ccedil;/g, "Ç")
+    .replace(/&uuml;/gi, "ü")
+    .replace(/&Uuml;/g, "Ü")
+    .replace(/&ouml;/gi, "ö")
+    .replace(/&Ouml;/g, "Ö")
+    .replace(/&scedil;/gi, "ş")
+    .replace(/&Scedil;/g, "Ş")
+    .replace(/&gbreve;/gi, "ğ")
+    .replace(/&Gbreve;/g, "Ğ")
+    .replace(/&Idot;/g, "İ")
+    .replace(/&#305;/g, "ı");
+}
+
+function parseTurkishMetricNumber(raw) {
+  if (raw == null) return null;
+
+  let s = String(raw)
+    .replace(/\u00a0/g, " ")
+    .replace(/[^\d.,-]/g, "")
+    .trim();
+
+  if (!s) return null;
+
+  // 4.661.510.816,15 -> 4661510816.15
+  if (s.includes(",") && s.includes(".")) {
+    if (s.lastIndexOf(",") > s.lastIndexOf(".")) {
+      s = s.replace(/\./g, "").replace(",", ".");
+    } else {
+      s = s.replace(/,/g, "");
+    }
+  } else if (s.includes(",")) {
+    s = s.replace(",", ".");
+  } else if ((s.match(/\./g) || []).length > 1) {
+    s = s.replace(/\./g, "");
+  }
+
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+
+async function fetchTefasDetailMetrics(code) {
+  try {
+    const url = `https://www.tefas.gov.tr/tr/fon-detayli-analiz/${encodeURIComponent(code)}`;
+    const response = await fetch(url, {
+      headers: {
+        "Accept": "text/html,application/xhtml+xml",
+        "User-Agent": "Mozilla/5.0",
+        "Referer": "https://www.tefas.gov.tr/"
+      }
+    });
+
+    if (!response.ok) return {};
+
+    const html = await response.text();
+
+    // Önce görünür metne dönüştür.
+    const text = decodeBasicHtmlEntities(
+      html
+        .replace(/<script[\s\S]*?<\/script>/gi, " ")
+        .replace(/<style[\s\S]*?<\/style>/gi, " ")
+        .replace(/<[^>]+>/g, " ")
+    ).replace(/\s+/g, " ").trim();
+
+    const result = {};
+
+    // TEFAS resmi detay sayfasındaki etiketler:
+    // "Fon Toplam Değer (TL)" ve "Yatırımcı Sayısı"
+    const totalPatterns = [
+      /Fon\s+Toplam\s+Değer(?:i)?\s*\(TL\)\s*[:\-]?\s*([\d.\s,]+)/i,
+      /Fon\s+Toplam\s+Değer(?:i)?\s*[:\-]?\s*([\d.\s,]+)/i
+    ];
+
+    const investorPatterns = [
+      /Yatırımcı\s+Sayısı\s*[:\-]?\s*([\d.\s]+)/i,
+      /Yatirimci\s+Sayisi\s*[:\-]?\s*([\d.\s]+)/i
+    ];
+
+    for (const p of totalPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const n = parseTurkishMetricNumber(m[1]);
+        if (Number.isFinite(n)) {
+          result.fundTotalValue = n;
+          break;
+        }
+      }
+    }
+
+    for (const p of investorPatterns) {
+      const m = text.match(p);
+      if (m) {
+        const n = parseTurkishMetricNumber(m[1]);
+        if (Number.isFinite(n)) {
+          result.investorCount = Math.round(n);
+          break;
+        }
+      }
+    }
+
+    return result;
+  } catch {
+    return {};
+  }
+}
+
 async function handleFundResearch(code) {
   try {
     // Araştırmada periyod=13 kullanmak yanlıştı: bu yalnızca yaklaşık 1 haftalık veri.
     // 1Y paket (~253 işlem günü) ile 1A/3A/6A/1Y ve risk metriklerini güvenilir hesaplıyoruz.
-    const [historyPayload, profilePayload] = await Promise.all([
+    const [historyPayload, profilePayload, detailMetrics] = await Promise.all([
       fetchTefasPayload(code, 12),
-      fetchTefasProfile(code)
+      fetchTefasProfile(code),
+      fetchTefasDetailMetrics(code)
     ]);
 
     const hist = tefasHistory(historyPayload);
@@ -325,17 +519,35 @@ async function handleFundResearch(code) {
       validRiskValue(deepFindValue(profilePayload, ["riskDegeri","riskDeğeri","riskValue"])) ??
       validRiskValue(deepFindValue(historyPayload, ["riskDegeri","riskDeğeri","riskValue"]));
 
-    const fundTotalValue = toNumber(
-      deepFindValue(profilePayload, [
-        "portBuyukluk","fonToplamDeger","fonToplamDegeri","toplamDeger","fundTotalValue"
-      ])
-    );
+    // TEFAS profil cevabında alan isimleri fon tipine/sürüme göre değişebildiği için
+    // önce esnek anahtar taraması, sonra resmi detay sayfası fallback'i kullanıyoruz.
+    const profileFundTotalValue =
+      deepFindNumberByKeyTokens(profilePayload, [
+        ["fon","toplam","deger"],
+        ["port","buyukluk"],
+        ["fund","total","value"]
+      ]) ??
+      deepFindNumberByKeyTokens(historyPayload, [
+        ["fon","toplam","deger"],
+        ["port","buyukluk"]
+      ]);
 
-    const investorCount = toNumber(
-      deepFindValue(profilePayload, [
-        "yatirimciSayi","yatirimciSayisi","yatırımcıSayısı","investorCount"
-      ])
-    );
+    const profileInvestorCount =
+      deepFindNumberByKeyTokens(profilePayload, [
+        ["yatirimci","sayi"],
+        ["investor","count"]
+      ]) ??
+      deepFindNumberByKeyTokens(historyPayload, [
+        ["yatirimci","sayi"]
+      ]);
+
+    const fundTotalValue = Number.isFinite(profileFundTotalValue)
+      ? profileFundTotalValue
+      : Number(detailMetrics?.fundTotalValue);
+
+    const investorCount = Number.isFinite(profileInvestorCount)
+      ? profileInvestorCount
+      : Number(detailMetrics?.investorCount);
 
     const high52w = Math.max(...prices.map(x => x.price));
     const low52w = Math.min(...prices.map(x => x.price));
