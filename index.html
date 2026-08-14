@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.13.6" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.14.0" />
 </head>
 <body>
   <div class="app-shell">
@@ -315,11 +315,51 @@
               <div class="panel-head">
                 <div>
                   <h2 id="researchDetailTitle">Detaylı Metrikler</h2>
-                  <p>Veri sağlayıcısında bulunan ek göstergeler</p>
+                  <p>Risk, fiyat ve istatistik göstergeleri</p>
                 </div>
               </div>
               <div id="researchDetailMetrics" class="research-detail-grid"></div>
             </article>
+          </div>
+
+          <div id="fundAdvancedAnalysis" class="fund-advanced-analysis" hidden>
+            <article class="panel research-wide-panel">
+              <div class="panel-head">
+                <div>
+                  <h2>1 Yıllık Fiyat Gelişimi</h2>
+                  <p>TEFAS günlük birim pay fiyatı</p>
+                </div>
+              </div>
+              <div class="chart-wrap research-series-chart">
+                <canvas id="fundPriceHistoryChart"></canvas>
+              </div>
+            </article>
+
+            <div class="research-dual-charts">
+              <article class="panel research-wide-panel">
+                <div class="panel-head">
+                  <div>
+                    <h2>Drawdown</h2>
+                    <p>Zirveden gerçekleşen düşüş</p>
+                  </div>
+                </div>
+                <div class="chart-wrap research-series-chart compact">
+                  <canvas id="fundDrawdownChart"></canvas>
+                </div>
+              </article>
+
+              <article class="panel research-wide-panel">
+                <div class="panel-head">
+                  <div>
+                    <h2>Rolling Volatilite</h2>
+                    <p>30 ve 90 günlük yıllıklandırılmış oynaklık</p>
+                  </div>
+                </div>
+                <div class="chart-wrap research-series-chart compact">
+                  <canvas id="fundVolatilityChart"></canvas>
+                </div>
+              </article>
+            </div>
           </div>
 
           <div id="researchSecondarySections" class="research-secondary-sections"></div>
@@ -462,6 +502,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.13.6"></script>
+  <script src="./assets/app.js?v=1.14.0"></script>
 </body>
 </html>

@@ -1074,3 +1074,74 @@ select:focus {
   text-transform: uppercase;
   letter-spacing: .04em;
 }
+
+
+/* =========================================================
+   V1.14 — Premium Fon Analizi
+   ========================================================= */
+.fund-advanced-analysis {
+  display:grid;
+  gap:14px;
+}
+.fund-advanced-analysis[hidden] { display:none !important; }
+
+.research-wide-panel {
+  min-width:0;
+}
+.research-series-chart {
+  height:330px;
+}
+.research-series-chart.compact {
+  height:275px;
+}
+.research-dual-charts {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:14px;
+}
+.research-score-panel {
+  grid-column:1/-1;
+}
+.research-score-grid {
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+.research-score-card {
+  min-width:0;
+  padding:16px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  background:
+    linear-gradient(150deg,
+      color-mix(in srgb,var(--accent-soft) 48%,var(--panel)),
+      var(--panel-2));
+}
+.research-score-card span {
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.055em;
+}
+.research-score-card strong {
+  display:block;
+  margin-top:7px;
+  font:700 22px "Manrope",sans-serif;
+  color:var(--text);
+}
+.research-score-card small {
+  display:block;
+  margin-top:4px;
+  color:var(--muted);
+  font-size:10px;
+}
+
+@media(max-width:1100px){
+  .research-dual-charts { grid-template-columns:1fr; }
+}
+@media(max-width:760px){
+  .research-score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .research-series-chart { height:280px; }
+  .research-series-chart.compact { height:250px; }
+}

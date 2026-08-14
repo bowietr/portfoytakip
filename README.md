@@ -725,3 +725,51 @@ Normal `/api/fund/...`, fon araştırma fiyat geçmişi ve genel fon metrikleri 
 dayanıklı TEFAS erişim katmanını kullanır.
 
 Frontend, Worker ve README sürümü `1.13.6` olarak senkronlanmıştır.
+
+
+## V1.14 — Premium Fon Analizi
+
+Varlık Araştır > Yatırım Fonu ekranı kapsamlı bir analiz terminaline dönüştürüldü.
+
+### Yeni risk/getiri metrikleri
+- Sharpe Oranı (risksiz faiz %0 varsayımı)
+- Sortino Oranı
+- Calmar Oranı
+- Yıllıklandırılmış getiri
+- Yıllıklandırılmış volatilite
+- 30 günlük rolling volatilite
+- 90 günlük rolling volatilite
+- Maksimum drawdown
+- Aşağı yönlü sapma
+- Pozitif gün oranı
+- En iyi gün / en kötü gün
+- 52 hafta yüksek / düşük
+- Zirveye uzaklık
+- TEFAS Risk Değeri ve risk profili
+
+### Yeni grafikler
+- 1 yıllık birim pay fiyat gelişimi
+- Drawdown grafiği
+- 30 / 90 günlük rolling volatilite grafiği
+- Dönemsel getiri bar grafiği korunmuştur
+
+### Fon büyüklüğü
+- Fon toplam değeri
+- Yatırımcı sayısı
+- Tedavüldeki pay sayısı
+- Risk profili
+
+Fon büyüklüğü metrikleri tarayıcıda son başarılı değer olarak ayrıca saklanır.
+TEFAS geçici olarak boş döndürürse son başarılı değer gösterilmeye devam eder.
+
+### KAP ücret/gider bilgileri
+Bulunabildiğinde:
+- Yıllık yönetim ücreti
+- Fon toplam gider oranı
+- Giriş komisyonu
+- Çıkış komisyonu
+- Performans ücreti
+
+KAP sayfasında açık biçimde bulunamayan alanlar `—` gösterilir.
+
+`Gözlem Sayısı` kartı kaldırılmıştır.

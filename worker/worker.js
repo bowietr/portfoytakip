@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.6" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.14.0" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -671,10 +671,174 @@ async function fetchTefasGeneralMetrics(code) {
   };
 }
 
+
+function annualizedReturnPct(hist) {
+  if (!Array.isArray(hist) || hist.length < 2) return null;
+  const first = hist[0], last = hist.at(-1);
+  if (!(first.price > 0) || !(last.price > 0)) return null;
+  const days = Math.max(1, (new Date(last.date) - new Date(first.date)) / 86400000);
+  const years = days / 365.25;
+  if (!(years > 0)) return null;
+  return (Math.pow(last.price / first.price, 1 / years) - 1) * 100;
+}
+
+function dailyReturns(hist) {
+  const out = [];
+  for (let i = 1; i < hist.length; i++) {
+    const prev = Number(hist[i-1].price), cur = Number(hist[i].price);
+    if (prev > 0 && cur > 0) {
+      const r = cur / prev - 1;
+      if (Number.isFinite(r)) out.push({ date: hist[i].date, value: r });
+    }
+  }
+  return out;
+}
+
+function downsideDeviationAnnualPct(returns) {
+  const vals = returns.map(x => x.value).filter(x => Number.isFinite(x) && x < 0);
+  if (!vals.length) return 0;
+  const meanSq = vals.reduce((a,b) => a + b*b, 0) / vals.length;
+  return Math.sqrt(meanSq) * Math.sqrt(252) * 100;
+}
+
+function sharpeRatio(annualReturnPct, annualVolPct) {
+  if (!Number.isFinite(annualReturnPct) || !(annualVolPct > 0)) return null;
+  // Risk-free oran bilinçli olarak 0 kabul edilir; frontend bunu açıkça belirtir.
+  return annualReturnPct / annualVolPct;
+}
+
+function sortinoRatio(annualReturnPct, downsideDevPct) {
+  if (!Number.isFinite(annualReturnPct)) return null;
+  if (downsideDevPct === 0) return annualReturnPct > 0 ? null : 0;
+  if (!(downsideDevPct > 0)) return null;
+  return annualReturnPct / downsideDevPct;
+}
+
+function calmarRatio(annualReturnPct, maxDrawdownPct) {
+  if (!Number.isFinite(annualReturnPct) || !Number.isFinite(maxDrawdownPct) || maxDrawdownPct === 0) return null;
+  return annualReturnPct / Math.abs(maxDrawdownPct);
+}
+
+function rollingVolatilitySeries(hist, windowSize) {
+  const rets = dailyReturns(hist);
+  const out = [];
+  for (let i = windowSize - 1; i < rets.length; i++) {
+    const slice = rets.slice(i-windowSize+1, i+1).map(x => x.value);
+    const sd = stdev(slice);
+    if (Number.isFinite(sd)) {
+      out.push({
+        date: rets[i].date,
+        value: sd * Math.sqrt(252) * 100
+      });
+    }
+  }
+  return out;
+}
+
+function drawdownSeries(hist) {
+  let peak = -Infinity;
+  return hist.map(p => {
+    peak = Math.max(peak, p.price);
+    return {
+      date: p.date,
+      value: peak > 0 ? (p.price / peak - 1) * 100 : 0
+    };
+  });
+}
+
+function bestWorstDay(returns) {
+  if (!returns.length) return { best:null, worst:null };
+  let best = returns[0], worst = returns[0];
+  for (const r of returns) {
+    if (r.value > best.value) best = r;
+    if (r.value < worst.value) worst = r;
+  }
+  return {
+    best: { date: best.date, value: best.value * 100 },
+    worst: { date: worst.date, value: worst.value * 100 }
+  };
+}
+
+function riskLabel(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  if (n <= 2) return "Düşük";
+  if (n <= 4) return "Orta";
+  if (n <= 6) return "Yüksek";
+  return "Çok Yüksek";
+}
+
+function slugifyKapTr(value) {
+  return String(value || "")
+    .toLocaleLowerCase("tr-TR")
+    .replace(/ı/g,"i").replace(/ğ/g,"g").replace(/ü/g,"u")
+    .replace(/ş/g,"s").replace(/ö/g,"o").replace(/ç/g,"c")
+    .replace(/[^a-z0-9]+/g,"-")
+    .replace(/^-+|-+$/g,"");
+}
+
+function parseKapPercent(text, labelRegex) {
+  const m = text.match(labelRegex);
+  if (!m) return null;
+  return parseTurkishMetricNumber(m[1]);
+}
+
+async function fetchKapFundFees(code, fundName) {
+  // KAP fon URL'leri çoğunlukla kod + fon adının slug'ı şeklinde çalışır.
+  // Bulunamazsa ekran — gösterir; araştırma endpoint'i kırılmaz.
+  try {
+    const slug = `${String(code).toLocaleLowerCase("tr-TR")}-${slugifyKapTr(fundName)}`;
+    const url = `https://www.kap.org.tr/tr/fon-bilgileri/genel/${encodeURIComponent(slug)}`;
+    const r = await fetch(url, {
+      headers: {
+        "Accept":"text/html,application/xhtml+xml",
+        "User-Agent":"Mozilla/5.0",
+        "Referer":"https://www.kap.org.tr/"
+      }
+    });
+    if (!r.ok) return { url:null };
+    const html = await r.text();
+    const text = decodeBasicHtmlEntities(
+      html.replace(/<script[\s\S]*?<\/script>/gi," ")
+          .replace(/<style[\s\S]*?<\/style>/gi," ")
+          .replace(/<[^>]+>/g," ")
+    ).replace(/\s+/g," ").trim();
+
+    // Yönetim ücret tablosu satırında yıllık oran, giriş, çıkış, performans ücreti aranır.
+    const annualMgmt = parseKapPercent(text,
+      /Yönetim Ücreti Oranı \(Yıllık\) \(%\)[\s\S]{0,700}?([0-9]+(?:[.,][0-9]+)?)/i
+    );
+    const entryFee = parseKapPercent(text,
+      /Giriş Komisyonu \(%\)[\s\S]{0,700}?([0-9]+(?:[.,][0-9]+)?)/i
+    );
+    const exitFee = parseKapPercent(text,
+      /Çıkış Komisyonu \(%\)[\s\S]{0,700}?([0-9]+(?:[.,][0-9]+)?)/i
+    );
+    const performanceFee = parseKapPercent(text,
+      /Performans Ücreti Oranı \(%\)[\s\S]{0,700}?([0-9]+(?:[.,][0-9]+)?)/i
+    );
+
+    // Fon Toplam Gider Oranı bazı sayfalarda görünür metinde oran ile yer alabilir.
+    const totalExpenseRatio = parseKapPercent(text,
+      /Fon Toplam Gider Oranı[\s\S]{0,500}?([0-9]+(?:[.,][0-9]+)?)\s*%/i
+    );
+
+    return {
+      url,
+      annualManagementFeePct: Number.isFinite(annualMgmt) ? annualMgmt : null,
+      entryCommissionPct: Number.isFinite(entryFee) ? entryFee : null,
+      exitCommissionPct: Number.isFinite(exitFee) ? exitFee : null,
+      performanceFeePct: Number.isFinite(performanceFee) ? performanceFee : null,
+      totalExpenseRatioPct: Number.isFinite(totalExpenseRatio) ? totalExpenseRatio : null
+    };
+  } catch {
+    return { url:null };
+  }
+}
+
+
 async function handleFundResearch(code) {
   try {
-    // Araştırmada periyod=13 kullanmak yanlıştı: bu yalnızca yaklaşık 1 haftalık veri.
-    // 1Y paket (~253 işlem günü) ile 1A/3A/6A/1Y ve risk metriklerini güvenilir hesaplıyoruz.
     const [historyPayload, profilePayload, detailMetrics, generalMetrics] = await Promise.all([
       fetchTefasPayload(code, 12),
       fetchTefasProfile(code),
@@ -694,49 +858,48 @@ async function handleFundResearch(code) {
 
     const oneYearAgo = new Date(new Date(latest.date).getTime() - 365 * 86400000);
     const year = hist.filter(x => new Date(x.date) >= oneYearAgo);
-    const prices = year.length ? year : hist;
+    const prices = year.length >= 2 ? year : hist;
 
-    const rets = [];
-    for (let i=1; i<hist.length; i++) {
-      const r = hist[i].price / hist[i-1].price - 1;
-      if (Number.isFinite(r)) rets.push(r);
-    }
-
-    const vol = stdev(rets);
-    const positives = rets.length
-      ? rets.filter(x => x > 0).length / rets.length * 100
+    const returns = dailyReturns(prices);
+    const returnValues = returns.map(x => x.value);
+    const vol = stdev(returnValues);
+    const annualVolPct = vol === null ? null : vol * Math.sqrt(252) * 100;
+    const positiveRatio = returns.length
+      ? returns.filter(x => x.value > 0).length / returns.length * 100
       : null;
+    const annualReturnPct = annualizedReturnPct(prices);
+    const maxDdPct = maxDrawdown(prices);
+    const downsideDevPct = downsideDeviationAnnualPct(returns);
+    const bestWorst = bestWorstDay(returns);
+
+    const rolling30 = rollingVolatilitySeries(prices, 30);
+    const rolling90 = rollingVolatilitySeries(prices, 90);
+    const ddSeries = drawdownSeries(prices);
+
+    const last30Vol = rolling30.at(-1)?.value ?? null;
+    const last90Vol = rolling90.at(-1)?.value ?? null;
 
     const name =
       [...hist].reverse().find(x => x.name)?.name ||
       String(deepFindValue(profilePayload, ["fonUnvan","fonUnvani"]) || code);
 
-    // Yeni TEFAS profil endpoint'i riskDegeri alanını içeriyor.
     const riskValue =
       validRiskValue(deepFindValue(profilePayload, ["riskDegeri","riskDeğeri","riskValue"])) ??
       validRiskValue(deepFindValue(historyPayload, ["riskDegeri","riskDeğeri","riskValue"]));
 
-    // TEFAS profil cevabında alan isimleri fon tipine/sürüme göre değişebildiği için
-    // önce esnek anahtar taraması, sonra resmi detay sayfası fallback'i kullanıyoruz.
     const profileFundTotalValue =
       deepFindNumberByKeyTokens(profilePayload, [
-        ["fon","toplam","deger"],
-        ["port","buyukluk"],
-        ["fund","total","value"]
+        ["fon","toplam","deger"],["port","buyukluk"],["fund","total","value"]
       ]) ??
       deepFindNumberByKeyTokens(historyPayload, [
-        ["fon","toplam","deger"],
-        ["port","buyukluk"]
+        ["fon","toplam","deger"],["port","buyukluk"]
       ]);
 
     const profileInvestorCount =
       deepFindNumberByKeyTokens(profilePayload, [
-        ["yatirimci","sayi"],
-        ["investor","count"]
+        ["yatirimci","sayi"],["investor","count"]
       ]) ??
-      deepFindNumberByKeyTokens(historyPayload, [
-        ["yatirimci","sayi"]
-      ]);
+      deepFindNumberByKeyTokens(historyPayload, [["yatirimci","sayi"]]);
 
     const fundTotalValue = Number.isFinite(Number(generalMetrics?.fundTotalValue))
       ? Number(generalMetrics.fundTotalValue)
@@ -750,8 +913,14 @@ async function handleFundResearch(code) {
         ? profileInvestorCount
         : Number(detailMetrics?.investorCount);
 
+    const shareCount = Number.isFinite(Number(generalMetrics?.shareCount))
+      ? Number(generalMetrics.shareCount)
+      : null;
+
     const high52w = Math.max(...prices.map(x => x.price));
     const low52w = Math.min(...prices.map(x => x.price));
+
+    const fees = await fetchKapFundFees(code, name);
 
     return json({
       ok:true,
@@ -767,31 +936,52 @@ async function handleFundResearch(code) {
         date:latest.date,
 
         performance:{
-          week:returnFromDaysStrict(hist, 7),
-          month1:returnFromMonths(hist, 1),
-          month3:returnFromMonths(hist, 3),
-          month6:returnFromMonths(hist, 6),
-          year1:returnFromMonths(hist, 12)
+          week:returnFromDaysStrict(hist,7),
+          month1:returnFromMonths(hist,1),
+          month3:returnFromMonths(hist,3),
+          month6:returnFromMonths(hist,6),
+          year1:returnFromMonths(hist,12),
+          annualizedReturnPct
         },
 
         stats:{
           high52w,
           low52w,
           distanceFromHighPct:(latest.price/high52w - 1) * 100,
-          observations:hist.length,
+          bestDayPct:bestWorst.best?.value ?? null,
+          bestDayDate:bestWorst.best?.date ?? null,
+          worstDayPct:bestWorst.worst?.value ?? null,
+          worstDayDate:bestWorst.worst?.date ?? null,
           historyPeriod:"1Y"
         },
 
         risk:{
-          annualizedVolatilityPct:vol===null ? null : vol*Math.sqrt(252)*100,
-          maxDrawdownPct:maxDrawdown(prices),
-          positiveDayRatioPct:positives
+          annualizedVolatilityPct:annualVolPct,
+          volatility30dPct:last30Vol,
+          volatility90dPct:last90Vol,
+          maxDrawdownPct:maxDdPct,
+          positiveDayRatioPct:positiveRatio,
+          downsideDeviationPct:downsideDevPct,
+          sharpe:sharpeRatio(annualReturnPct, annualVolPct),
+          sortino:sortinoRatio(annualReturnPct, downsideDevPct),
+          calmar:calmarRatio(annualReturnPct, maxDdPct)
         },
 
         metadata:{
           fundTotalValue:Number.isFinite(fundTotalValue) ? fundTotalValue : null,
           investorCount:Number.isFinite(investorCount) ? investorCount : null,
-          riskValue
+          shareCount:Number.isFinite(shareCount) ? shareCount : null,
+          riskValue,
+          riskLabel:riskLabel(riskValue)
+        },
+
+        fees,
+
+        series:{
+          price:prices.map(x => ({date:x.date, value:x.price})),
+          drawdown:ddSeries,
+          volatility30:rolling30,
+          volatility90:rolling90
         }
       }
     });

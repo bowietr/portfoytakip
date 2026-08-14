@@ -1,4 +1,4 @@
-const APP_VERSION = "1.13.6";
+const APP_VERSION = "1.14.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1015,6 +1015,160 @@ function renderResearchPerformanceChart(data, type) {
   });
 }
 
+
+const FUND_META_CACHE_KEY = "portfoyum_fund_research_meta_v1";
+
+function getFundResearchMetaCache() {
+  try { return JSON.parse(localStorage.getItem(FUND_META_CACHE_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function mergeFundResearchMeta(code, meta={}) {
+  const cache = getFundResearchMetaCache();
+  const old = cache[code] || {};
+  const merged = {
+    fundTotalValue: Number.isFinite(Number(meta.fundTotalValue)) ? Number(meta.fundTotalValue) : old.fundTotalValue ?? null,
+    investorCount: Number.isFinite(Number(meta.investorCount)) ? Number(meta.investorCount) : old.investorCount ?? null,
+    shareCount: Number.isFinite(Number(meta.shareCount)) ? Number(meta.shareCount) : old.shareCount ?? null,
+    riskValue: Number.isFinite(Number(meta.riskValue)) ? Number(meta.riskValue) : old.riskValue ?? null,
+    riskLabel: meta.riskLabel || old.riskLabel || null,
+    savedAt: Date.now()
+  };
+  cache[code] = merged;
+  try { localStorage.setItem(FUND_META_CACHE_KEY, JSON.stringify(cache)); } catch {}
+  return merged;
+}
+
+function researchScoreCard(label, value, subtitle="") {
+  const shown = value === null || value === undefined || !Number.isFinite(Number(value))
+    ? "—"
+    : Number(value).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2});
+  return `<div class="research-score-card"><span>${escapeHtml(label)}</span><strong>${shown}</strong>${subtitle ? `<small>${escapeHtml(subtitle)}</small>` : ""}</div>`;
+}
+
+function destroyFundResearchCharts() {
+  ["fundPriceHistoryChart","fundDrawdownChart","fundVolatilityChart"].forEach(k => {
+    if (state[k]) { state[k].destroy(); state[k]=null; }
+  });
+}
+
+function fundSeriesLabels(rows) {
+  return rows.map(x => new Date(x.date).toLocaleDateString("tr-TR",{day:"2-digit",month:"short"}));
+}
+
+function renderFundAdvancedCharts(d) {
+  const host = $("fundAdvancedAnalysis");
+  if (!host) return;
+  host.hidden = false;
+  destroyFundResearchCharts();
+
+  const series=d.series||{};
+  const price=Array.isArray(series.price)?series.price:[];
+  const dd=Array.isArray(series.drawdown)?series.drawdown:[];
+  const v30=Array.isArray(series.volatility30)?series.volatility30:[];
+  const v90=Array.isArray(series.volatility90)?series.volatility90:[];
+
+  const commonOptions = {
+    responsive:true,
+    maintainAspectRatio:false,
+    interaction:{mode:"index",intersect:false},
+    plugins:{legend:{labels:{color:chartTextColor(),usePointStyle:true,boxWidth:8}}},
+    scales:{
+      x:{grid:{display:false},ticks:{color:chartTextColor(),autoSkip:true,maxTicksLimit:8,maxRotation:0}},
+      y:{grid:{color:chartGridColor()},ticks:{color:chartTextColor()}}
+    }
+  };
+
+  const priceCtx=$("fundPriceHistoryChart");
+  if (priceCtx && price.length) {
+    state.fundPriceHistoryChart=new Chart(priceCtx,{
+      type:"line",
+      data:{
+        labels:fundSeriesLabels(price),
+        datasets:[{
+          label:"Birim Pay Fiyatı",
+          data:price.map(x=>Number(x.value)),
+          borderColor:"#6F8877",
+          backgroundColor:"rgba(111,136,119,.10)",
+          fill:true,tension:.28,pointRadius:0,borderWidth:2
+        }]
+      },
+      options:{
+        ...commonOptions,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>money(ctx.raw)}}},
+        scales:{
+          ...commonOptions.scales,
+          y:{grid:{color:chartGridColor()},ticks:{color:chartTextColor(),callback:v=>money(v)}}
+        }
+      }
+    });
+  }
+
+  const ddCtx=$("fundDrawdownChart");
+  if (ddCtx && dd.length) {
+    state.fundDrawdownChart=new Chart(ddCtx,{
+      type:"line",
+      data:{
+        labels:fundSeriesLabels(dd),
+        datasets:[{
+          label:"Drawdown",
+          data:dd.map(x=>Number(x.value)),
+          borderColor:getComputedStyle(document.documentElement).getPropertyValue("--negative").trim()||"#c45f67",
+          backgroundColor:"rgba(196,95,103,.08)",
+          fill:true,tension:.2,pointRadius:0,borderWidth:1.8
+        }]
+      },
+      options:{
+        ...commonOptions,
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>pct(ctx.raw)}}},
+        scales:{
+          ...commonOptions.scales,
+          y:{max:0,grid:{color:chartGridColor()},ticks:{color:chartTextColor(),callback:v=>`${Number(v).toFixed(0)}%`}}
+        }
+      }
+    });
+  }
+
+  const volCtx=$("fundVolatilityChart");
+  if (volCtx && (v30.length||v90.length)) {
+    const base=v30.length?v30:v90;
+    const map90=new Map(v90.map(x=>[String(x.date).slice(0,10),Number(x.value)]));
+    state.fundVolatilityChart=new Chart(volCtx,{
+      type:"line",
+      data:{
+        labels:fundSeriesLabels(base),
+        datasets:[
+          {
+            label:"30 Gün",
+            data:base.map(x=>Number(x.value)),
+            borderColor:"#6F8877",pointRadius:0,tension:.25,borderWidth:1.8
+          },
+          {
+            label:"90 Gün",
+            data:base.map(x=>map90.get(String(x.date).slice(0,10))??null),
+            borderColor:"#B59A6A",pointRadius:0,tension:.25,borderWidth:1.8
+          }
+        ]
+      },
+      options:{
+        ...commonOptions,
+        scales:{
+          ...commonOptions.scales,
+          y:{grid:{color:chartGridColor()},ticks:{color:chartTextColor(),callback:v=>`${Number(v).toFixed(0)}%`}}
+        },
+        plugins:{legend:{labels:{color:chartTextColor(),usePointStyle:true,boxWidth:8}},tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${pct(ctx.raw)}`}}}
+      }
+    });
+  }
+}
+
+function formatDateShort(v) {
+  if (!v) return "";
+  try { return new Date(v).toLocaleDateString("tr-TR",{day:"2-digit",month:"short",year:"numeric"}); }
+  catch { return ""; }
+}
+
+
 function renderFundResearch(data) {
   const d = data.data || data;
   const daily = Number(d.changePercent);
@@ -1027,7 +1181,10 @@ function renderFundResearch(data) {
   $("researchDaily").className = `research-daily ${dailyCls}`;
   $("researchDaily").textContent = Number.isFinite(daily) ? `${daily >= 0 ? "+" : ""}${pct(daily)} · ${money(d.change)}` : "Günlük veri yok";
 
-  const perf=d.performance||{}, risk=d.risk||{}, stats=d.stats||{}, meta=d.metadata||{};
+  const perf=d.performance||{}, risk=d.risk||{}, stats=d.stats||{};
+  const meta=mergeFundResearchMeta(d.code,d.metadata||{});
+  const fees=d.fees||{};
+
   $("researchPrimaryMetrics").innerHTML = [
     researchMetricCard("1 Aylık", perf.month1, "percent", Number(perf.month1)>=0?"gain":"loss"),
     researchMetricCard("3 Aylık", perf.month3, "percent", Number(perf.month3)>=0?"gain":"loss"),
@@ -1037,26 +1194,64 @@ function renderFundResearch(data) {
 
   $("researchDetailTitle").textContent = "Risk ve Fiyat İstatistikleri";
   $("researchDetailMetrics").innerHTML = [
+    researchDetailItem("Sharpe Oranı", risk.sharpe, "ratio", "0% risksiz faiz varsayımı"),
+    researchDetailItem("Sortino Oranı", risk.sortino, "ratio", "Sadece aşağı yönlü risk"),
+    researchDetailItem("Calmar Oranı", risk.calmar, "ratio", "Yıllık getiri / maks. düşüş"),
+    researchDetailItem("Yıllıklandırılmış Getiri", perf.annualizedReturnPct, "percent"),
+    researchDetailItem("Yıllıklandırılmış Oynaklık", risk.annualizedVolatilityPct, "percent"),
+    researchDetailItem("30G Oynaklık", risk.volatility30dPct, "percent"),
+    researchDetailItem("90G Oynaklık", risk.volatility90dPct, "percent"),
+    researchDetailItem("Maks. Düşüş", risk.maxDrawdownPct, "percent"),
+    researchDetailItem("Pozitif Gün Oranı", risk.positiveDayRatioPct, "percent"),
     researchDetailItem("52H En Yüksek", stats.high52w, "money"),
     researchDetailItem("52H En Düşük", stats.low52w, "money"),
     researchDetailItem("Zirveye Uzaklık", stats.distanceFromHighPct, "percent"),
-    researchDetailItem("Yıllıklandırılmış Oynaklık", risk.annualizedVolatilityPct, "percent"),
-    researchDetailItem("Maks. Düşüş", risk.maxDrawdownPct, "percent"),
-    researchDetailItem("Pozitif Gün Oranı", risk.positiveDayRatioPct, "percent"),
-    researchDetailItem("Gözlem Sayısı", stats.observations, "number"),
-    researchDetailItem("Risk Değeri", meta.riskValue, "number")
+    researchDetailItem("En İyi Gün", stats.bestDayPct, "percent", formatDateShort(stats.bestDayDate)),
+    researchDetailItem("En Kötü Gün", stats.worstDayPct, "percent", formatDateShort(stats.worstDayDate)),
+    researchDetailItem("Risk Değeri", meta.riskValue, "number", meta.riskLabel || "TEFAS 1–7"),
+    researchDetailItem("Aşağı Yönlü Sapma", risk.downsideDeviationPct, "percent")
   ].join("");
 
-  const extras=[];
-  if (Number.isFinite(Number(meta.fundTotalValue)) || Number.isFinite(Number(meta.investorCount))) {
-    extras.push(`<article class="panel research-mini-panel"><h3>Fon Büyüklüğü</h3><div class="research-detail-grid">${researchDetailItem("Fon Toplam Değeri",meta.fundTotalValue,"compactMoney")}${researchDetailItem("Yatırımcı Sayısı",meta.investorCount,"compact")}</div></article>`);
-  }
-  $("researchSecondarySections").innerHTML=extras.join("");
-  $("researchDisclaimer").textContent = "Performans ve risk metrikleri TEFAS fiyat geçmişinden hesaplanır. Geçmiş getiri gelecekteki performansı garanti etmez.";
+  const sizePanel = `<article class="panel research-mini-panel">
+    <div class="panel-head"><div><h2>Fon Büyüklüğü</h2><p>Son başarılı TEFAS verisi korunur</p></div></div>
+    <div class="research-detail-grid">
+      ${researchDetailItem("Fon Toplam Değeri",meta.fundTotalValue,"compactMoney")}
+      ${researchDetailItem("Yatırımcı Sayısı",meta.investorCount,"compact")}
+      ${researchDetailItem("Tedavüldeki Pay",meta.shareCount,"compact")}
+      ${researchDetailItem("Risk Profili",meta.riskValue,"number",meta.riskLabel||"—")}
+    </div>
+  </article>`;
+
+  const feePanel = `<article class="panel research-mini-panel">
+    <div class="panel-head"><div><h2>Ücret ve Giderler</h2><p>KAP'ta bulunabilen güncel oranlar</p></div></div>
+    <div class="research-detail-grid">
+      ${researchDetailItem("Yıllık Yönetim Ücreti",fees.annualManagementFeePct,"percent")}
+      ${researchDetailItem("Toplam Gider Oranı",fees.totalExpenseRatioPct,"percent")}
+      ${researchDetailItem("Giriş Komisyonu",fees.entryCommissionPct,"percent")}
+      ${researchDetailItem("Çıkış Komisyonu",fees.exitCommissionPct,"percent")}
+      ${researchDetailItem("Performans Ücreti",fees.performanceFeePct,"percent")}
+    </div>
+  </article>`;
+
+  const scorePanel = `<article class="panel research-mini-panel research-score-panel">
+    <div class="panel-head"><div><h2>Risk-Getiri Özeti</h2><p>1 yıllık fiyat geçmişinden hesaplanır</p></div></div>
+    <div class="research-score-grid">
+      ${researchScoreCard("Sharpe",risk.sharpe,"Yüksek daha iyi")}
+      ${researchScoreCard("Sortino",risk.sortino,"Aşağı risk odaklı")}
+      ${researchScoreCard("Calmar",risk.calmar,"Drawdown odaklı")}
+      ${researchScoreCard("Risk",meta.riskValue,meta.riskLabel||"TEFAS")}
+    </div>
+  </article>`;
+
+  $("researchSecondarySections").innerHTML = sizePanel + feePanel + scorePanel;
+  $("researchDisclaimer").textContent = "Sharpe ve Sortino hesaplarında risksiz faiz %0 varsayılmıştır. Performans, risk ve grafikler TEFAS fiyat geçmişinden; ücret bilgileri bulunabildiğinde KAP'tan alınır. Geçmiş getiri gelecekteki performansı garanti etmez.";
+
   renderResearchPerformanceChart(d,"fund");
+  renderFundAdvancedCharts(d);
 }
 
 function renderStockResearch(data) {
+  const adv=$("fundAdvancedAnalysis"); if (adv) adv.hidden=true; destroyFundResearchCharts();
   const d=data.data||data;
   const daily=Number(d.changePercent), dailyCls=daily>=0?"positive":"negative";
   $("researchLogo").textContent=d.code?.slice(0,3)||"BIST";
