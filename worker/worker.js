@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.2" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.3" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -475,14 +475,135 @@ async function fetchTefasDetailMetrics(code) {
   }
 }
 
+
+function ymdInIstanbul(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Istanbul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const m = {};
+  for (const p of parts) if (p.type !== "literal") m[p.type] = p.value;
+  return `${m.year}${m.month}${m.day}`;
+}
+
+async function fetchTefasGeneralMetrics(code) {
+  // TEFAS 2026: kişi sayısı ve portföy büyüklüğü fonFiyatBilgiGetir'de yok.
+  // Doğru kaynak fonGnlBlgSiraliGetir:
+  //   kisiSayisi
+  //   portfoyBuyukluk
+  //
+  // Son birkaç günü isteriz; hafta sonu/tatil durumunda son mevcut satırı seçeriz.
+  const end = new Date();
+  const start = new Date(end.getTime() - 12 * 86400000);
+
+  const endApi = ymdInIstanbul(end);
+  const startApi = ymdInIstanbul(start);
+
+  const endpoint = "https://www.tefas.gov.tr/api/funds/fonGnlBlgSiraliGetir";
+  const portal = `https://www.tefas.gov.tr/tr/fon-verileri?fundType=YAT&startDate=${startApi.slice(0,4)}-${startApi.slice(4,6)}-${startApi.slice(6,8)}&endDate=${endApi.slice(0,4)}-${endApi.slice(4,6)}-${endApi.slice(6,8)}`;
+
+  const payload = {
+    fonTipi: "YAT",
+    fonKodu: code,
+    aramaMetni: null,
+    fonTurKod: null,
+    fonGrubu: null,
+    sfonTurKod: null,
+    basTarih: startApi,
+    bitTarih: endApi,
+    basSira: 1,
+    bitSira: 100,
+    fonTurAciklama: null,
+    dil: "TR",
+    kurucuKod: null
+  };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json, text/plain, */*",
+      "Origin": "https://www.tefas.gov.tr",
+      "Referer": portal,
+      "User-Agent": "Mozilla/5.0"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const text = await response.text();
+  if (!response.ok) throw new Error(`TEFAS fonGnlBlgSiraliGetir HTTP ${response.status}`);
+
+  let body;
+  try { body = JSON.parse(text); }
+  catch { throw new Error("TEFAS genel bilgi endpoint'i geçersiz JSON döndürdü."); }
+
+  let rows = [];
+  for (const key of ["resultList","data","Data","result","Result","rows","items"]) {
+    if (Array.isArray(body?.[key])) {
+      rows = body[key];
+      break;
+    }
+  }
+  if (!rows.length && Array.isArray(body)) rows = body;
+
+  const normalizedCode = String(code).toUpperCase();
+  rows = rows.filter(r => {
+    const c = String(
+      r?.fonKodu ?? r?.FONKODU ?? r?.fon_kodu ?? r?.fundCode ?? ""
+    ).toUpperCase();
+    return !c || c === normalizedCode;
+  });
+
+  if (!rows.length) return {};
+
+  const getDate = r => {
+    const raw = r?.tarih ?? r?.TARIH ?? r?.date ?? r?.Date;
+    if (typeof raw === "number") return raw;
+    const d = parseDate(raw);
+    return d ? new Date(d).getTime() : 0;
+  };
+
+  rows.sort((a,b) => getDate(a) - getDate(b));
+  const row = rows.at(-1);
+
+  const fundTotalValue = toNumber(
+    row?.portfoyBuyukluk ??
+    row?.PORTFOYBUYUKLUK ??
+    row?.portföyBuyukluk ??
+    row?.portfolioSize
+  );
+
+  const investorCount = toNumber(
+    row?.kisiSayisi ??
+    row?.KISISAYISI ??
+    row?.yatirimciSayisi ??
+    row?.investorCount
+  );
+
+  const shareCount = toNumber(
+    row?.tedPaySayisi ??
+    row?.TEDPAYSAYISI ??
+    row?.tedavuldekiPaySayisi
+  );
+
+  return {
+    fundTotalValue: Number.isFinite(fundTotalValue) ? fundTotalValue : null,
+    investorCount: Number.isFinite(investorCount) ? investorCount : null,
+    shareCount: Number.isFinite(shareCount) ? shareCount : null
+  };
+}
+
 async function handleFundResearch(code) {
   try {
     // Araştırmada periyod=13 kullanmak yanlıştı: bu yalnızca yaklaşık 1 haftalık veri.
     // 1Y paket (~253 işlem günü) ile 1A/3A/6A/1Y ve risk metriklerini güvenilir hesaplıyoruz.
-    const [historyPayload, profilePayload, detailMetrics] = await Promise.all([
+    const [historyPayload, profilePayload, detailMetrics, generalMetrics] = await Promise.all([
       fetchTefasPayload(code, 12),
       fetchTefasProfile(code),
-      fetchTefasDetailMetrics(code)
+      fetchTefasDetailMetrics(code),
+      fetchTefasGeneralMetrics(code).catch(() => ({}))
     ]);
 
     const hist = tefasHistory(historyPayload);
@@ -541,13 +662,17 @@ async function handleFundResearch(code) {
         ["yatirimci","sayi"]
       ]);
 
-    const fundTotalValue = Number.isFinite(profileFundTotalValue)
-      ? profileFundTotalValue
-      : Number(detailMetrics?.fundTotalValue);
+    const fundTotalValue = Number.isFinite(Number(generalMetrics?.fundTotalValue))
+      ? Number(generalMetrics.fundTotalValue)
+      : Number.isFinite(profileFundTotalValue)
+        ? profileFundTotalValue
+        : Number(detailMetrics?.fundTotalValue);
 
-    const investorCount = Number.isFinite(profileInvestorCount)
-      ? profileInvestorCount
-      : Number(detailMetrics?.investorCount);
+    const investorCount = Number.isFinite(Number(generalMetrics?.investorCount))
+      ? Number(generalMetrics.investorCount)
+      : Number.isFinite(profileInvestorCount)
+        ? profileInvestorCount
+        : Number(detailMetrics?.investorCount);
 
     const high52w = Math.max(...prices.map(x => x.price));
     const low52w = Math.min(...prices.map(x => x.price));
