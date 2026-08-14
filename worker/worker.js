@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.5" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.6" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -50,75 +50,163 @@ export default {
     }
 
     try {
-      const upstream = await fetch(TEFAS_URL, {
+      const tefasResult = await fetchTefasWithRetry("fonFiyatBilgiGetir", {
+        fonKodu: code,
+        dil: "TR",
+        periyod: 13
+      }, {
+        attempts: 3,
+        cacheTtl: 1800,
+        staleMaxAge: 86400
+      });
+
+      const normalized = normalizeTefas(tefasResult.data, code);
+      if (!normalized) {
+        return json({ ok:false, error:"TEFAS yanıtında fiyat verisi bulunamadı.", rawShape: describeShape(tefasResult.data) }, 502);
+      }
+
+      return json({
+        ok:true,
+        ...normalized,
+        stale: !!tefasResult.stale,
+        staleAgeSeconds: tefasResult.staleAgeSeconds ?? null,
+        attemptsUsed: tefasResult.attemptsUsed ?? 1
+      });
+    } catch (err) {
+      return json({ ok:false, error:String(err?.message || err) }, 502);
+    }
+  }
+};
+
+
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function tefasCacheRequest(endpoint, payload) {
+  const code = String(payload?.fonKodu || "GENEL").toUpperCase();
+  const period = String(payload?.periyod ?? "");
+  const start = String(payload?.basTarih ?? "");
+  const end = String(payload?.bitTarih ?? "");
+  const url = `https://cache.portfoyum.local/tefas/${encodeURIComponent(endpoint)}/${encodeURIComponent(code)}?p=${encodeURIComponent(period)}&s=${encodeURIComponent(start)}&e=${encodeURIComponent(end)}`;
+  return new Request(url, { method: "GET" });
+}
+
+async function fetchTefasWithRetry(endpoint, payload, options = {}) {
+  const {
+    attempts = 3,
+    cacheTtl = 3600,
+    staleMaxAge = 86400
+  } = options;
+
+  const url = `https://www.tefas.gov.tr/api/funds/${endpoint}`;
+  const cache = caches.default;
+  const cacheRequest = tefasCacheRequest(endpoint, payload);
+
+  let lastStatus = 0;
+  let lastText = "";
+  let lastError = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      const upstream = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "application/json, text/plain, */*",
           "User-Agent": "Mozilla/5.0",
           "Origin": "https://www.tefas.gov.tr",
-          "Referer": "https://www.tefas.gov.tr/"
+          "Referer": "https://www.tefas.gov.tr/",
+          "Cache-Control": "no-cache"
         },
-        body: JSON.stringify({
-          fonKodu: code,
-          dil: "TR",
-          periyod: 13
-        })
+        body: JSON.stringify(payload)
       });
 
-      const text = await upstream.text();
-      if (!upstream.ok) {
-        return json({ ok:false, error:`TEFAS HTTP ${upstream.status}`, preview:text.slice(0,200) }, 502);
+      lastStatus = upstream.status;
+      lastText = await upstream.text();
+
+      if (upstream.ok) {
+        let data;
+        try {
+          data = JSON.parse(lastText);
+        } catch {
+          throw new Error(`TEFAS ${endpoint} geçersiz JSON döndürdü.`);
+        }
+
+        if (data && typeof data === "object" && data.errorMessage) {
+          throw new Error(`TEFAS ${endpoint}: ${data.errorMessage}`);
+        }
+
+        // Son başarılı yanıtı Cloudflare Cache API'de sakla.
+        const cacheResponse = new Response(JSON.stringify({
+          cachedAt: Date.now(),
+          data
+        }), {
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": `public, max-age=${cacheTtl}`
+          }
+        });
+
+        // Cache yazımı ana yanıtı geciktirmesin.
+        await cache.put(cacheRequest, cacheResponse.clone());
+
+        return {
+          data,
+          stale: false,
+          sourceStatus: upstream.status,
+          attemptsUsed: attempt
+        };
       }
 
-      let payload;
-      try { payload = JSON.parse(text); }
-      catch {
-        return json({ ok:false, error:"TEFAS JSON yerine farklı bir yanıt döndürdü.", preview:text.slice(0,200) }, 502);
-      }
+      // 4xx çoğunlukla kalıcı isteğe bağlı hatadır; 429 ve 5xx tekrar denenir.
+      const retryable = upstream.status === 429 || upstream.status >= 500;
+      if (!retryable) break;
 
-      const normalized = normalizeTefas(payload, code);
-      if (!normalized) {
-        return json({ ok:false, error:"TEFAS yanıtında fiyat verisi bulunamadı.", rawShape: describeShape(payload) }, 502);
-      }
-
-      return json({ ok:true, ...normalized });
     } catch (err) {
-      return json({ ok:false, error:String(err?.message || err) }, 500);
+      lastError = err;
+    }
+
+    if (attempt < attempts) {
+      // 350ms, 800ms gibi kısa artan bekleme.
+      await sleep(250 + attempt * 300);
     }
   }
-};
 
+  // TEFAS hâlâ yanıt vermiyorsa son başarılı cache'i kullan.
+  try {
+    const cached = await cache.match(cacheRequest);
+    if (cached) {
+      const wrapped = await cached.json();
+      const ageSeconds = Math.max(0, (Date.now() - Number(wrapped?.cachedAt || 0)) / 1000);
+
+      if (wrapped?.data && ageSeconds <= staleMaxAge) {
+        return {
+          data: wrapped.data,
+          stale: true,
+          staleAgeSeconds: Math.round(ageSeconds),
+          sourceStatus: lastStatus || null,
+          attemptsUsed: attempts
+        };
+      }
+    }
+  } catch {}
+
+  const suffix = lastStatus ? ` HTTP ${lastStatus}` : "";
+  throw new Error(
+    lastError?.message ||
+    `TEFAS ${endpoint}${suffix}${lastText ? `: ${lastText.slice(0,120)}` : ""}`
+  );
+}
 
 async function fetchTefasEndpoint(endpoint, payload) {
-  const url = `https://www.tefas.gov.tr/api/funds/${endpoint}`;
-  const upstream = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json, text/plain, */*",
-      "User-Agent": "Mozilla/5.0",
-      "Origin": "https://www.tefas.gov.tr",
-      "Referer": "https://www.tefas.gov.tr/"
-    },
-    body: JSON.stringify(payload)
+  const result = await fetchTefasWithRetry(endpoint, payload, {
+    attempts: 3,
+    cacheTtl: endpoint === "fonFiyatBilgiGetir" ? 1800 : 3600,
+    staleMaxAge: 86400
   });
-
-  const text = await upstream.text();
-  if (!upstream.ok) throw new Error(`TEFAS ${endpoint} HTTP ${upstream.status}`);
-
-  let data;
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error(`TEFAS ${endpoint} geçersiz JSON döndürdü.`);
-  }
-
-  if (data && typeof data === "object" && data.errorMessage) {
-    throw new Error(`TEFAS ${endpoint}: ${data.errorMessage}`);
-  }
-
-  return data;
+  return result.data;
 }
 
 async function fetchTefasPayload(code, periyod = 13) {
@@ -520,24 +608,12 @@ async function fetchTefasGeneralMetrics(code) {
     kurucuKod: null
   };
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json, text/plain, */*",
-      "Origin": "https://www.tefas.gov.tr",
-      "Referer": portal,
-      "User-Agent": "Mozilla/5.0"
-    },
-    body: JSON.stringify(payload)
+  const resilient = await fetchTefasWithRetry("fonGnlBlgSiraliGetir", payload, {
+    attempts: 3,
+    cacheTtl: 3600,
+    staleMaxAge: 86400
   });
-
-  const text = await response.text();
-  if (!response.ok) throw new Error(`TEFAS fonGnlBlgSiraliGetir HTTP ${response.status}`);
-
-  let body;
-  try { body = JSON.parse(text); }
-  catch { throw new Error("TEFAS genel bilgi endpoint'i geçersiz JSON döndürdü."); }
+  const body = resilient.data;
 
   let rows = [];
   for (const key of ["resultList","data","Data","result","Result","rows","items"]) {

@@ -705,3 +705,23 @@ büyük harfe dönüştürülür.
 `thyao` → `THYAO`
 
 Frontend, Worker ve README sürümleri `1.13.5` olarak senkronlanmıştır.
+
+
+## V1.13.6 — TEFAS 520 Dayanıklılığı
+
+TEFAS'ın zaman zaman döndürdüğü `HTTP 520` ve diğer geçici `5xx` hataları için
+Cloudflare Worker veri katmanı güçlendirildi.
+
+Yeni davranış:
+
+- TEFAS isteği başarısız olursa otomatik olarak en fazla 3 kez tekrar denenir.
+- Denemeler arasında kısa artan bekleme uygulanır.
+- Başarılı TEFAS yanıtları Cloudflare Cache API'de saklanır.
+- Üç deneme de başarısız olursa son başarılı veri 24 saate kadar fallback olarak kullanılabilir.
+- `429` ve `5xx` durumları tekrar denenir.
+- Kalıcı `4xx` hataları gereksiz yere tekrar denenmez.
+
+Normal `/api/fund/...`, fon araştırma fiyat geçmişi ve genel fon metrikleri aynı
+dayanıklı TEFAS erişim katmanını kullanır.
+
+Frontend, Worker ve README sürümü `1.13.6` olarak senkronlanmıştır.
