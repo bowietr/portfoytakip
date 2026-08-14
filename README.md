@@ -806,3 +806,21 @@ Yeni parser:
 değerlerini kendi hücresinden okur.
 
 Kesin eşleşmeyen alanlarda yanlış değer göstermek yerine `—` gösterilir.
+
+
+## V1.14.2 — Daylight Wealth Theme
+
+Gündüz kullanımı için açık tema belirgin şekilde aydınlatıldı.
+
+Değişiklikler:
+
+- Arka plan daha açık krem/beyaz tona taşındı.
+- Kart yüzeyleri gerçek beyaza yaklaştırıldı.
+- Sınırlar daha ince ve daha açık hale getirildi.
+- Gölgeler hafifletildi.
+- Input ve select alanları beyaz yüzeye taşındı.
+- Araştırma kartları ve grafik panelleri daha ferah hale getirildi.
+- Adaçayı yeşili ve altın premium vurgu renkleri korundu.
+- Koyu tema değiştirilmeden ayrı seçenek olarak korunur.
+
+Frontend, Worker ve README sürümü `1.14.2` olarak senkronlanmıştır.

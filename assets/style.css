@@ -1,24 +1,24 @@
 
 :root {
-  --bg: #f3f0e9;
-  --bg-soft: #ebe7de;
-  --panel: #fdfcf8;
-  --panel-2: #f6f4ee;
-  --panel-3: #eeebe3;
-  --text: #1c2722;
-  --text-soft: #39473f;
-  --muted: #7e8982;
-  --border: #dfddd5;
-  --border-strong: #d0cdc3;
-  --accent: #6f8877;
-  --accent-strong: #536b5a;
-  --accent-soft: #e5ebe6;
-  --gold: #b69a67;
-  --gold-soft: #eee5d4;
+  --bg: #f8f6f1;
+  --bg-soft: #f1eee7;
+  --panel: #ffffff;
+  --panel-2: #faf9f5;
+  --panel-3: #f3f1eb;
+  --text: #1f2a24;
+  --text-soft: #455149;
+  --muted: #7d877f;
+  --border: #e8e4dc;
+  --border-strong: #d9d4ca;
+  --accent: #718d7b;
+  --accent-strong: #526c5b;
+  --accent-soft: #edf3ee;
+  --gold: #b79a67;
+  --gold-soft: #f6efe1;
   --positive: #2f8f68;
-  --negative: #c45f67;
-  --shadow: 0 14px 34px rgba(48, 55, 50, .065);
-  --shadow-soft: 0 6px 18px rgba(48, 55, 50, .045);
+  --negative: #c75f67;
+  --shadow: 0 12px 30px rgba(55, 66, 58, .055);
+  --shadow-soft: 0 5px 14px rgba(55, 66, 58, .035);
   --radius: 20px;
 }
 
@@ -1144,4 +1144,109 @@ select:focus {
   .research-score-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .research-series-chart { height:280px; }
   .research-series-chart.compact { height:250px; }
+}
+
+
+/* =========================================================
+   V1.14.2 — Daylight Wealth Theme
+   ========================================================= */
+
+:root:not([data-theme="dark"]) body,
+html:not([data-theme="dark"]) body {
+  background:
+    radial-gradient(circle at 8% 2%, rgba(183,154,103,.045), transparent 26%),
+    radial-gradient(circle at 92% 0%, rgba(113,141,123,.045), transparent 24%),
+    #f8f6f1;
+}
+
+:root:not([data-theme="dark"]) .sidebar,
+html:not([data-theme="dark"]) .sidebar {
+  background: rgba(255,255,255,.92);
+  border-right-color: #ebe7df;
+  box-shadow: 8px 0 28px rgba(48,58,51,.025);
+}
+
+:root:not([data-theme="dark"]) .panel,
+:root:not([data-theme="dark"]) .metric-card,
+:root:not([data-theme="dark"]) .asset-card,
+:root:not([data-theme="dark"]) .compact-summary-card,
+html:not([data-theme="dark"]) .panel,
+html:not([data-theme="dark"]) .metric-card,
+html:not([data-theme="dark"]) .asset-card,
+html:not([data-theme="dark"]) .compact-summary-card {
+  background: linear-gradient(155deg, #ffffff, #fcfbf8);
+  border-color: #e8e4dc;
+}
+
+:root:not([data-theme="dark"]) .metric-card::after,
+html:not([data-theme="dark"]) .metric-card::after {
+  background: rgba(113,141,123,.055);
+}
+
+:root:not([data-theme="dark"]) .nav-item.active,
+html:not([data-theme="dark"]) .nav-item.active {
+  background: #edf3ee;
+  color: #4f6958;
+}
+
+:root:not([data-theme="dark"]) .range-btn.active,
+:root:not([data-theme="dark"]) .filter.active,
+html:not([data-theme="dark"]) .range-btn.active,
+html:not([data-theme="dark"]) .filter.active {
+  background: #edf3ee;
+  color: #4f6958;
+}
+
+:root:not([data-theme="dark"]) input,
+:root:not([data-theme="dark"]) select,
+html:not([data-theme="dark"]) input,
+html:not([data-theme="dark"]) select {
+  background: #fff;
+  border-color: #ddd8ce;
+}
+
+:root:not([data-theme="dark"]) .research-metric-card,
+:root:not([data-theme="dark"]) .research-detail-item,
+:root:not([data-theme="dark"]) .asset-stat,
+:root:not([data-theme="dark"]) .compact-details > div,
+html:not([data-theme="dark"]) .research-metric-card,
+html:not([data-theme="dark"]) .research-detail-item,
+html:not([data-theme="dark"]) .asset-stat,
+html:not([data-theme="dark"]) .compact-details > div {
+  background: #fbfaf7;
+  border-color: #e5e1d8;
+}
+
+:root:not([data-theme="dark"]) .research-score-card,
+html:not([data-theme="dark"]) .research-score-card {
+  background: linear-gradient(150deg, #f4f8f4, #fbfaf7);
+}
+
+:root:not([data-theme="dark"]) .status-pill,
+:root:not([data-theme="dark"]) .secondary-btn,
+:root:not([data-theme="dark"]) .ghost-btn,
+html:not([data-theme="dark"]) .status-pill,
+html:not([data-theme="dark"]) .secondary-btn,
+html:not([data-theme="dark"]) .ghost-btn {
+  background: rgba(255,255,255,.94);
+}
+
+:root:not([data-theme="dark"]) tbody tr:hover,
+html:not([data-theme="dark"]) tbody tr:hover {
+  background: rgba(113,141,123,.055);
+}
+
+:root:not([data-theme="dark"]) .chart-badge,
+html:not([data-theme="dark"]) .chart-badge {
+  background: #faf9f5;
+}
+
+/* Gündüz modunda kartlar daha az "kutu kutu" dursun */
+@media (min-width: 761px) {
+  :root:not([data-theme="dark"]) .panel,
+  :root:not([data-theme="dark"]) .metric-card,
+  html:not([data-theme="dark"]) .panel,
+  html:not([data-theme="dark"]) .metric-card {
+    box-shadow: 0 10px 24px rgba(52,62,55,.045);
+  }
 }
