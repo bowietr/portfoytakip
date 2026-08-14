@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.13.4" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.13.5" />
 </head>
 <body>
   <div class="app-shell">
@@ -262,7 +262,15 @@
             </label>
             <label class="research-code-field">
               Kod
-              <input id="researchCode" maxlength="12" autocomplete="off" placeholder="Örn: TTE veya FROTO" required />
+              <input id="researchCode"
+                     maxlength="12"
+                     autocomplete="off"
+                     autocapitalize="characters"
+                     spellcheck="false"
+                     inputmode="text"
+                     oninput="this.value = this.value.toLocaleUpperCase('tr-TR')"
+                     placeholder="Örn: TTE veya FROTO"
+                     required />
             </label>
             <button class="primary-btn research-submit" type="submit">Araştır</button>
           </form>
@@ -454,6 +462,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.13.4"></script>
+  <script src="./assets/app.js?v=1.13.5"></script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-const APP_VERSION = "1.13.4";
+const APP_VERSION = "1.13.5";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1097,6 +1097,25 @@ function renderStockResearch(data) {
 function setupResearch() {
   const form=$("researchForm");
   if (!form) return;
+
+  const codeInput=$("researchCode");
+  if (codeInput) {
+    const forceUppercase = () => {
+      const start = codeInput.selectionStart;
+      const end = codeInput.selectionEnd;
+      const upper = codeInput.value.toLocaleUpperCase("tr-TR");
+      if (codeInput.value !== upper) {
+        codeInput.value = upper;
+        try {
+          if (start !== null && end !== null) codeInput.setSelectionRange(start, end);
+        } catch {}
+      }
+    };
+
+    codeInput.addEventListener("input", forceUppercase);
+    codeInput.addEventListener("change", forceUppercase);
+    codeInput.addEventListener("paste", () => setTimeout(forceUppercase, 0));
+  }
   form.addEventListener("submit", async e => {
     e.preventDefault();
     const type=$("researchType").value;
@@ -1244,22 +1263,4 @@ window.openTransaction = openTransaction;
 window.updateStockPrice = updateStockPrice;
 window.deleteAsset = deleteAsset;
 window.deleteTx = deleteTx;
-
-
-// V1.13.4 — Varlık Araştır kod alanını yazarken otomatik büyük harfe çevir.
-const researchCodeUppercaseInput = document.getElementById("researchCode");
-if (researchCodeUppercaseInput) {
-  researchCodeUppercaseInput.setAttribute("autocapitalize", "characters");
-  researchCodeUppercaseInput.setAttribute("spellcheck", "false");
-  researchCodeUppercaseInput.addEventListener("input", (event) => {
-    const el = event.currentTarget;
-    const start = el.selectionStart;
-    const end = el.selectionEnd;
-    const upper = el.value.toLocaleUpperCase("tr-TR");
-    if (el.value !== upper) {
-      el.value = upper;
-      if (start !== null && end !== null) el.setSelectionRange(start, end);
-    }
-  });
-}
 

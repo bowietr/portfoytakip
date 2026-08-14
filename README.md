@@ -685,3 +685,23 @@ otomatik olarak büyük harfe dönüştürülür.
 
 Önceki yanlış V1.13.4 denemesindeki sonuç başlığı büyük harf değişikliği bu pakette yoktur.
 Bu sürüm V1.13.3 tabanı üzerinden hazırlanmıştır.
+
+
+## V1.13.5 — Araştırma Kod Kutusu Düzeltmesi
+
+Varlık Araştır ekranındaki `Kod` alanı iPad/iPhone Safari dahil daha sağlam şekilde
+büyük harfe dönüştürülür.
+
+Üç katman kullanılır:
+
+- HTML `oninput` ile gerçek input değeri anında büyük harfe çevrilir.
+- JavaScript `input/change/paste` fallback'i aynı davranışı doğrular.
+- CSS `text-transform: uppercase` görsel fallback sağlar.
+
+Örnek:
+
+`tte` → `TTE`
+`froto` → `FROTO`
+`thyao` → `THYAO`
+
+Frontend, Worker ve README sürümleri `1.13.5` olarak senkronlanmıştır.

@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.4" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.5" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
