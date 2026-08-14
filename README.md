@@ -605,3 +605,36 @@ Bir veri alanı sağlayıcı tarafından sunulmazsa arayüz `—` gösterir; ara
 - `/api/research/stock/FROTO`
 
 Bu sürümde **Cloudflare Worker kodunun da güncellenmesi gerekir.**
+
+
+## v1.13.1 — Fon araştırma metrik düzeltmesi
+
+Fon araştırma ekranındaki dönemsel getiri ve risk verileri düzeltildi.
+
+### Sorunun nedeni
+
+V1.13 araştırma endpoint'i `fonFiyatBilgiGetir` çağrısında `periyod: 13`
+kullanıyordu. TEFAS 2026 API'sinde bu değer yaklaşık bir haftalık veri paketidir.
+Bu nedenle 1 aylık ve 3 aylık getiriler yeterli tarihsel veri olmadan hesaplanıyordu.
+
+### Düzeltme
+
+Araştırma ekranı artık:
+
+- `periyod: 12` ile yaklaşık 1 yıllık günlük fiyat geçmişi alır.
+- 1A / 3A / 6A / 1Y getirilerini takvim ayı bazında hesaplar.
+- Hedef tarih tatil veya hafta sonuna denk gelirse o tarihten önceki son işlem gününü kullanır.
+- İstenen dönem kadar veri gerçekten yoksa yanlış sayı göstermek yerine `—` gösterir.
+
+### Risk Değeri
+
+Resmi TEFAS `1–7` Risk Değeri artık ayrıca:
+
+`fonProfilBilgiGetir`
+
+endpoint'inden `riskDegeri` alanıyla alınır.
+
+Yıllıklandırılmış oynaklık, maksimum düşüş ve pozitif gün oranı da daha geniş
+1 yıllık fiyat geçmişi üzerinden hesaplandığı için daha anlamlı hale gelmiştir.
+
+Cloudflare Worker'ın güncellenmesi gerekir.
