@@ -907,3 +907,30 @@ Panel ayrıca:
 bilgilerini gösterir.
 
 Bu yapı backend formül hatalarının frontend tarafından otomatik fark edilmesini sağlar.
+
+
+## V1.15.0 — Fonoloji API Entegrasyonu
+
+Cloudflare Worker artık `FONOLOJI_KEY` secret'ını kullanarak resmi Fonoloji REST API'sindeki
+`GET /v1/funds/:code` endpoint'ine bağlanır.
+
+Ana kaynak olarak Fonoloji'den:
+- Sharpe 90G
+- Sortino 90G
+- Calmar 1Y
+- Beta 1Y
+- Max Drawdown 1Y
+- 90G volatilite
+- 1Y reel getiri
+- AUM / fon toplam değeri
+- yatırımcı sayısı
+- risk skoru
+- kategori, yönetim şirketi, ISIN ve valör bilgileri
+
+alınır.
+
+TEFAS fiyat geçmişi ve grafik altyapısı korunur. Fonoloji erişilemezse mevcut yerel hesaplama
+motoru Sharpe / Sortino / Calmar / drawdown / volatilite için fallback olarak çalışır.
+
+Fonoloji oranları kendi dönem/metodolojisine sahip olduğundan eski doğrulama paneli artık
+sağlayıcı değerini yerel referansla kıyaslayan bir kontrol ekranı olarak değerlendirilir.

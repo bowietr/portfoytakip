@@ -1,4 +1,4 @@
-const APP_VERSION = "1.14.4";
+const APP_VERSION = "1.15.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1301,7 +1301,7 @@ function fundValidationPanel(d) {
   const passed=checks.filter(x=>validationPass(x[1],x[2],x[3])).length;
   const allPassed=passed===checks.length;
   const statusClass=allPassed ? "validation-ok" : "validation-warning";
-  const statusText=allPassed ? "Tüm hesaplamalar doğrulandı" : `${passed}/${checks.length} hesap doğrulandı`;
+  const statusText=risk.source==="Fonoloji" ? "Fonoloji + yerel referans" : (allPassed ? "Tüm hesaplamalar doğrulandı" : `${passed}/${checks.length} hesap doğrulandı`);
 
   const rows=checks.map(([label,type,backend,browserValue])=>{
     const ok=validationPass(type,backend,browserValue);
@@ -1323,7 +1323,7 @@ function fundValidationPanel(d) {
     <div class="panel-head validation-head">
       <div>
         <h2>Hesaplama Doğrulama</h2>
-        <p>Aynı TEFAS fiyat serisi tarayıcıda ikinci ve bağımsız bir algoritmayla yeniden hesaplanır.</p>
+        <p>Fonoloji metrikleri ile uygulamanın TEFAS fiyat serisinden bağımsız hesapladığı referans değerler yan yana gösterilir. Dönem/metodoloji farkı nedeniyle birebir eşleşme beklenmez.</p>
       </div>
       <span class="validation-status ${statusClass}">${statusText}</span>
     </div>
@@ -1371,9 +1371,9 @@ function renderFundResearch(data) {
 
   $("researchDetailTitle").textContent = "Risk ve Fiyat İstatistikleri";
   $("researchDetailMetrics").innerHTML = [
-    researchDetailItem("Sharpe Oranı", risk.sharpe, "ratio", "Günlük excess getiri · √252"),
-    researchDetailItem("Sortino Oranı", risk.sortino, "ratio", "MAR %0 · downside deviation"),
-    researchDetailItem("Calmar Oranı", risk.calmar, "ratio", "CAGR / |maks. drawdown|"),
+    researchDetailItem("Sharpe Oranı", risk.sharpe, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 90G" : "Hesaplanan fallback"),
+    researchDetailItem("Sortino Oranı", risk.sortino, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 90G" : "Hesaplanan fallback"),
+    researchDetailItem("Calmar Oranı", risk.calmar, "ratio", risk.source==="Fonoloji" ? "Fonoloji · 1Y" : "Hesaplanan fallback"),
     researchDetailItem("Yıllıklandırılmış Getiri", perf.annualizedReturnPct, "percent"),
     researchDetailItem("Yıllıklandırılmış Oynaklık", risk.annualizedVolatilityPct, "percent"),
     researchDetailItem("30G Oynaklık", risk.volatility30dPct, "percent"),
@@ -1385,7 +1385,9 @@ function renderFundResearch(data) {
     researchDetailItem("Zirveye Uzaklık", stats.distanceFromHighPct, "percent"),
     researchDetailItem("En İyi Gün", stats.bestDayPct, "percent", formatDateShort(stats.bestDayDate)),
     researchDetailItem("En Kötü Gün", stats.worstDayPct, "percent", formatDateShort(stats.worstDayDate)),
-    researchDetailItem("Risk Değeri", meta.riskValue, "number", meta.riskLabel || "TEFAS 1–7"),
+    researchDetailItem("Beta (1Y)", risk.beta1y, "ratio", "Fonoloji"),
+    researchDetailItem("Reel Getiri (1Y)", perf.realReturn1yPct, "percent", "Fonoloji"),
+    researchDetailItem("Risk Değeri", meta.riskValue, "number", meta.riskLabel || "1–7"),
     researchDetailItem("Aşağı Yönlü Sapma", risk.downsideDeviationPct, "percent")
   ].join("");
 
@@ -1413,9 +1415,9 @@ function renderFundResearch(data) {
   const scorePanel = `<article class="panel research-mini-panel research-score-panel">
     <div class="panel-head"><div><h2>Risk-Getiri Özeti</h2><p>1 yıllık fiyat geçmişinden hesaplanır</p></div></div>
     <div class="research-score-grid">
-      ${researchScoreCard("Sharpe",risk.sharpe,"Günlük excess · √252")}
-      ${researchScoreCard("Sortino",risk.sortino,"MAR %0")}
-      ${researchScoreCard("Calmar",risk.calmar,"CAGR / Drawdown")}
+      ${researchScoreCard("Sharpe",risk.sharpe,risk.source==="Fonoloji"?"Fonoloji · 90G":"Fallback")}
+      ${researchScoreCard("Sortino",risk.sortino,risk.source==="Fonoloji"?"Fonoloji · 90G":"Fallback")}
+      ${researchScoreCard("Calmar",risk.calmar,risk.source==="Fonoloji"?"Fonoloji · 1Y":"Fallback")}
       ${researchScoreCard("Risk",meta.riskValue,meta.riskLabel||"TEFAS")}
     </div>
   </article>`;

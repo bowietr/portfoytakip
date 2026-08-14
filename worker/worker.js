@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.14.4" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.0" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -929,14 +929,52 @@ async function fetchKapFundFees(code, fundName) {
   }
 }
 
-async function handleFundResearch(code) {
+
+async function fetchFonolojiFund(code, env) {
+  const key = env?.FONOLOJI_KEY;
+  if (!key) throw new Error("FONOLOJI_KEY tanımlı değil.");
+
+  const url = `https://fonoloji.com/v1/funds/${encodeURIComponent(String(code).toUpperCase())}`;
+  const res = await fetch(url, {
+    method:"GET",
+    headers:{
+      "X-API-Key": key,
+      "Accept":"application/json"
+    }
+  });
+
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(`Fonoloji HTTP ${res.status}${text ? `: ${text.slice(0,120)}` : ""}`);
+  }
+
+  let body;
+  try { body=JSON.parse(text); }
+  catch { throw new Error("Fonoloji geçersiz JSON döndürdü."); }
+
+  const fund=body?.fund;
+  if (!fund || String(fund.code||"").toUpperCase() !== String(code).toUpperCase()) {
+    throw new Error("Fonoloji fon verisi bulunamadı.");
+  }
+  return fund;
+}
+
+function fonolojiPct(v) {
+  const n=Number(v);
+  return Number.isFinite(n) ? n*100 : null;
+}
+
+async function handleFundResearch(code, env) {
   try {
+    const fonolojiPromise = fetchFonolojiFund(code, env).catch(() => null);
+
     const [historyPayload, profilePayload, detailMetrics, generalMetrics] = await Promise.all([
       fetchTefasPayload(code, 12),
       fetchTefasProfile(code),
       fetchTefasDetailMetrics(code),
       fetchTefasGeneralMetrics(code).catch(() => ({}))
     ]);
+    const fonoloji = await fonolojiPromise;
 
     const hist = tefasHistory(historyPayload);
     if (hist.length < 2) {
@@ -1039,11 +1077,13 @@ async function handleFundResearch(code) {
         date:latest.date,
 
         performance:{
-          week:returnFromDaysStrict(hist,7),
-          month1:returnFromMonths(hist,1),
-          month3:returnFromMonths(hist,3),
-          month6:returnFromMonths(hist,6),
-          year1:returnFromMonths(hist,12),
+          week:Number.isFinite(Number(fonoloji?.return_1w)) ? fonolojiPct(fonoloji.return_1w) : returnFromDaysStrict(hist,7),
+          month1:Number.isFinite(Number(fonoloji?.return_1m)) ? fonolojiPct(fonoloji.return_1m) : returnFromMonths(hist,1),
+          month3:Number.isFinite(Number(fonoloji?.return_3m)) ? fonolojiPct(fonoloji.return_3m) : returnFromMonths(hist,3),
+          month6:Number.isFinite(Number(fonoloji?.return_6m)) ? fonolojiPct(fonoloji.return_6m) : returnFromMonths(hist,6),
+          year1:Number.isFinite(Number(fonoloji?.return_1y)) ? fonolojiPct(fonoloji.return_1y) : returnFromMonths(hist,12),
+          ytd:Number.isFinite(Number(fonoloji?.return_ytd)) ? fonolojiPct(fonoloji.return_ytd) : null,
+          realReturn1yPct:Number.isFinite(Number(fonoloji?.real_return_1y)) ? fonolojiPct(fonoloji.real_return_1y) : null,
           annualizedReturnPct
         },
 
@@ -1061,23 +1101,32 @@ async function handleFundResearch(code) {
         risk:{
           annualizedVolatilityPct:annualVolPct,
           volatility30dPct:last30Vol,
-          volatility90dPct:last90Vol,
-          maxDrawdownPct:maxDdPct,
+          volatility90dPct:Number.isFinite(Number(fonoloji?.volatility_90)) ? fonolojiPct(fonoloji.volatility_90) : last90Vol,
+          maxDrawdownPct:Number.isFinite(Number(fonoloji?.max_drawdown_1y)) ? fonolojiPct(fonoloji.max_drawdown_1y) : maxDdPct,
           positiveDayRatioPct:positiveRatio,
           downsideDeviationPct:downsideDevPct,
-          sharpe,
-          sortino,
-          calmar,
+          sharpe:Number.isFinite(Number(fonoloji?.sharpe_90)) ? Number(fonoloji.sharpe_90) : sharpe,
+          sortino:Number.isFinite(Number(fonoloji?.sortino_90)) ? Number(fonoloji.sortino_90) : sortino,
+          calmar:Number.isFinite(Number(fonoloji?.calmar_1y)) ? Number(fonoloji.calmar_1y) : calmar,
+          beta1y:Number.isFinite(Number(fonoloji?.beta_1y)) ? Number(fonoloji.beta_1y) : null,
           riskFreeAnnualPct,
-          targetAnnualPct
+          targetAnnualPct,
+          source:fonoloji ? "Fonoloji" : "Calculated",
+          calculatedFallback:{sharpe,sortino,calmar,maxDrawdownPct:maxDdPct,volatility90dPct:last90Vol}
         },
 
         metadata:{
-          fundTotalValue:Number.isFinite(fundTotalValue) ? fundTotalValue : null,
-          investorCount:Number.isFinite(investorCount) ? investorCount : null,
+          fundTotalValue:Number.isFinite(Number(fonoloji?.aum)) ? Number(fonoloji.aum) : (Number.isFinite(fundTotalValue) ? fundTotalValue : null),
+          investorCount:Number.isFinite(Number(fonoloji?.investor_count)) ? Number(fonoloji.investor_count) : (Number.isFinite(investorCount) ? investorCount : null),
           shareCount:Number.isFinite(shareCount) ? shareCount : null,
-          riskValue,
-          riskLabel:riskLabel(riskValue)
+          riskValue:Number.isFinite(Number(fonoloji?.risk_score)) ? Number(fonoloji.risk_score) : riskValue,
+          riskLabel:riskLabel(Number.isFinite(Number(fonoloji?.risk_score)) ? Number(fonoloji.risk_score) : riskValue),
+          category:fonoloji?.category ?? null,
+          managementCompany:fonoloji?.management_company ?? null,
+          isin:fonoloji?.isin ?? null,
+          buyValor:Number.isFinite(Number(fonoloji?.buy_valor)) ? Number(fonoloji.buy_valor) : null,
+          sellValor:Number.isFinite(Number(fonoloji?.sell_valor)) ? Number(fonoloji.sell_valor) : null,
+          tradingStatus:fonoloji?.trading_status ?? null
         },
 
         fees,
