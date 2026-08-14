@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.12.0" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.13.0" />
 </head>
 <body>
   <div class="app-shell">
@@ -26,6 +26,7 @@
         <button class="nav-item active" data-view="dashboard">⌂ <span>Genel Bakış</span></button>
         <button class="nav-item" data-view="portfolio">◫ <span>Portföy</span></button>
         <button class="nav-item" data-view="transactions">⇄ <span>İşlemler</span></button>
+        <button class="nav-item" data-view="research">⌕ <span>Varlık Araştır</span></button>
         <button class="nav-item" data-view="settings">⚙ <span>Ayarlar</span></button>
       </nav>
 
@@ -244,6 +245,80 @@
         </article>
       </section>
 
+      <section id="researchView" class="view">
+        <article class="panel research-search-panel">
+          <div class="research-search-copy">
+            <p class="eyebrow">VARLIK ARAŞTIR</p>
+            <h2>Portföye eklemeden incele</h2>
+            <p>Fon veya BIST kodunu gir; fiyat, performans, risk, değerleme ve teknik metrikleri tek ekranda gör.</p>
+          </div>
+          <form id="researchForm" class="research-form">
+            <label>
+              Varlık türü
+              <select id="researchType">
+                <option value="fund">Yatırım Fonu</option>
+                <option value="stock">BIST Hissesi</option>
+              </select>
+            </label>
+            <label class="research-code-field">
+              Kod
+              <input id="researchCode" maxlength="12" autocomplete="off" placeholder="Örn: TTE veya FROTO" required />
+            </label>
+            <button class="primary-btn research-submit" type="submit">Araştır</button>
+          </form>
+          <div id="researchStatus" class="research-status">Bir varlık kodu yazarak başlayabilirsin.</div>
+        </article>
+
+        <div id="researchResult" class="research-result" hidden>
+          <article class="research-hero panel">
+            <div class="research-identity">
+              <div id="researchLogo" class="research-logo">—</div>
+              <div>
+                <div class="research-title-line">
+                  <h2 id="researchName">—</h2>
+                  <span id="researchBadge" class="research-badge">—</span>
+                </div>
+                <p id="researchMeta">—</p>
+              </div>
+            </div>
+            <div class="research-price-block">
+              <span>Son fiyat</span>
+              <strong id="researchPrice">—</strong>
+              <div id="researchDaily" class="research-daily">—</div>
+            </div>
+          </article>
+
+          <div id="researchPrimaryMetrics" class="research-metric-grid"></div>
+
+          <div class="research-layout">
+            <article class="panel chart-panel research-chart-panel">
+              <div class="panel-head">
+                <div>
+                  <h2 id="researchChartTitle">Dönemsel Performans</h2>
+                  <p id="researchChartSubtitle">Getiri yüzdeleri</p>
+                </div>
+              </div>
+              <div class="chart-wrap chart-wrap-wide research-chart-wrap">
+                <canvas id="researchChart"></canvas>
+              </div>
+            </article>
+
+            <article class="panel research-details-panel">
+              <div class="panel-head">
+                <div>
+                  <h2 id="researchDetailTitle">Detaylı Metrikler</h2>
+                  <p>Veri sağlayıcısında bulunan ek göstergeler</p>
+                </div>
+              </div>
+              <div id="researchDetailMetrics" class="research-detail-grid"></div>
+            </article>
+          </div>
+
+          <div id="researchSecondarySections" class="research-secondary-sections"></div>
+          <p id="researchDisclaimer" class="research-disclaimer"></p>
+        </div>
+      </section>
+
       <section id="settingsView" class="view">
         <article class="panel settings-panel">
           <h2>TEFAS Veri Bağlantısı</h2>
@@ -379,6 +454,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.12.0"></script>
+  <script src="./assets/app.js?v=1.13.0"></script>
 </body>
 </html>

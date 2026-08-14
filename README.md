@@ -561,3 +561,47 @@ Frontend cache sürümü:
 - `app.js?v=1.12.0`
 
 Cloudflare Worker tarafında değişiklik yoktur.
+
+
+## v1.13 — Varlık Araştır
+
+Portföye ekleme zorunluluğu olmadan fon ve BIST hisselerini incelemek için yeni **Varlık Araştır** ekranı eklendi.
+
+Sol menüdeki **Varlık Araştır** bölümünden varlık türü ve kod seçilir.
+
+### Fon araştırma
+
+TEFAS fiyat geçmişinden hesaplanan metrikler:
+
+- Son fiyat ve günlük değişim
+- 1 hafta / 1 ay / 3 ay / 6 ay / 1 yıl getiri
+- 52 haftalık en yüksek / düşük
+- Zirveye uzaklık
+- Yıllıklandırılmış oynaklık
+- Maksimum düşüş (drawdown)
+- Pozitif gün oranı
+- Gözlem sayısı
+- TEFAS cevabında mevcutsa fon büyüklüğü, yatırımcı sayısı ve risk değeri
+
+### Hisse araştırma
+
+TradingView BIST tarayıcı verisinden mevcut olduğu ölçüde:
+
+- Son fiyat ve günlük değişim
+- Hacim ve piyasa değeri
+- F/K, PD/DD, EPS TTM
+- Temettü verimi ve beta
+- 1 hafta / 1 ay / 3 ay / 6 ay / 1 yıl performansı
+- 52 haftalık yüksek / düşük
+- RSI, SMA50 ve SMA200
+- Teknik skor
+- Sektör ve endüstri
+
+Bir veri alanı sağlayıcı tarafından sunulmazsa arayüz `—` gösterir; araştırma ekranının geri kalanı çalışmaya devam eder.
+
+### Yeni Worker endpoint'leri
+
+- `/api/research/fund/TTE`
+- `/api/research/stock/FROTO`
+
+Bu sürümde **Cloudflare Worker kodunun da güncellenmesi gerekir.**
