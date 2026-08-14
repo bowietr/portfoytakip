@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.5" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.16.0" });
     }
 
     const fonolojiTestMatch = url.pathname.match(/^\/api\/fonoloji-test\/([A-Za-z0-9._-]+)$/);
@@ -31,6 +31,17 @@ export default {
         return json({ ok:false, error:"Geçersiz fon kodu." }, 400);
       }
       return await handleFonolojiTest(testCode, env);
+    }
+
+    const fundExtrasMatch = url.pathname.match(/^\/api\/research\/fund\/([A-Za-z0-9._-]+)\/extras$/);
+    if (fundExtrasMatch) {
+      const code = fundExtrasMatch[1].trim().toUpperCase().replace(/\.IS$/, "");
+      if (!/^[A-Z0-9]{2,12}$/.test(code)) return json({ok:false,error:"Geçersiz fon kodu."},400);
+      return await handleFundResearchExtras(code, env);
+    }
+
+    if (url.pathname === "/api/fonoloji/quota") {
+      return await handleFonolojiQuota(env);
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -1113,9 +1124,30 @@ async function handleFonolojiTest(code, env) {
   }
 }
 
-async function fonolojiGet(path, env) {
+function fonolojiCacheRequest(path) {
+  return new Request(
+    `https://cache.portfoyum.local/fonoloji${path}`,
+    { method:"GET" }
+  );
+}
+
+async function fonolojiGet(path, env, options={}) {
   const key = env?.FONOLOJI_KEY;
   if (!key) throw new Error("FONOLOJI_KEY tanımlı değil.");
+
+  const ttl = Number(options.ttl ?? 0);
+  const cache = caches.default;
+  const cacheRequest = fonolojiCacheRequest(path);
+
+  if (ttl > 0) {
+    try {
+      const cached = await cache.match(cacheRequest);
+      if (cached) {
+        const wrapped = await cached.json();
+        if (wrapped?.body) return wrapped.body;
+      }
+    } catch {}
+  }
 
   const url = `https://fonoloji.com/v1${path}`;
   const response = await fetch(url, {
@@ -1123,7 +1155,7 @@ async function fonolojiGet(path, env) {
     headers: {
       "X-API-Key": key,
       "Accept": "application/json",
-      "User-Agent": "Portfoyum/1.15.5"
+      "User-Agent": "Portfoyum/1.16.0"
     }
   });
 
@@ -1135,16 +1167,33 @@ async function fonolojiGet(path, env) {
     );
   }
 
+  let body;
   try {
-    return JSON.parse(text);
+    body = JSON.parse(text);
   } catch {
     throw new Error("Fonoloji geçersiz JSON döndürdü.");
   }
+
+  if (ttl > 0) {
+    try {
+      await cache.put(
+        cacheRequest,
+        new Response(JSON.stringify({cachedAt:Date.now(),body}), {
+          headers:{
+            "Content-Type":"application/json",
+            "Cache-Control":`public, max-age=${ttl}`
+          }
+        })
+      );
+    } catch {}
+  }
+
+  return body;
 }
 
 async function fetchFonolojiFund(code, env) {
   const normalized = String(code || "").trim().toUpperCase();
-  const body = await fonolojiGet(`/funds/${encodeURIComponent(normalized)}`, env);
+  const body = await fonolojiGet(`/funds/${encodeURIComponent(normalized)}`, env, {ttl:900});
 
   const fund = body?.fund;
   if (!fund) {
@@ -1169,7 +1218,8 @@ async function fetchFonolojiTimeseries(code, env) {
   const normalized = String(code || "").trim().toUpperCase();
   return fonolojiGet(
     `/funds/${encodeURIComponent(normalized)}/timeseries?include=nav,drawdown,monthly,benchmark,allocation-history`,
-    env
+    env,
+    {ttl:21600}
   );
 }
 
@@ -1177,7 +1227,8 @@ async function fetchFonolojiPortfolio(code, env) {
   const normalized = String(code || "").trim().toUpperCase();
   return fonolojiGet(
     `/funds/${encodeURIComponent(normalized)}/portfolio?include=allocation,holdings,dates,fundamentals,analysts`,
-    env
+    env,
+    {ttl:43200}
   );
 }
 
@@ -1185,7 +1236,8 @@ async function fetchFonolojiAnalysis(code, env) {
   const normalized = String(code || "").trim().toUpperCase();
   return fonolojiGet(
     `/funds/${encodeURIComponent(normalized)}/analysis?include=summary,percentile,advanced`,
-    env
+    env,
+    {ttl:43200}
   );
 }
 
@@ -1250,33 +1302,214 @@ function fonolojiPct(value) {
   return Number.isFinite(n) ? n * 100 : null;
 }
 
+
+async function fetchFonolojiHistory(code, env) {
+  const normalized = String(code || "").trim().toUpperCase();
+  return fonolojiGet(
+    `/funds/${encodeURIComponent(normalized)}/history?period=1y`,
+    env,
+    {ttl:21600}
+  );
+}
+
+async function fetchFonolojiQuota(env) {
+  // Fonoloji docs: /quota does not consume quota.
+  return fonolojiGet("/quota", env, {ttl:60});
+}
+
+function fonolojiBenchmarkSeries(ts) {
+  if (!ts || typeof ts !== "object") return [];
+
+  const candidates = [
+    ts?.benchmark,
+    ts?.timeseries?.benchmark,
+    ts?.data?.benchmark
+  ];
+  const rows = candidates.find(Array.isArray) || [];
+
+  return rows.map(row => ({
+    date:row?.date ?? row?.tarih ?? row?.time ?? null,
+    value:Number(
+      row?.value ??
+      row?.price ??
+      row?.benchmark ??
+      row?.return ??
+      row?.pct
+    )
+  })).filter(row => row.date && Number.isFinite(row.value));
+}
+
+function fonolojiMonthlyReturns(ts) {
+  if (!ts || typeof ts !== "object") return [];
+
+  const candidate =
+    ts?.monthly ??
+    ts?.timeseries?.monthly ??
+    ts?.data?.monthly ??
+    null;
+
+  if (Array.isArray(candidate)) {
+    return candidate.map(row => ({
+      date:row?.date ?? row?.month ?? row?.period ?? null,
+      value:Number(row?.value ?? row?.return ?? row?.pct ?? row?.change)
+    })).filter(row => row.date && Number.isFinite(row.value));
+  }
+
+  if (candidate && typeof candidate === "object") {
+    return Object.entries(candidate).map(([date,value]) => ({
+      date,
+      value:Number(value?.value ?? value?.return ?? value?.pct ?? value)
+    })).filter(row => row.date && Number.isFinite(row.value));
+  }
+
+  return [];
+}
+
+function fonolojiHistoryPoints(history) {
+  const rows =
+    (Array.isArray(history?.points) && history.points) ||
+    (Array.isArray(history?.history) && history.history) ||
+    (Array.isArray(history?.data?.points) && history.data.points) ||
+    [];
+
+  return rows.map(row => ({
+    date:row?.date ?? row?.tarih ?? null,
+    price:Number(row?.price ?? row?.nav ?? row?.value),
+    totalValue:nullablePositiveNumber(row?.total_value ?? row?.aum ?? row?.fund_total_value),
+    investorCount:nullablePositiveNumber(row?.investor_count ?? row?.investors)
+  })).filter(row => row.date);
+}
+
+function normalizeAllocation(allocation) {
+  if (!allocation || typeof allocation !== "object") return [];
+
+  const labelMap = {
+    stock:"Hisse Senedi",
+    government_bond:"Devlet Tahvili",
+    treasury_bill:"Hazine Bonosu",
+    corporate_bond:"Özel Sektör Tahvili",
+    eurobond:"Eurobond",
+    gold:"Altın",
+    cash:"Nakit",
+    repo:"Repo",
+    fund:"Yatırım Fonu",
+    foreign_stock:"Yabancı Hisse",
+    precious_metals:"Kıymetli Maden",
+    other:"Diğer"
+  };
+
+  return Object.entries(allocation)
+    .filter(([key]) => !["code","date"].includes(key))
+    .map(([key,value]) => ({
+      key,
+      label:labelMap[key] || String(key).replace(/_/g," "),
+      value:Number(value)
+    }))
+    .filter(x => Number.isFinite(x.value) && x.value > 0)
+    .sort((a,b) => b.value-a.value);
+}
+
+function normalizeHoldings(portfolioRoot) {
+  const rows =
+    arrayFromPossible(portfolioRoot,["holdings"]) ||
+    arrayFromPossible(portfolioRoot?.portfolio,["holdings"]);
+
+  if (!Array.isArray(rows)) return [];
+
+  return rows.map(row => ({
+    code:row?.code ?? row?.symbol ?? row?.ticker ?? row?.asset_code ?? null,
+    name:row?.name ?? row?.title ?? row?.asset_name ?? null,
+    weight:Number(row?.weight ?? row?.ratio ?? row?.percentage ?? row?.pct),
+    type:row?.type ?? row?.asset_type ?? null
+  }))
+  .filter(row => row.code || row.name)
+  .sort((a,b) => (Number(b.weight)||0)-(Number(a.weight)||0))
+  .slice(0,20);
+}
+
+async function handleFonolojiQuota(env) {
+  try {
+    const quota = await fetchFonolojiQuota(env);
+    return json({ok:true,data:quota});
+  } catch(err) {
+    return json({ok:false,error:String(err?.message||err)},502);
+  }
+}
+
+async function handleFundResearchExtras(code, env) {
+  try {
+    const [portfolioRoot, history, quota] = await Promise.all([
+      fetchFonolojiPortfolio(code, env).catch(() => null),
+      fetchFonolojiHistory(code, env).catch(() => null),
+      fetchFonolojiQuota(env).catch(() => null)
+    ]);
+
+    const historyPoints = fonolojiHistoryPoints(history);
+
+    return json({
+      ok:true,
+      data:{
+        code,
+        holdings:normalizeHoldings(portfolioRoot),
+        allocation:normalizeAllocation(
+          portfolioRoot?.allocation ??
+          portfolioRoot?.portfolio?.allocation ??
+          portfolioRoot?.data?.allocation ??
+          null
+        ),
+        portfolioDate:
+          portfolioRoot?.date ??
+          portfolioRoot?.portfolio?.date ??
+          portfolioRoot?.data?.date ??
+          null,
+        history:{
+          aum:historyPoints
+            .filter(x => Number.isFinite(x.totalValue))
+            .map(x => ({date:x.date,value:x.totalValue})),
+          investors:historyPoints
+            .filter(x => Number.isFinite(x.investorCount))
+            .map(x => ({date:x.date,value:x.investorCount}))
+        },
+        quota
+      }
+    });
+  } catch(err) {
+    return json({ok:false,error:String(err?.message||err)},500);
+  }
+}
+
 async function handleFundResearch(code, env) {
   try {
     // Fonoloji is the primary fund-research provider.
     // TEFAS remains the fallback for historical NAV and locally computed metrics.
-    const fonolojiRootPromise = fetchFonolojiFund(code, env).catch(() => null);
-    const fonolojiTsPromise = fetchFonolojiTimeseries(code, env).catch(() => null);
-    const fonolojiPortfolioPromise = fetchFonolojiPortfolio(code, env).catch(() => null);
-    const fonolojiAnalysisPromise = fetchFonolojiAnalysis(code, env).catch(() => null);
-
-    const [historyPayload, profilePayload, detailMetrics, generalMetrics] = await Promise.all([
-      fetchTefasPayload(code, 12),
-      fetchTefasProfile(code),
-      fetchTefasDetailMetrics(code),
-      fetchTefasGeneralMetrics(code).catch(() => ({}))
-    ]);
-
-    const [fonolojiRoot, fonolojiTs, fonolojiPortfolioRoot, fonolojiAnalysis] = await Promise.all([
-      fonolojiRootPromise,
-      fonolojiTsPromise,
-      fonolojiPortfolioPromise,
-      fonolojiAnalysisPromise
+    const [fonolojiRoot, fonolojiTs] = await Promise.all([
+      fetchFonolojiFund(code, env).catch(() => null),
+      fetchFonolojiTimeseries(code, env).catch(() => null)
     ]);
 
     const f = fonolojiRoot?.fund ?? null;
 
-    const tefasHist = tefasHistory(historyPayload);
-    const fonolojiNav = fonolojiNavSeries(fonolojiTs);
+    // TEFAS is fetched only when Fonoloji cannot provide a usable historical NAV series
+    // or when fallback metadata is required.
+    const fonolojiNavProbe = fonolojiNavSeries(fonolojiTs);
+    let historyPayload = null;
+    let profilePayload = null;
+    let detailMetrics = {};
+    let generalMetrics = {};
+
+    if (fonolojiNavProbe.length < 2 || !f) {
+      [historyPayload, profilePayload, detailMetrics, generalMetrics] = await Promise.all([
+        fetchTefasPayload(code, 12).catch(() => null),
+        fetchTefasProfile(code),
+        fetchTefasDetailMetrics(code).catch(() => ({})),
+        fetchTefasGeneralMetrics(code).catch(() => ({}))
+      ]);
+    }
+
+    const fPortfolio = fonolojiRoot?.portfolio ?? null;
+
+    const tefasHist = historyPayload ? tefasHistory(historyPayload) : [];
+    const fonolojiNav = fonolojiNavProbe;
     const hist = fonolojiNav.length >= 2
       ? fonolojiNav.map(x => ({date:x.date, price:x.value, name:f?.name || ""}))
       : tefasHist;
@@ -1357,10 +1590,9 @@ async function handleFundResearch(code, env) {
 
     const fees = await fetchKapFundFees(code, f?.name || latest?.name || code);
 
-    const allocation = fonolojiAllocation(fonolojiPortfolioRoot, fonolojiRoot?.portfolio);
-    const holdings =
-      arrayFromPossible(fonolojiPortfolioRoot,["holdings"]) ||
-      arrayFromPossible(fonolojiPortfolioRoot?.portfolio,["holdings"]);
+    const allocation = normalizeAllocation(fPortfolio);
+    const benchmark = fonolojiBenchmarkSeries(fonolojiTs);
+    const monthly = fonolojiMonthlyReturns(fonolojiTs);
 
     return json({
       ok:true,
@@ -1437,10 +1669,12 @@ async function handleFundResearch(code, env) {
         fees,
         portfolio:{
           allocation,
-          holdings:Array.isArray(holdings) ? holdings : [],
-          rawAvailable:!!fonolojiPortfolioRoot
+          portfolioDate:fPortfolio?.date ?? null
         },
-        analysis:fonolojiAnalysis ?? null,
+        providerInsights:{
+          benchmark,
+          monthly
+        },
         series:{
           price:prices.map(x=>({date:x.date,value:x.price})),
           drawdown:ddSeries,

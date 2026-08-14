@@ -1062,3 +1062,50 @@ zaman dışarı döndürmez.
 
 Bu sürüm oluşturulurken Worker içindeki plain function çağrıları ile function declaration /
 yerel function assignment'ları karşılaştırılarak statik undefined-call kontrolü yapılmıştır.
+
+
+## V1.16.0 — Fonoloji Premium Insights & Kota Optimizasyonu
+
+Fon araştırma ekranı Fonoloji API kotasını verimli kullanacak şekilde yeniden düzenlendi.
+
+### İlk yükleme
+Bir fon araştırıldığında yalnız:
+- `/funds/:code`
+- `/funds/:code/timeseries?include=nav,drawdown,monthly,benchmark,allocation-history`
+
+çağrıları ana ekran için kullanılır.
+
+TEFAS yalnız Fonoloji tarihsel NAV verisi yetersizse fallback olarak çağrılır.
+
+### Lazy-loaded detaylar
+Ana ekran çizildikten sonra:
+- `/funds/:code/portfolio?...`
+- `/funds/:code/history?period=1y`
+- `/quota`
+
+arka planda yüklenir.
+
+`/quota` Fonoloji dokümantasyonuna göre kota tüketmez.
+
+### Cloudflare Cache
+Fonoloji sonuçları Worker Cache API ile saklanır:
+- fon temel metrikleri: 15 dakika
+- timeseries: 6 saat
+- portfolio/holdings: 12 saat
+- 1Y history: 6 saat
+- quota: 60 saniye
+
+Aynı fon tekrar açıldığında cache HIT varsa Fonoloji kotası harcanmaz.
+
+### Yeni araştırma bölümleri
+- Portföy dağılımı donut grafiği
+- Varlık sınıfı ağırlıkları
+- Aylık getiri heatmap
+- Benchmark karşılaştırma grafiği
+- En büyük pozisyonlar
+- 1 yıllık Fon Büyüklüğü grafiği
+- 1 yıllık Yatırımcı Sayısı grafiği
+- Aylık kalan Fonoloji kotası göstergesi
+
+Fonoloji endpoint response shape'ları farklı wrapper'larla gelebileceği için tüm parser'lar
+defansif olarak tasarlanmıştır.

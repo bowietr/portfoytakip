@@ -1,4 +1,4 @@
-const APP_VERSION = "1.15.5";
+const APP_VERSION = "1.16.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -13,7 +13,15 @@ const state = {
   pnlHistoryChart: null,
   totalPerformanceChart: null,
   dailyPerformanceChart: null,
-  researchChart: null
+  researchChart: null,
+  fundPriceHistoryChart: null,
+  fundDrawdownChart: null,
+  fundVolatilityChart: null,
+  fundAllocationDetailChart: null,
+  fundBenchmarkChart: null,
+  fundAumHistoryChart: null,
+  fundInvestorHistoryChart: null,
+  activeResearchFundCode: null
 };
 
 const $ = (id) => document.getElementById(id);
@@ -1063,7 +1071,7 @@ function researchScoreCard(label, value, subtitle="") {
 }
 
 function destroyFundResearchCharts() {
-  ["fundPriceHistoryChart","fundDrawdownChart","fundVolatilityChart"].forEach(k => {
+  ["fundPriceHistoryChart","fundDrawdownChart","fundVolatilityChart","fundAllocationDetailChart","fundBenchmarkChart","fundAumHistoryChart","fundInvestorHistoryChart"].forEach(k => {
     if (state[k]) { state[k].destroy(); state[k]=null; }
   });
 }
@@ -1186,14 +1194,291 @@ function formatDateShort(v) {
 
 
 
+
+function normalizeMonthlyDisplayValue(v) {
+  const n=Number(v);
+  if (!Number.isFinite(n)) return null;
+  // API blocks may expose either decimal return or percentage points.
+  return Math.abs(n) <= 3 ? n*100 : n;
+}
+
+function renderMonthlyHeatmap(rows=[]) {
+  if (!Array.isArray(rows) || !rows.length) {
+    return `<div class="provider-empty">Aylık getiri verisi bulunamadı.</div>`;
+  }
+
+  const normalized=rows
+    .map(x=>({date:x.date,value:normalizeMonthlyDisplayValue(x.value)}))
+    .filter(x=>x.date && Number.isFinite(x.value))
+    .slice(-18);
+
+  return `<div class="monthly-heatmap">${normalized.map(x=>{
+    const d=new Date(String(x.date).length===7 ? `${x.date}-01T12:00:00` : x.date);
+    const label=Number.isNaN(d.getTime()) ? String(x.date) : d.toLocaleDateString("tr-TR",{month:"short",year:"2-digit"});
+    const tone=x.value>=0?"heat-positive":"heat-negative";
+    const intensity=Math.min(1,Math.abs(x.value)/15);
+    return `<div class="heat-cell ${tone}" style="--heat:${intensity.toFixed(2)}">
+      <span>${escapeHtml(label)}</span>
+      <strong>${x.value>=0?"+":""}${pct(x.value)}</strong>
+    </div>`;
+  }).join("")}</div>`;
+}
+
+function renderAllocationList(rows=[]) {
+  if (!Array.isArray(rows) || !rows.length) return `<div class="provider-empty">Portföy dağılımı bulunamadı.</div>`;
+  return `<div class="allocation-list">${rows.slice(0,10).map(x=>`
+    <div class="allocation-row">
+      <span>${escapeHtml(x.label||x.key||"Varlık")}</span>
+      <strong>${pct(x.value)}</strong>
+      <i><b style="width:${Math.max(0,Math.min(100,Number(x.value)||0))}%"></b></i>
+    </div>`).join("")}</div>`;
+}
+
+function renderHoldings(rows=[]) {
+  if (!Array.isArray(rows) || !rows.length) return `<div class="provider-empty">Detaylı pozisyon verisi bulunamadı.</div>`;
+  return `<div class="holdings-table">
+    <div class="holdings-row holdings-head"><span>Varlık</span><span>Tür</span><strong>Ağırlık</strong></div>
+    ${rows.slice(0,15).map(x=>`<div class="holdings-row">
+      <span><b>${escapeHtml(x.code||"")}</b><small>${escapeHtml(x.name||"")}</small></span>
+      <span>${escapeHtml(x.type||"—")}</span>
+      <strong>${Number.isFinite(Number(x.weight)) ? pct(Number(x.weight)) : "—"}</strong>
+    </div>`).join("")}
+  </div>`;
+}
+
+function quotaNumbers(q) {
+  const data=q?.data ?? q ?? {};
+  const monthlyLimit=Number(
+    data.monthly_limit ?? data.limit_monthly ?? data.monthly?.limit ??
+    data.limits?.monthly ?? data.limitMonthly
+  );
+  const monthlyRemaining=Number(
+    data.monthly_remaining ?? data.remaining_monthly ?? data.monthly?.remaining ??
+    data.remaining?.monthly ?? data.remainingMonthly
+  );
+  const monthlyUsed=Number(
+    data.monthly_used ?? data.used_monthly ?? data.monthly?.used ??
+    (Number.isFinite(monthlyLimit)&&Number.isFinite(monthlyRemaining) ? monthlyLimit-monthlyRemaining : NaN)
+  );
+  return {
+    limit:Number.isFinite(monthlyLimit)?monthlyLimit:null,
+    remaining:Number.isFinite(monthlyRemaining)?monthlyRemaining:null,
+    used:Number.isFinite(monthlyUsed)?monthlyUsed:null
+  };
+}
+
+function renderQuotaBadge(q) {
+  const n=quotaNumbers(q);
+  if (!Number.isFinite(n.limit) || !Number.isFinite(n.remaining)) {
+    return `<span class="quota-pill">API kota bilgisi bekleniyor</span>`;
+  }
+  const used=Math.max(0,n.limit-n.remaining);
+  const ratio=n.limit>0?used/n.limit:0;
+  const cls=ratio>=.9?"quota-danger":ratio>=.7?"quota-warn":"quota-ok";
+  return `<span class="quota-pill ${cls}">Fonoloji · ${compactNumber(n.remaining)} / ${compactNumber(n.limit)} kaldı</span>`;
+}
+
+function renderFundProviderInsights(d) {
+  const host=$("fundProviderInsights");
+  if (!host) return;
+  host.hidden=false;
+
+  const allocation=Array.isArray(d.portfolio?.allocation)?d.portfolio.allocation:[];
+  const monthly=Array.isArray(d.providerInsights?.monthly)?d.providerInsights.monthly:[];
+  const benchmark=Array.isArray(d.providerInsights?.benchmark)?d.providerInsights.benchmark:[];
+
+  host.innerHTML=`
+    <div class="provider-insight-header">
+      <div><p class="eyebrow">FONOLOJİ DETAYLARI</p><h2>Fonun İçini Gör</h2></div>
+      <div id="fonolojiQuotaBadge">${renderQuotaBadge(null)}</div>
+    </div>
+
+    <div class="provider-grid">
+      <article class="panel provider-allocation-panel">
+        <div class="panel-head source-panel-head">
+          <div><h2>Portföy Dağılımı</h2><p>Son Fonoloji portföy snapshot'ı</p></div>
+          <span class="source-badge source-fonoloji">FONOLOJİ</span>
+        </div>
+        <div class="allocation-layout">
+          <div class="provider-chart-square"><canvas id="fundAllocationDetailChart"></canvas></div>
+          ${renderAllocationList(allocation)}
+        </div>
+      </article>
+
+      <article class="panel provider-monthly-panel">
+        <div class="panel-head source-panel-head">
+          <div><h2>Aylık Getiri Haritası</h2><p>Son dönemlerin aylık performansı</p></div>
+          <span class="source-badge source-fonoloji">FONOLOJİ</span>
+        </div>
+        ${renderMonthlyHeatmap(monthly)}
+      </article>
+    </div>
+
+    <article class="panel provider-benchmark-panel">
+      <div class="panel-head source-panel-head">
+        <div><h2>Benchmark Karşılaştırması</h2><p>Fon performansı ile karşılaştırma serisi</p></div>
+        <span class="source-badge source-fonoloji">FONOLOJİ</span>
+      </div>
+      <div class="chart-wrap provider-benchmark-chart"><canvas id="fundBenchmarkChart"></canvas></div>
+      ${benchmark.length ? "" : `<div class="provider-empty overlay-empty">Bu fon için benchmark serisi bulunamadı.</div>`}
+    </article>
+
+    <div id="fundLazyExtras" class="fund-lazy-extras">
+      <article class="panel provider-loading-panel">
+        <div class="provider-spinner"></div>
+        <div><strong>Detaylı pozisyonlar yükleniyor</strong><span>Cloudflare cache varsa Fonoloji kotası kullanılmaz.</span></div>
+      </article>
+    </div>
+  `;
+
+  renderProviderMainCharts(d);
+}
+
+function renderProviderMainCharts(d) {
+  if (!window.Chart) return;
+  const allocation=Array.isArray(d.portfolio?.allocation)?d.portfolio.allocation:[];
+  const benchmark=Array.isArray(d.providerInsights?.benchmark)?d.providerInsights.benchmark:[];
+  const price=Array.isArray(d.series?.price)?d.series.price:[];
+
+  const allocCtx=$("fundAllocationDetailChart");
+  if (allocCtx && allocation.length) {
+    if (state.fundAllocationDetailChart) state.fundAllocationDetailChart.destroy();
+    state.fundAllocationDetailChart=new Chart(allocCtx,{
+      type:"doughnut",
+      data:{
+        labels:allocation.map(x=>x.label||x.key),
+        datasets:[{data:allocation.map(x=>Number(x.value)),borderWidth:0}]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:false,cutout:"68%",
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.label}: ${pct(ctx.raw)}`}}}
+      }
+    });
+  }
+
+  const benchCtx=$("fundBenchmarkChart");
+  if (benchCtx && benchmark.length && price.length) {
+    if (state.fundBenchmarkChart) state.fundBenchmarkChart.destroy();
+
+    // Normalize both series to 100 at their first available point to compare shape.
+    const priceMap=new Map(price.map(x=>[String(x.date).slice(0,10),Number(x.value)]));
+    const benchClean=benchmark.filter(x=>x.date&&Number.isFinite(Number(x.value)));
+    const common=benchClean.filter(x=>priceMap.has(String(x.date).slice(0,10)));
+    if (common.length>=2) {
+      const p0=priceMap.get(String(common[0].date).slice(0,10));
+      const b0=Number(common[0].value);
+      const benchmarkLooksLikeReturn=Math.abs(b0)<5 && common.some(x=>Math.abs(Number(x.value))<5);
+
+      const labels=common.map(x=>new Date(x.date).toLocaleDateString("tr-TR",{day:"2-digit",month:"short"}));
+      const fundValues=common.map(x=>priceMap.get(String(x.date).slice(0,10))/p0*100);
+      const benchmarkValues=benchmarkLooksLikeReturn
+        ? common.map(x=>100*(1+Number(x.value)))
+        : common.map(x=>Number(x.value)/b0*100);
+
+      state.fundBenchmarkChart=new Chart(benchCtx,{
+        type:"line",
+        data:{labels,datasets:[
+          {label:d.code||"Fon",data:fundValues,borderWidth:2,pointRadius:0,tension:.2},
+          {label:"Benchmark",data:benchmarkValues,borderWidth:1.8,pointRadius:0,tension:.2}
+        ]},
+        options:{
+          responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+          plugins:{legend:{labels:{color:chartTextColor(),usePointStyle:true,boxWidth:8}}},
+          scales:{
+            x:{grid:{display:false},ticks:{color:chartTextColor(),autoSkip:true,maxTicksLimit:9,maxRotation:0}},
+            y:{grid:{color:chartGridColor()},ticks:{color:chartTextColor(),callback:v=>`${Number(v).toFixed(0)}`}}
+          }
+        }
+      });
+    }
+  }
+}
+
+async function fetchFundExtras(code) {
+  const base=getApiBase();
+  const r=await fetch(`${base}/api/research/fund/${encodeURIComponent(code)}/extras`,{headers:{"Accept":"application/json"}});
+  const data=await r.json().catch(()=>({}));
+  if (!r.ok || data.ok===false) throw new Error(data.error||`API hatası (${r.status})`);
+  return data.data||data;
+}
+
+function renderFundHistoryChart(canvasId,stateKey,rows,label,valueFormatter) {
+  const ctx=$(canvasId);
+  if (!ctx || !window.Chart || !Array.isArray(rows) || rows.length<2) return;
+  if (state[stateKey]) state[stateKey].destroy();
+  state[stateKey]=new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:fundSeriesLabels(rows),
+      datasets:[{label,data:rows.map(x=>Number(x.value)),pointRadius:0,borderWidth:2,tension:.22,fill:false}]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>valueFormatter(ctx.raw)}}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:chartTextColor(),autoSkip:true,maxTicksLimit:7,maxRotation:0}},
+        y:{grid:{color:chartGridColor()},ticks:{color:chartTextColor(),callback:valueFormatter}}
+      }
+    }
+  });
+}
+
+async function loadFundExtras(code) {
+  const host=$("fundLazyExtras");
+  if (!host) return;
+
+  try {
+    const extra=await fetchFundExtras(code);
+    if (state.activeResearchFundCode!==code) return;
+
+    const holdings=Array.isArray(extra.holdings)?extra.holdings:[];
+    const aum=Array.isArray(extra.history?.aum)?extra.history.aum:[];
+    const investors=Array.isArray(extra.history?.investors)?extra.history.investors:[];
+
+    const quotaEl=$("fonolojiQuotaBadge");
+    if (quotaEl) quotaEl.innerHTML=renderQuotaBadge(extra.quota);
+
+    host.innerHTML=`
+      <article class="panel provider-holdings-panel">
+        <div class="panel-head source-panel-head">
+          <div><h2>En Büyük Pozisyonlar</h2><p>${extra.portfolioDate ? formatDateShort(extra.portfolioDate)+" portföyü" : "Fonoloji portföy detayı"}</p></div>
+          <span class="source-badge source-fonoloji">FONOLOJİ</span>
+        </div>
+        ${renderHoldings(holdings)}
+      </article>
+
+      <div class="provider-grid history-grid">
+        <article class="panel">
+          <div class="panel-head"><div><h2>Fon Büyüklüğü Geçmişi</h2><p>1 yıllık yönetilen varlık değişimi</p></div></div>
+          <div class="chart-wrap provider-history-chart"><canvas id="fundAumHistoryChart"></canvas></div>
+          ${aum.length<2?`<div class="provider-empty">Tarihsel fon büyüklüğü verisi bulunamadı.</div>`:""}
+        </article>
+        <article class="panel">
+          <div class="panel-head"><div><h2>Yatırımcı Sayısı Geçmişi</h2><p>1 yıllık yatırımcı değişimi</p></div></div>
+          <div class="chart-wrap provider-history-chart"><canvas id="fundInvestorHistoryChart"></canvas></div>
+          ${investors.length<2?`<div class="provider-empty">Tarihsel yatırımcı verisi bulunamadı.</div>`:""}
+        </article>
+      </div>
+    `;
+
+    renderFundHistoryChart("fundAumHistoryChart","fundAumHistoryChart",aum,"Fon Büyüklüğü",v=>`${compactNumber(v)} ₺`);
+    renderFundHistoryChart("fundInvestorHistoryChart","fundInvestorHistoryChart",investors,"Yatırımcı",v=>compactNumber(v));
+  } catch(err) {
+    host.innerHTML=`<article class="panel provider-loading-panel provider-error">
+      <div><strong>Detay verileri yüklenemedi</strong><span>${escapeHtml(err.message)}</span></div>
+    </article>`;
+  }
+}
+
 function renderFundResearch(data) {
   const d = data.data || data;
+  state.activeResearchFundCode = d.code || null;
   const daily = Number(d.changePercent);
   const dailyCls = daily >= 0 ? "positive" : "negative";
   $("researchLogo").textContent = d.code?.slice(0,3) || "FON";
   $("researchName").textContent = d.name || d.code;
   $("researchBadge").textContent = "YATIRIM FONU";
-  $("researchMeta").textContent = `${d.code} · TEFAS · ${d.date ? new Date(d.date).toLocaleDateString("tr-TR") : "Son veri"}`;
+  $("researchMeta").textContent = `${d.code} · ${d.source || "Fonoloji"} · ${d.date ? new Date(d.date).toLocaleDateString("tr-TR") : "Son veri"}`;
   $("researchPrice").textContent = money(d.price);
   $("researchDaily").className = `research-daily ${dailyCls}`;
   $("researchDaily").textContent = Number.isFinite(daily) ? `${daily >= 0 ? "+" : ""}${pct(daily)} · ${money(d.change)}` : "Günlük veri yok";
@@ -1288,9 +1573,13 @@ function renderFundResearch(data) {
 
   renderResearchPerformanceChart(d,"fund");
   renderFundAdvancedCharts(d);
+  renderFundProviderInsights(d);
+  loadFundExtras(d.code);
 }
 
 function renderStockResearch(data) {
+  state.activeResearchFundCode=null;
+  const provider=$("fundProviderInsights"); if (provider) provider.hidden=true;
   const adv=$("fundAdvancedAnalysis"); if (adv) adv.hidden=true; destroyFundResearchCharts();
   const d=data.data||data;
   const daily=Number(d.changePercent), dailyCls=daily>=0?"positive":"negative";
