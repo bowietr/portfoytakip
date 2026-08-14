@@ -21,7 +21,7 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.13.1" });
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -90,58 +90,302 @@ export default {
 };
 
 
-async function fetchTefasPayload(code) {
-  const upstream = await fetch(TEFAS_URL, {
-    method:"POST",
-    headers:{"Content-Type":"application/json","Accept":"application/json, text/plain, */*","User-Agent":"Mozilla/5.0","Origin":"https://www.tefas.gov.tr","Referer":"https://www.tefas.gov.tr/"},
-    body:JSON.stringify({fonKodu:code,dil:"TR",periyod:13})
+async function fetchTefasEndpoint(endpoint, payload) {
+  const url = `https://www.tefas.gov.tr/api/funds/${endpoint}`;
+  const upstream = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json, text/plain, */*",
+      "User-Agent": "Mozilla/5.0",
+      "Origin": "https://www.tefas.gov.tr",
+      "Referer": "https://www.tefas.gov.tr/"
+    },
+    body: JSON.stringify(payload)
   });
-  const text=await upstream.text();
-  if(!upstream.ok) throw new Error(`TEFAS HTTP ${upstream.status}`);
-  try{return JSON.parse(text);}catch{throw new Error("TEFAS geçersiz JSON döndürdü.");}
+
+  const text = await upstream.text();
+  if (!upstream.ok) throw new Error(`TEFAS ${endpoint} HTTP ${upstream.status}`);
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`TEFAS ${endpoint} geçersiz JSON döndürdü.`);
+  }
+
+  if (data && typeof data === "object" && data.errorMessage) {
+    throw new Error(`TEFAS ${endpoint}: ${data.errorMessage}`);
+  }
+
+  return data;
+}
+
+async function fetchTefasPayload(code, periyod = 13) {
+  return fetchTefasEndpoint("fonFiyatBilgiGetir", {
+    fonKodu: code,
+    dil: "TR",
+    periyod
+  });
+}
+
+async function fetchTefasProfile(code) {
+  try {
+    return await fetchTefasEndpoint("fonProfilBilgiGetir", {
+      fonKodu: code,
+      dil: "TR"
+    });
+  } catch {
+    // Profil endpoint'i geçici sorun yaşarsa araştırma ekranı tamamen kırılmasın.
+    return null;
+  }
 }
 
 function tefasHistory(payload) {
-  const rows=collectRows(payload), map=new Map();
-  for(const row of rows){
-    if(!row||typeof row!=="object") continue;
-    const price=firstNumber(row,["fiyat","Fiyat","price","Price","birimPayDegeri","birimPayDeğeri","fonFiyati","fonFiyat","nav","close","value"]);
-    const date=parseDate(firstValue(row,["tarih","Tarih","date","Date","islemTarihi","fiyatTarihi","priceDate"]));
-    if(!(price>0)||!date) continue;
-    const key=date.slice(0,10);
-    const name=firstValue(row,["fonUnvan","fonUnvani","FonUnvan","fundName","name","FonAdi","fonAdi"]);
-    map.set(key,{date,price,name:typeof name==="string"?name:""});
-  }
-  return [...map.values()].sort((a,b)=>new Date(a.date)-new Date(b.date));
-}
-function retFromDays(hist,days){
-  if(hist.length<2)return null; const last=hist.at(-1), target=new Date(last.date).getTime()-days*86400000;
-  let base=hist[0]; for(const p of hist){if(new Date(p.date).getTime()<=target) base=p; else break;}
-  if(!(base.price>0)||base===last)return null; return (last.price/base.price-1)*100;
-}
-function stdev(arr){ if(arr.length<2)return null; const m=arr.reduce((a,b)=>a+b,0)/arr.length; return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/(arr.length-1)); }
-function maxDrawdown(hist){let peak=-Infinity,max=0; for(const p of hist){peak=Math.max(peak,p.price); if(peak>0)max=Math.min(max,(p.price/peak-1)*100);} return max;}
-function deepFindValue(payload,keys){let found=null; const lower=keys.map(k=>k.toLocaleLowerCase("tr-TR")); function walk(v,d=0){if(d>7||found!==null||v==null)return;if(Array.isArray(v))return v.forEach(x=>walk(x,d+1));if(typeof v!=="object")return;for(const [k,val] of Object.entries(v)){if(lower.includes(k.toLocaleLowerCase("tr-TR"))&&val!==null&&val!==""){found=val;return;}}Object.values(v).forEach(x=>walk(x,d+1));}walk(payload);return found;}
+  const rows = collectRows(payload), map = new Map();
 
-async function handleFundResearch(code){
-  try{
-    const payload=await fetchTefasPayload(code), hist=tefasHistory(payload);
-    if(hist.length<2)return json({ok:false,error:`${code} için yeterli TEFAS fiyat geçmişi bulunamadı.`},404);
-    const latest=hist.at(-1), prev=hist.at(-2), change=latest.price-prev.price, changePercent=change/prev.price*100;
-    const yearStart=new Date(latest.date).getTime()-365*86400000, year=hist.filter(x=>new Date(x.date).getTime()>=yearStart), prices=year.length?year:hist;
-    const rets=[]; for(let i=1;i<hist.length;i++) rets.push(hist[i].price/hist[i-1].price-1);
-    const vol=stdev(rets); const positives=rets.length?rets.filter(x=>x>0).length/rets.length*100:null;
-    const name=[...hist].reverse().find(x=>x.name)?.name||code;
-    const fundTotalValue=toNumber(deepFindValue(payload,["fonToplamDeger","fonToplamDegeri","toplamDeger","fundTotalValue"]));
-    const investorCount=toNumber(deepFindValue(payload,["yatirimciSayisi","yatırımcıSayısı","investorCount"]));
-    const riskValue=toNumber(deepFindValue(payload,["riskDegeri","riskDeğeri","riskValue","risk"]));
-    return json({ok:true,data:{type:"fund",source:"TEFAS",code,name,price:latest.price,previousPrice:prev.price,change,changePercent,date:latest.date,
-      performance:{week:retFromDays(hist,7),month1:retFromDays(hist,30),month3:retFromDays(hist,90),month6:retFromDays(hist,180),year1:retFromDays(hist,365)},
-      stats:{high52w:Math.max(...prices.map(x=>x.price)),low52w:Math.min(...prices.map(x=>x.price)),distanceFromHighPct:(latest.price/Math.max(...prices.map(x=>x.price))-1)*100,observations:hist.length},
-      risk:{annualizedVolatilityPct:vol===null?null:vol*Math.sqrt(252)*100,maxDrawdownPct:maxDrawdown(prices),positiveDayRatioPct:positives},
-      metadata:{fundTotalValue:Number.isFinite(fundTotalValue)?fundTotalValue:null,investorCount:Number.isFinite(investorCount)?investorCount:null,riskValue:Number.isFinite(riskValue)?riskValue:null}
-    }});
-  }catch(err){return json({ok:false,error:String(err?.message||err)},500);}
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue;
+
+    const price = firstNumber(row, [
+      "fiyat","Fiyat","price","Price","birimPayDegeri","birimPayDeğeri",
+      "fonFiyati","fonFiyat","nav","close","value"
+    ]);
+
+    const date = parseDate(firstValue(row, [
+      "tarih","Tarih","date","Date","islemTarihi","fiyatTarihi","priceDate"
+    ]));
+
+    if (!(price > 0) || !date) continue;
+
+    const key = date.slice(0, 10);
+    const name = firstValue(row, [
+      "fonUnvan","fonUnvani","FonUnvan","fundName","name","FonAdi","fonAdi"
+    ]);
+
+    map.set(key, {
+      date,
+      price,
+      name: typeof name === "string" ? name : ""
+    });
+  }
+
+  return [...map.values()].sort((a,b) => new Date(a.date) - new Date(b.date));
+}
+
+function shiftCalendarMonths(isoDate, months) {
+  const d = new Date(isoDate);
+  const day = d.getUTCDate();
+  const target = new Date(Date.UTC(
+    d.getUTCFullYear(),
+    d.getUTCMonth() - months,
+    1,
+    12, 0, 0
+  ));
+
+  const lastDay = new Date(Date.UTC(
+    target.getUTCFullYear(),
+    target.getUTCMonth() + 1,
+    0,
+    12, 0, 0
+  )).getUTCDate();
+
+  target.setUTCDate(Math.min(day, lastDay));
+  return target;
+}
+
+function priceOnOrBefore(hist, targetDate) {
+  const target = targetDate.getTime();
+  let candidate = null;
+
+  for (const p of hist) {
+    const t = new Date(p.date).getTime();
+    if (t <= target) candidate = p;
+    else break;
+  }
+
+  return candidate;
+}
+
+function returnFromMonths(hist, months) {
+  if (hist.length < 2) return null;
+
+  const last = hist.at(-1);
+  const target = shiftCalendarMonths(last.date, months);
+  const base = priceOnOrBefore(hist, target);
+
+  if (!base || !(base.price > 0) || base.date === last.date) return null;
+  return (last.price / base.price - 1) * 100;
+}
+
+function returnFromDaysStrict(hist, days) {
+  if (hist.length < 2) return null;
+
+  const last = hist.at(-1);
+  const target = new Date(new Date(last.date).getTime() - days * 86400000);
+  const base = priceOnOrBefore(hist, target);
+
+  // İstenen dönem kadar geçmiş gerçekten yoksa yanlış bir sayı üretme.
+  if (!base || !(base.price > 0) || base.date === last.date) return null;
+
+  const actualDays = (new Date(last.date) - new Date(base.date)) / 86400000;
+  if (actualDays < days * 0.70) return null;
+
+  return (last.price / base.price - 1) * 100;
+}
+
+function stdev(arr) {
+  if (arr.length < 2) return null;
+  const m = arr.reduce((a,b) => a+b, 0) / arr.length;
+  return Math.sqrt(arr.reduce((a,b) => a + (b-m)**2, 0) / (arr.length - 1));
+}
+
+function maxDrawdown(hist) {
+  let peak = -Infinity, max = 0;
+  for (const p of hist) {
+    peak = Math.max(peak, p.price);
+    if (peak > 0) max = Math.min(max, (p.price / peak - 1) * 100);
+  }
+  return max;
+}
+
+function deepFindValue(payload, keys) {
+  let found = null;
+  const lower = keys.map(k => k.toLocaleLowerCase("tr-TR"));
+
+  function walk(v, d=0) {
+    if (d > 8 || found !== null || v == null) return;
+
+    if (Array.isArray(v)) {
+      for (const x of v) walk(x, d+1);
+      return;
+    }
+
+    if (typeof v !== "object") return;
+
+    for (const [k,val] of Object.entries(v)) {
+      if (lower.includes(k.toLocaleLowerCase("tr-TR")) && val !== null && val !== "") {
+        found = val;
+        return;
+      }
+    }
+
+    for (const x of Object.values(v)) walk(x, d+1);
+  }
+
+  walk(payload);
+  return found;
+}
+
+function validRiskValue(v) {
+  const n = toNumber(v);
+  return Number.isFinite(n) && n >= 1 && n <= 7 ? n : null;
+}
+
+async function handleFundResearch(code) {
+  try {
+    // Araştırmada periyod=13 kullanmak yanlıştı: bu yalnızca yaklaşık 1 haftalık veri.
+    // 1Y paket (~253 işlem günü) ile 1A/3A/6A/1Y ve risk metriklerini güvenilir hesaplıyoruz.
+    const [historyPayload, profilePayload] = await Promise.all([
+      fetchTefasPayload(code, 12),
+      fetchTefasProfile(code)
+    ]);
+
+    const hist = tefasHistory(historyPayload);
+    if (hist.length < 2) {
+      return json({ok:false,error:`${code} için yeterli TEFAS fiyat geçmişi bulunamadı.`},404);
+    }
+
+    const latest = hist.at(-1);
+    const prev = hist.at(-2);
+    const change = latest.price - prev.price;
+    const changePercent = change / prev.price * 100;
+
+    const oneYearAgo = new Date(new Date(latest.date).getTime() - 365 * 86400000);
+    const year = hist.filter(x => new Date(x.date) >= oneYearAgo);
+    const prices = year.length ? year : hist;
+
+    const rets = [];
+    for (let i=1; i<hist.length; i++) {
+      const r = hist[i].price / hist[i-1].price - 1;
+      if (Number.isFinite(r)) rets.push(r);
+    }
+
+    const vol = stdev(rets);
+    const positives = rets.length
+      ? rets.filter(x => x > 0).length / rets.length * 100
+      : null;
+
+    const name =
+      [...hist].reverse().find(x => x.name)?.name ||
+      String(deepFindValue(profilePayload, ["fonUnvan","fonUnvani"]) || code);
+
+    // Yeni TEFAS profil endpoint'i riskDegeri alanını içeriyor.
+    const riskValue =
+      validRiskValue(deepFindValue(profilePayload, ["riskDegeri","riskDeğeri","riskValue"])) ??
+      validRiskValue(deepFindValue(historyPayload, ["riskDegeri","riskDeğeri","riskValue"]));
+
+    const fundTotalValue = toNumber(
+      deepFindValue(profilePayload, [
+        "portBuyukluk","fonToplamDeger","fonToplamDegeri","toplamDeger","fundTotalValue"
+      ])
+    );
+
+    const investorCount = toNumber(
+      deepFindValue(profilePayload, [
+        "yatirimciSayi","yatirimciSayisi","yatırımcıSayısı","investorCount"
+      ])
+    );
+
+    const high52w = Math.max(...prices.map(x => x.price));
+    const low52w = Math.min(...prices.map(x => x.price));
+
+    return json({
+      ok:true,
+      data:{
+        type:"fund",
+        source:"TEFAS",
+        code,
+        name,
+        price:latest.price,
+        previousPrice:prev.price,
+        change,
+        changePercent,
+        date:latest.date,
+
+        performance:{
+          week:returnFromDaysStrict(hist, 7),
+          month1:returnFromMonths(hist, 1),
+          month3:returnFromMonths(hist, 3),
+          month6:returnFromMonths(hist, 6),
+          year1:returnFromMonths(hist, 12)
+        },
+
+        stats:{
+          high52w,
+          low52w,
+          distanceFromHighPct:(latest.price/high52w - 1) * 100,
+          observations:hist.length,
+          historyPeriod:"1Y"
+        },
+
+        risk:{
+          annualizedVolatilityPct:vol===null ? null : vol*Math.sqrt(252)*100,
+          maxDrawdownPct:maxDrawdown(prices),
+          positiveDayRatioPct:positives
+        },
+
+        metadata:{
+          fundTotalValue:Number.isFinite(fundTotalValue) ? fundTotalValue : null,
+          investorCount:Number.isFinite(investorCount) ? investorCount : null,
+          riskValue
+        }
+      }
+    });
+
+  } catch(err) {
+    return json({ok:false,error:String(err?.message||err)},500);
+  }
 }
 
 async function tvScan(symbol,columns){
