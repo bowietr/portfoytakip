@@ -1,4 +1,4 @@
-const APP_VERSION = "1.15.0";
+const APP_VERSION = "1.15.1";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 

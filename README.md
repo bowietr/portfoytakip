@@ -934,3 +934,28 @@ motoru Sharpe / Sortino / Calmar / drawdown / volatilite için fallback olarak �
 
 Fonoloji oranları kendi dönem/metodolojisine sahip olduğundan eski doğrulama paneli artık
 sağlayıcı değerini yerel referansla kıyaslayan bir kontrol ekranı olarak değerlendirilir.
+
+
+## V1.15.1 — Fonoloji Tanı Endpoint'i
+
+Fonoloji entegrasyonu için güvenli teşhis endpoint'i eklendi:
+
+`GET /api/fonoloji-test/{FON_KODU}`
+
+Örnek:
+
+`/api/fonoloji-test/TTE`
+
+API anahtarı hiçbir zaman döndürülmez. Endpoint yalnızca anahtarın Worker ortamında bulunup
+bulunmadığını, HTTP durumunu, entegrasyon statüsünü, fon bilgisini, örnek metrikleri ve hata
+durumunda kısa bir preview gösterir.
+
+Olası statüler:
+- `OK`
+- `NO_KEY`
+- `API_KEY_INVALID`
+- `ACCOUNT_FORBIDDEN`
+- `FUND_NOT_FOUND`
+- `QUOTA_EXCEEDED`
+- `FONOLOJI_SERVER_ERROR`
+- `NETWORK_ERROR`

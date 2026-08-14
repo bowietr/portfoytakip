@@ -21,7 +21,16 @@ export default {
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.0" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.15.1" });
+    }
+
+    const fonolojiTestMatch = url.pathname.match(/^\/api\/fonoloji-test\/([A-Za-z0-9._-]+)$/);
+    if (fonolojiTestMatch) {
+      const testCode = fonolojiTestMatch[1].trim().toUpperCase().replace(/\.IS$/, "");
+      if (!/^[A-Z0-9]{2,12}$/.test(testCode)) {
+        return json({ ok:false, error:"Geçersiz fon kodu." }, 400);
+      }
+      return await handleFonolojiTest(testCode, env);
     }
 
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
@@ -930,6 +939,84 @@ async function fetchKapFundFees(code, fundName) {
 }
 
 
+
+async function handleFonolojiTest(code, env) {
+  const keyPresent = !!env?.FONOLOJI_KEY;
+
+  if (!keyPresent) {
+    return json({
+      ok:false,
+      status:"NO_KEY",
+      keyPresent:false,
+      code,
+      message:"FONOLOJI_KEY Worker ortamında bulunamadı."
+    }, 500);
+  }
+
+  const endpoint = `https://fonoloji.com/v1/funds/${encodeURIComponent(code)}`;
+
+  try {
+    const response = await fetch(endpoint, {
+      method:"GET",
+      headers:{
+        "X-API-Key": env.FONOLOJI_KEY,
+        "Accept":"application/json",
+        "User-Agent":"Portfoyum/1.15.1"
+      }
+    });
+
+    const text = await response.text();
+    let parsed = null;
+    try { parsed = JSON.parse(text); } catch {}
+
+    const fund = parsed?.fund || parsed?.data || parsed || null;
+
+    let status = "UNKNOWN";
+    if (response.ok) status = "OK";
+    else if (response.status === 401) status = "API_KEY_INVALID";
+    else if (response.status === 403) status = "ACCOUNT_FORBIDDEN";
+    else if (response.status === 404) status = "FUND_NOT_FOUND";
+    else if (response.status === 429) status = "QUOTA_EXCEEDED";
+    else if (response.status >= 500) status = "FONOLOJI_SERVER_ERROR";
+
+    return json({
+      ok: response.ok,
+      status,
+      keyPresent:true,
+      keyMasked:true,
+      httpStatus:response.status,
+      code,
+      endpoint,
+      fundCode: fund?.code ?? null,
+      fundName: fund?.name ?? fund?.title ?? null,
+      sampleMetrics:{
+        sharpe90: fund?.sharpe_90 ?? null,
+        sortino90: fund?.sortino_90 ?? null,
+        calmar1y: fund?.calmar_1y ?? null,
+        beta1y: fund?.beta_1y ?? null,
+        maxDrawdown1y: fund?.max_drawdown_1y ?? null,
+        volatility90: fund?.volatility_90 ?? null,
+        aum: fund?.aum ?? null,
+        investorCount: fund?.investor_count ?? null
+      },
+      responseShape: parsed && typeof parsed === "object"
+        ? Object.keys(parsed).slice(0,20)
+        : null,
+      preview: response.ok ? null : text.slice(0,300)
+    }, response.ok ? 200 : response.status);
+
+  } catch (err) {
+    return json({
+      ok:false,
+      status:"NETWORK_ERROR",
+      keyPresent:true,
+      keyMasked:true,
+      code,
+      message:String(err?.message || err)
+    }, 502);
+  }
+}
+
 async function fetchFonolojiFund(code, env) {
   const key = env?.FONOLOJI_KEY;
   if (!key) throw new Error("FONOLOJI_KEY tanımlı değil.");
@@ -939,7 +1026,8 @@ async function fetchFonolojiFund(code, env) {
     method:"GET",
     headers:{
       "X-API-Key": key,
-      "Accept":"application/json"
+      "Accept":"application/json",
+      "User-Agent":"Portfoyum/1.15.1"
     }
   });
 
@@ -952,7 +1040,7 @@ async function fetchFonolojiFund(code, env) {
   try { body=JSON.parse(text); }
   catch { throw new Error("Fonoloji geçersiz JSON döndürdü."); }
 
-  const fund=body?.fund;
+  const fund=body?.fund || body?.data || body;
   if (!fund || String(fund.code||"").toUpperCase() !== String(code).toUpperCase()) {
     throw new Error("Fonoloji fon verisi bulunamadı.");
   }
