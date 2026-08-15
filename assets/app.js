@@ -1795,18 +1795,14 @@ function renderTerminalAum(rows=[]){
 }
 
 function setupTerminalQuickSearch(){
-  const quick=$("terminalQuickCode"),code=$("researchCode"),form=$("researchForm");
-  if(!quick||!code||!form||quick.dataset.ready==="1") return;
-  quick.dataset.ready="1";
-  const sync=v=>String(v||"").toLocaleUpperCase("tr-TR").replace(/\.IS$/,"");
-  quick.addEventListener("input",()=>{quick.value=sync(quick.value);code.value=quick.value;});
-  code.addEventListener("input",()=>{quick.value=sync(code.value);});
-  quick.addEventListener("keydown",e=>{
-    if(e.key==="Enter"){e.preventDefault();code.value=sync(quick.value);form.requestSubmit();}
-  });
+  const code=$("researchCode"),form=$("researchForm");
+  if(!code||!form||form.dataset.terminalReady==="1") return;
+  form.dataset.terminalReady="1";
+  const sync=v=>String(v||"").toLocaleUpperCase("tr-TR").replace(/\.IS$/,"").trim();
+  code.addEventListener("input",()=>{code.value=sync(code.value);});
   document.addEventListener("keydown",e=>{
     if(e.key==="/" && document.activeElement?.tagName!=="INPUT" && document.activeElement?.tagName!=="SELECT"){
-      e.preventDefault();quick.focus();
+      e.preventDefault();code.focus();
     }
   });
   const refresh=$("terminalRefreshResearch");
