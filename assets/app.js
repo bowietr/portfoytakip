@@ -453,7 +453,7 @@ function renderPortfolioHistoryChart() {
           label: "Portföy Değeri",
           data: points.map(x => Number(x.value || 0)),
           borderColor: "#318CFF",
-          backgroundColor: "rgba(111,136,119,.10)",
+          backgroundColor: "rgba(49,140,255,.10)",
           fill: true,
           tension: .32,
           pointRadius: points.length > 20 ? 0 : 2,
@@ -463,7 +463,7 @@ function renderPortfolioHistoryChart() {
         {
           label: "Ana Para",
           data: points.map(x => Number(x.cost || 0)),
-          borderColor: "#B59A6A",
+          borderColor: "#7D8B99",
           backgroundColor: "transparent",
           fill: false,
           tension: .25,
@@ -1195,7 +1195,7 @@ function renderFundAdvancedCharts(d) {
           label:"Birim Pay Fiyatı",
           data:price.map(x=>Number(x.value)),
           borderColor:"#318CFF",
-          backgroundColor:"rgba(111,136,119,.10)",
+          backgroundColor:"rgba(49,140,255,.10)",
           fill:true,tension:.28,pointRadius:0,borderWidth:2
         }]
       },
@@ -1252,7 +1252,7 @@ function renderFundAdvancedCharts(d) {
           {
             label:"90 Gün",
             data:base.map(x=>map90.get(String(x.date).slice(0,10))??null),
-            borderColor:"#B59A6A",pointRadius:0,tension:.25,borderWidth:1.8
+            borderColor:"#7D8B99",pointRadius:0,tension:.25,borderWidth:1.8
           }
         ]
       },

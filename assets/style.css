@@ -10,9 +10,9 @@
   --muted: #7d877f;
   --border: #e8e4dc;
   --border-strong: #d9d4ca;
-  --accent: #718d7b;
-  --accent-strong: #526c5b;
-  --accent-soft: #edf3ee;
+  --accent: #318cff;
+  --accent-strong: #1f6fd1;
+  --accent-soft: #edf5ff;
   --gold: #b79a67;
   --gold-soft: #f6efe1;
   --positive: #2f8f68;
@@ -33,9 +33,9 @@
   --muted: #9aa49d;
   --border: #343d36;
   --border-strong: #414b43;
-  --accent: #95aa9a;
-  --accent-strong: #b0beb3;
-  --accent-soft: #2a352e;
+  --accent: #318cff;
+  --accent-strong: #61aaff;
+  --accent-soft: #10243a;
   --gold: #c4aa77;
   --gold-soft: #3a3325;
   --positive: #64c99b;
@@ -1185,7 +1185,7 @@ html:not([data-theme="dark"]) .metric-card::after {
 
 :root:not([data-theme="dark"]) .nav-item.active,
 html:not([data-theme="dark"]) .nav-item.active {
-  background: #edf3ee;
+  background: #edf5ff;
   color: #4f6958;
 }
 
@@ -1193,7 +1193,7 @@ html:not([data-theme="dark"]) .nav-item.active {
 :root:not([data-theme="dark"]) .filter.active,
 html:not([data-theme="dark"]) .range-btn.active,
 html:not([data-theme="dark"]) .filter.active {
-  background: #edf3ee;
+  background: #edf5ff;
   color: #4f6958;
 }
 
