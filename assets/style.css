@@ -2329,3 +2329,6 @@ body.research-terminal-mode .terminal-live-status{
     left:210px !important;
   }
 }
+
+/* v1.20.4: removed duplicate monthly-return card; remaining research cards may span available row */
+.research-terminal-mode .research-grid > :only-child{grid-column:1/-1;}
