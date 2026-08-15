@@ -1,4 +1,4 @@
-const APP_VERSION = "1.20.1";
+const APP_VERSION = "1.20.2";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1821,7 +1821,7 @@ function updateTerminalTimestamps(d){
 }
 
 function renderFundResearch(data) {
-  window.scrollTo({top:0,left:0,behavior:"auto"});
+  resetResearchScroll();
   const d=data.data||data;
   state.activeResearchFundCode=d.code||null;
   document.body.classList.add("research-terminal-mode");
@@ -1999,6 +1999,16 @@ function escapeHtml(s="") {
   return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
 }
 
+function resetResearchScroll() {
+  const main=document.querySelector("body.research-terminal-mode .main");
+  if(main && typeof main.scrollTo==="function") {
+    main.scrollTo({top:0,left:0,behavior:"auto"});
+  }
+  const view=$("researchView");
+  if(view) view.scrollTop=0;
+  resetResearchScroll();
+}
+
 function setupNav() {
   const titles = { dashboard:"Genel Bakış", portfolio:"Portföy", transactions:"İşlemler", research:"Varlık Araştır", settings:"Ayarlar" };
   document.querySelectorAll(".nav-item").forEach(btn => {
@@ -2009,7 +2019,10 @@ function setupNav() {
       $(`${btn.dataset.view}View`).classList.add("active");
       document.body.classList.toggle("research-terminal-mode",btn.dataset.view==="research");
       $("pageTitle").textContent = titles[btn.dataset.view];
-      window.scrollTo({top:0,left:0,behavior:"auto"});
+      if(btn.dataset.view==="research") {
+        resetResearchScroll();
+        requestAnimationFrame(resetResearchScroll);
+      }
       if (btn.dataset.view === "settings") $("apiBaseInput").value = (JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")).apiBase || "";
     });
   });

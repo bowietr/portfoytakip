@@ -2273,3 +2273,59 @@ body.research-terminal-mode .terminal-live-status{
 .terminal-search-shell{
   display:none !important;
 }
+
+
+/* =========================================================
+   V1.20.2 — Research viewport anchoring
+   The research workspace owns its scroll, preventing legacy
+   document scroll positions from pushing the UI downward.
+   ========================================================= */
+@media (min-width:761px){
+  body.research-terminal-mode{
+    overflow:hidden !important;
+  }
+
+  body.research-terminal-mode .sidebar{
+    position:fixed !important;
+    top:0 !important;
+    left:0 !important;
+    bottom:0 !important;
+    width:230px !important;
+    height:100vh !important;
+  }
+
+  body.research-terminal-mode .main{
+    position:fixed !important;
+    top:0 !important;
+    left:230px !important;
+    right:0 !important;
+    bottom:0 !important;
+    width:auto !important;
+    min-height:0 !important;
+    height:100vh !important;
+    margin:0 !important;
+    padding:0 18px 18px !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  body.research-terminal-mode #researchView.active{
+    display:block !important;
+    position:relative !important;
+    top:0 !important;
+    margin:0 auto !important;
+    padding-top:14px !important;
+    min-height:auto !important;
+  }
+}
+
+@media (min-width:761px) and (max-width:1100px){
+  body.research-terminal-mode .sidebar{
+    width:210px !important;
+  }
+  body.research-terminal-mode .main{
+    left:210px !important;
+  }
+}
