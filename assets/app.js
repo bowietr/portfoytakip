@@ -1,4 +1,4 @@
-const APP_VERSION = "1.20.4";
+const APP_VERSION = "1.20.5";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1388,16 +1388,7 @@ function renderFundProviderInsights(d) {
       </article>`);
   }
 
-  if (monthly.length) {
-    topCards.push(`
-      <article class="panel provider-monthly-panel">
-        <div class="panel-head source-panel-head">
-          <div><h2>Aylık Getiri Haritası</h2><p>Son dönemlerin aylık performansı</p></div>
-          <span class="source-badge source-fonoloji">FONOLOJİ</span>
-        </div>
-        ${renderMonthlyHeatmap(monthly)}
-      </article>`);
-  }
+  
 
   const benchmarkPanel=benchmark.length ? `
     <article class="panel provider-benchmark-panel">
