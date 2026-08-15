@@ -1,4 +1,4 @@
-const APP_VERSION = "1.20.5";
+const APP_VERSION = "1.20.6";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1536,25 +1536,6 @@ async function loadFundExtras(code) {
         </article>`);
     }
 
-    const historyCards=[];
-    if (aum.length>=2) {
-      historyCards.push(`
-        <article class="panel">
-          <div class="panel-head"><div><h2>Fon Büyüklüğü Geçmişi</h2><p>1 yıllık yönetilen varlık değişimi</p></div></div>
-          <div class="chart-wrap provider-history-chart"><canvas id="fundAumHistoryChart"></canvas></div>
-        </article>`);
-    }
-    if (investors.length>=2) {
-      historyCards.push(`
-        <article class="panel">
-          <div class="panel-head"><div><h2>Yatırımcı Sayısı Geçmişi</h2><p>1 yıllık yatırımcı değişimi</p></div></div>
-          <div class="chart-wrap provider-history-chart"><canvas id="fundInvestorHistoryChart"></canvas></div>
-        </article>`);
-    }
-
-    if (historyCards.length) {
-      cards.push(`<div class="provider-grid history-grid provider-grid-${historyCards.length}">${historyCards.join("")}</div>`);
-    }
 
     if (!cards.length) {
       host.innerHTML="";
@@ -1563,7 +1544,6 @@ async function loadFundExtras(code) {
     host.innerHTML=cards.join("");
 
     if (aum.length>=2) {
-      renderFundHistoryChart("fundAumHistoryChart","fundAumHistoryChart",aum,"Fon Büyüklüğü",v=>`${compactNumber(v)} ₺`);
       renderTerminalAum(aum);
     }
     if (investors.length>=2) renderFundHistoryChart("fundInvestorHistoryChart","fundInvestorHistoryChart",investors,"Yatırımcı",v=>compactNumber(v));
