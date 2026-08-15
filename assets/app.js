@@ -1,4 +1,4 @@
-const APP_VERSION = "1.21.1";
+const APP_VERSION = "1.21.2";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -389,8 +389,8 @@ function renderAllocationChart() {
         data,
         borderWidth: 0,
         backgroundColor: [
-          "#6F8877","#A7B29E","#C9B88B","#8FA6A1","#D5C9B2",
-          "#78909C","#B49A7E","#91A689","#C2A98E","#9EA6B0"
+          "#318CFF","#63A9FF","#786BFF","#27B7C8","#D4A84F",
+          "#5B6F86","#935EEA","#2C75C7","#A5B4C3","#445466"
         ]
       }]
     },
@@ -452,7 +452,7 @@ function renderPortfolioHistoryChart() {
         {
           label: "Portföy Değeri",
           data: points.map(x => Number(x.value || 0)),
-          borderColor: "#6F8877",
+          borderColor: "#318CFF",
           backgroundColor: "rgba(111,136,119,.10)",
           fill: true,
           tension: .32,
@@ -518,7 +518,7 @@ function renderPnlHistoryChart() {
         label: "Kâr / Zarar",
         data: pnlValues,
         borderColor: lastPnl >= 0 ? positive : negative,
-        backgroundColor: lastPnl >= 0 ? "rgba(83,184,142,.10)" : "rgba(222,92,112,.10)",
+        backgroundColor: lastPnl >= 0 ? "rgba(49,140,255,.08)" : "rgba(255,91,87,.08)",
         fill: true,
         tension: .32,
         pointRadius: points.length > 20 ? 0 : 2,
@@ -1194,7 +1194,7 @@ function renderFundAdvancedCharts(d) {
         datasets:[{
           label:"Birim Pay Fiyatı",
           data:price.map(x=>Number(x.value)),
-          borderColor:"#6F8877",
+          borderColor:"#318CFF",
           backgroundColor:"rgba(111,136,119,.10)",
           fill:true,tension:.28,pointRadius:0,borderWidth:2
         }]
@@ -1247,7 +1247,7 @@ function renderFundAdvancedCharts(d) {
           {
             label:"30 Gün",
             data:base.map(x=>Number(x.value)),
-            borderColor:"#6F8877",pointRadius:0,tension:.25,borderWidth:1.8
+            borderColor:"#318CFF",pointRadius:0,tension:.25,borderWidth:1.8
           },
           {
             label:"90 Gün",

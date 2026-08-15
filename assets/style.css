@@ -2780,3 +2780,129 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
     min-height:320px;
   }
 }
+
+
+/* =========================================================
+   V1.21.2 — LEGACY GREEN CLEANUP
+   ========================================================= */
+html[data-theme="dark"]{
+  --bg:#070b10;
+  --bg-soft:#080d13;
+  --panel:#090f16;
+  --panel-2:#0b1219;
+  --panel-3:#0d151e;
+  --text:#eef3f8;
+  --text-soft:#cbd5df;
+  --muted:#7f8b97;
+  --border:#202b36;
+  --border-strong:#2b3947;
+  --accent:#318cff;
+  --accent-strong:#61aaff;
+  --accent-soft:rgba(49,140,255,.09);
+  --gold:#d4aa5f;
+  --gold-soft:#2b2418;
+  --positive:#42d97f;
+  --negative:#ff5b57;
+  --shadow:none;
+  --shadow-soft:none;
+  --radius:7px;
+}
+
+body.terminal-app-mode .filters{
+  background:#090f16 !important;
+  border:1px solid #202b36 !important;
+  border-radius:7px !important;
+  padding:3px !important;
+}
+body.terminal-app-mode .filter{
+  color:#84919d !important;
+  border-radius:5px !important;
+  padding:8px 14px !important;
+}
+body.terminal-app-mode .filter.active{
+  background:#10243a !important;
+  color:#61aaff !important;
+  box-shadow:inset 0 0 0 1px rgba(49,140,255,.22) !important;
+}
+
+body.terminal-app-mode .daily-strip,
+body.terminal-app-mode .daily-strip.positive,
+body.terminal-app-mode .daily-strip.negative{
+  background:#0b1219 !important;
+  border:1px solid #202b36 !important;
+  border-radius:6px !important;
+}
+body.terminal-app-mode .daily-strip span{color:#75828e !important}
+body.terminal-app-mode .daily-strip.positive strong{color:#42d97f !important}
+body.terminal-app-mode .daily-strip.negative strong{color:#ff5b57 !important}
+
+body.terminal-app-mode .position-logo{
+  background:linear-gradient(145deg,#10243a,#0b1723) !important;
+  border:1px solid #23496f !important;
+  color:#6fb4ff !important;
+  box-shadow:none !important;
+}
+body.terminal-app-mode .position-row{border-color:#17212a !important}
+body.terminal-app-mode .position-name strong{color:#edf3f8 !important}
+body.terminal-app-mode .position-name small,
+body.terminal-app-mode .position-weight small{color:#74818d !important}
+
+body.terminal-app-mode .metric-card::after{
+  background:rgba(49,140,255,.055) !important;
+}
+
+body.terminal-app-mode .compact-symbol,
+body.terminal-app-mode .asset-icon{
+  background:linear-gradient(145deg,#0d1a27,#0a121b) !important;
+  border-color:#23405d !important;
+  color:#66adff !important;
+  box-shadow:none !important;
+}
+
+body.terminal-app-mode tbody tr:hover{
+  background:rgba(49,140,255,.035) !important;
+}
+body.terminal-app-mode .asset-card:hover{
+  border-color:#2a4055 !important;
+  box-shadow:none !important;
+}
+
+body.terminal-app-mode .type-badge,
+body.terminal-app-mode .compact-type-badge{
+  background:#2a2317 !important;
+  border:1px solid #5a492c !important;
+  color:#d8bd7c !important;
+  box-shadow:none !important;
+}
+
+body.terminal-app-mode .chart-panel,
+body.terminal-app-mode .analytics-grid .panel{
+  background:#090f16 !important;
+  border-color:#202b36 !important;
+}
+body.terminal-app-mode .chart-panel .panel-head,
+body.terminal-app-mode .analytics-grid .panel-head{
+  border-bottom-color:#17212a !important;
+}
+
+body.terminal-app-mode .range-btn.active,
+body.terminal-app-mode .filter.active,
+body.terminal-app-mode .nav-item.active{
+  background-color:#10243a !important;
+  color:#61aaff !important;
+}
+body.terminal-app-mode input:focus,
+body.terminal-app-mode select:focus{
+  border-color:#318cff !important;
+  box-shadow:0 0 0 2px rgba(49,140,255,.10) !important;
+}
+
+body.terminal-app-mode .asset-stat,
+body.terminal-app-mode .daily-strip,
+body.terminal-app-mode .chart-badge,
+body.terminal-app-mode .status-pill{
+  background:#0b1219 !important;
+}
+
+body.terminal-app-mode .positive{color:#42d97f !important}
+body.terminal-app-mode .negative{color:#ff5b57 !important}
