@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.16.2" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.17.0" />
 </head>
 <body>
   <div class="app-shell">
@@ -295,9 +295,18 @@
             </div>
           </article>
 
-          <div id="researchPrimaryMetrics" class="research-metric-grid"></div>
+          <nav id="fundTerminalTabs" class="fund-terminal-tabs" aria-label="Fon terminali bölümleri" hidden>
+            <button type="button" class="terminal-tab active" data-terminal-tab="overview">Genel Bakış</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="performance">Performans</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="risk">Risk</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="portfolio">Portföy</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="history">Geçmiş</button>
+          </nav>
 
-          <div class="research-layout">
+          <div id="researchPrimaryMetrics" class="research-metric-grid terminal-metric-strip"></div>
+          <div id="fundIdentityRail" class="fund-identity-rail terminal-section" data-terminal-section="overview" hidden></div>
+
+          <div class="research-layout terminal-section" data-terminal-section="overview">
             <article class="panel chart-panel research-chart-panel">
               <div class="panel-head">
                 <div>
@@ -321,7 +330,7 @@
             </article>
           </div>
 
-          <div id="fundAdvancedAnalysis" class="fund-advanced-analysis" hidden>
+          <div id="fundAdvancedAnalysis" class="fund-advanced-analysis terminal-section" data-terminal-section="performance" hidden>
             <article class="panel research-wide-panel">
               <div class="panel-head">
                 <div>
@@ -361,8 +370,8 @@
             </div>
           </div>
 
-          <div id="fundProviderInsights" class="fund-provider-insights" hidden></div>
-          <div id="researchSecondarySections" class="research-secondary-sections"></div>
+          <div id="fundProviderInsights" class="fund-provider-insights terminal-section" data-terminal-section="portfolio" hidden></div>
+          <div id="researchSecondarySections" class="research-secondary-sections terminal-section" data-terminal-section="overview"></div>
           <p id="researchDisclaimer" class="research-disclaimer"></p>
         </div>
       </section>
@@ -513,6 +522,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.16.2"></script>
+  <script src="./assets/app.js?v=1.17.0"></script>
 </body>
 </html>

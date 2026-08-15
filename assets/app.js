@@ -1,4 +1,4 @@
-const APP_VERSION = "1.16.2";
+const APP_VERSION = "1.17.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1499,6 +1499,73 @@ async function loadFundExtras(code) {
   }
 }
 
+
+function setFundTerminalTab(tab="overview") {
+  document.querySelectorAll("#fundTerminalTabs .terminal-tab").forEach(btn=>{
+    btn.classList.toggle("active",btn.dataset.terminalTab===tab);
+  });
+  document.querySelectorAll("#researchResult .terminal-section").forEach(el=>{
+    const section=el.dataset.terminalSection;
+    // Provider and advanced containers keep their own data-driven hidden state;
+    // tab-hidden only controls presentation.
+    el.classList.toggle("terminal-tab-hidden",section!==tab);
+  });
+
+  // Risk reuses the detailed risk metric panel; Performance owns the advanced charts.
+  const details=document.querySelector(".research-details-panel");
+  const chartPanel=document.querySelector(".research-chart-panel");
+  if (details) details.classList.toggle("terminal-tab-hidden", !(tab==="overview" || tab==="risk"));
+  if (chartPanel) chartPanel.classList.toggle("terminal-tab-hidden", !(tab==="overview" || tab==="performance"));
+
+  if (tab==="risk" && details) details.classList.remove("terminal-tab-hidden");
+  if (tab==="performance" && chartPanel) chartPanel.classList.remove("terminal-tab-hidden");
+
+  // History charts are loaded inside provider extras; portfolio stays the home for holdings/allocation.
+  if (tab==="history") {
+    const extras=$("fundLazyExtras");
+    if (extras) {
+      document.querySelectorAll("#fundProviderInsights > *").forEach(el=>el.classList.add("terminal-history-filter"));
+      extras.classList.remove("terminal-history-filter");
+    }
+    const provider=$("fundProviderInsights");
+    if (provider) {
+      provider.classList.remove("terminal-tab-hidden");
+      provider.classList.add("terminal-history-mode");
+    }
+  } else {
+    const provider=$("fundProviderInsights");
+    if (provider) provider.classList.remove("terminal-history-mode");
+    document.querySelectorAll("#fundProviderInsights > *").forEach(el=>el.classList.remove("terminal-history-filter"));
+  }
+}
+
+function setupFundTerminalTabs() {
+  const tabs=$("fundTerminalTabs");
+  if (!tabs || tabs.dataset.ready==="1") return;
+  tabs.dataset.ready="1";
+  tabs.addEventListener("click",e=>{
+    const btn=e.target.closest("[data-terminal-tab]");
+    if (!btn) return;
+    setFundTerminalTab(btn.dataset.terminalTab);
+  });
+}
+
+function renderFundIdentityRail(d,meta,fees) {
+  const host=$("fundIdentityRail");
+  if (!host) return;
+  host.hidden=false;
+  const entries=[
+    ["Kategori",d.category||"—"],
+    ["Risk",meta.riskValue ? `${meta.riskValue} / 7` : "—"],
+    ["Fon Büyüklüğü",metricValue(meta.fundTotalValue,"compactMoney")],
+    ["Yatırımcı",metricValue(meta.investorCount,"compact")],
+    ["Yönetici",d.managementCompany||"—"],
+    ["Yönetim Üc.",metricValue(fees.annualManagementFeePct,"percent")],
+    ["Valör",[d.buyValor!=null?`A T+${d.buyValor}`:null,d.sellValor!=null?`S T+${d.sellValor}`:null].filter(Boolean).join(" · ")||"—"]
+  ];
+  host.innerHTML=entries.map(([k,v])=>`<div class="fund-identity-cell"><span>${escapeHtml(k)}</span><strong>${escapeHtml(String(v))}</strong></div>`).join("");
+}
+
 function renderFundResearch(data) {
   const d = data.data || data;
   state.activeResearchFundCode = d.code || null;
@@ -1517,11 +1584,17 @@ function renderFundResearch(data) {
   const fees=d.fees||{};
 
   $("researchPrimaryMetrics").innerHTML = [
-    researchMetricCard("1 Aylık", perf.month1, "percent", Number(perf.month1)>=0?"gain":"loss"),
-    researchMetricCard("3 Aylık", perf.month3, "percent", Number(perf.month3)>=0?"gain":"loss"),
-    researchMetricCard("6 Aylık", perf.month6, "percent", Number(perf.month6)>=0?"gain":"loss"),
-    researchMetricCard("1 Yıllık", perf.year1, "percent", Number(perf.year1)>=0?"gain":"loss")
+    researchMetricCard("1A", perf.month1, "percent", Number(perf.month1)>=0?"gain":"loss"),
+    researchMetricCard("3A", perf.month3, "percent", Number(perf.month3)>=0?"gain":"loss"),
+    researchMetricCard("6A", perf.month6, "percent", Number(perf.month6)>=0?"gain":"loss"),
+    researchMetricCard("YTD", perf.ytd ?? perf.yearToDate, "percent", Number(perf.ytd ?? perf.yearToDate)>=0?"gain":"loss"),
+    researchMetricCard("1Y", perf.year1, "percent", Number(perf.year1)>=0?"gain":"loss"),
+    researchMetricCard("3Y", perf.year3, "percent", Number(perf.year3)>=0?"gain":"loss")
   ].join("");
+  const terminalTabs=$("fundTerminalTabs"); if (terminalTabs) terminalTabs.hidden=false;
+  setupFundTerminalTabs();
+  renderFundIdentityRail(d,meta,fees);
+  setFundTerminalTab("overview");
 
   $("researchDetailTitle").textContent = "Risk ve Fiyat İstatistikleri";
   $("researchDetailMetrics").innerHTML = [
@@ -1598,6 +1671,9 @@ function renderFundResearch(data) {
 
 function renderStockResearch(data) {
   state.activeResearchFundCode=null;
+  const terminalTabs=$("fundTerminalTabs"); if (terminalTabs) terminalTabs.hidden=true;
+  const identityRail=$("fundIdentityRail"); if (identityRail) identityRail.hidden=true;
+  document.querySelectorAll("#researchResult .terminal-section").forEach(el=>el.classList.remove("terminal-tab-hidden"));
   const provider=$("fundProviderInsights"); if (provider) provider.hidden=true;
   const adv=$("fundAdvancedAnalysis"); if (adv) adv.hidden=true; destroyFundResearchCharts();
   const d=data.data||data;

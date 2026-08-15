@@ -1529,3 +1529,192 @@ html:not([data-theme="dark"]) .chart-badge {
     width:100%;
   }
 }
+
+
+/* =========================================================
+   V1.17.0 — PORTFÖYÜM TERMINAL / Fund Research
+   ========================================================= */
+#researchView {
+  --terminal-accent:#57b8ff;
+  --terminal-line:color-mix(in srgb, var(--border) 78%, transparent);
+}
+#researchView .research-result {
+  font-variant-numeric:tabular-nums;
+}
+#researchView .research-search-panel {
+  border-radius:12px;
+  background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 94%,var(--terminal-accent) 6%),var(--panel));
+}
+#researchView .research-hero {
+  border-radius:10px;
+  padding:18px 20px;
+  border-color:var(--terminal-line);
+  box-shadow:none;
+  position:relative;
+  overflow:hidden;
+}
+#researchView .research-hero::before {
+  content:"";
+  position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--terminal-accent);
+}
+#researchView .research-logo {
+  border-radius:7px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+#researchView .research-title-line h2 {
+  letter-spacing:-.025em;
+}
+#researchView .research-price-block strong,
+#researchView .research-metric-card strong,
+#researchView .research-detail-item strong,
+#researchView .fund-identity-cell strong {
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums;
+}
+.fund-terminal-tabs {
+  display:flex;
+  gap:0;
+  overflow-x:auto;
+  margin:14px 0 0;
+  border:1px solid var(--terminal-line);
+  border-radius:9px;
+  background:var(--panel);
+  scrollbar-width:none;
+}
+.fund-terminal-tabs[hidden]{display:none!important}
+.fund-terminal-tabs::-webkit-scrollbar{display:none}
+.terminal-tab {
+  appearance:none;
+  border:0;
+  border-right:1px solid var(--terminal-line);
+  background:transparent;
+  color:var(--muted);
+  padding:11px 16px;
+  min-width:max-content;
+  font-size:11px;
+  font-weight:750;
+  letter-spacing:.025em;
+  cursor:pointer;
+  position:relative;
+}
+.terminal-tab:last-child{border-right:0}
+.terminal-tab.active {
+  color:var(--text);
+  background:color-mix(in srgb,var(--terminal-accent) 9%,transparent);
+}
+.terminal-tab.active::after {
+  content:"";
+  position:absolute;left:10px;right:10px;bottom:0;height:2px;
+  background:var(--terminal-accent);
+}
+#researchView .terminal-metric-strip {
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:0;
+  margin-top:10px;
+  border:1px solid var(--terminal-line);
+  border-radius:9px;
+  overflow:hidden;
+  background:var(--panel);
+}
+#researchView .terminal-metric-strip .research-metric-card {
+  border:0;
+  border-right:1px solid var(--terminal-line);
+  border-radius:0;
+  box-shadow:none;
+  min-height:74px;
+  padding:12px 14px;
+  background:transparent;
+}
+#researchView .terminal-metric-strip .research-metric-card:last-child{border-right:0}
+#researchView .terminal-metric-strip .research-metric-card span {
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.09em;
+}
+#researchView .terminal-metric-strip .research-metric-card strong {
+  font-size:17px;
+}
+.fund-identity-rail {
+  display:grid;
+  grid-template-columns:1.1fr .65fr 1fr .8fr 1.35fr .85fr .9fr;
+  margin-top:10px;
+  border:1px solid var(--terminal-line);
+  border-radius:9px;
+  overflow:hidden;
+  background:var(--panel);
+}
+.fund-identity-rail[hidden]{display:none!important}
+.fund-identity-cell {
+  min-width:0;
+  padding:10px 12px;
+  border-right:1px solid var(--terminal-line);
+}
+.fund-identity-cell:last-child{border-right:0}
+.fund-identity-cell span {
+  display:block;
+  color:var(--muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+.fund-identity-cell strong {
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:10px;
+}
+#researchView .research-layout,
+#researchView .fund-advanced-analysis,
+#researchView .fund-provider-insights,
+#researchView .research-secondary-sections {
+  margin-top:10px;
+}
+#researchView .research-result .panel {
+  border-radius:9px;
+  box-shadow:none;
+}
+#researchView .panel-head h2 {
+  font-size:13px;
+  letter-spacing:-.01em;
+}
+#researchView .panel-head p {
+  font-size:9px;
+}
+#researchView .research-detail-grid {
+  gap:0;
+  border:1px solid var(--terminal-line);
+  border-radius:7px;
+  overflow:hidden;
+}
+#researchView .research-detail-item {
+  border-radius:0;
+  border:0;
+  border-right:1px solid var(--terminal-line);
+  border-bottom:1px solid var(--terminal-line);
+  background:transparent;
+}
+.terminal-tab-hidden { display:none !important; }
+#fundProviderInsights.terminal-history-mode > * {display:none!important}
+#fundProviderInsights.terminal-history-mode #fundLazyExtras {display:block!important}
+#fundProviderInsights.terminal-history-mode #fundLazyExtras .provider-holdings-panel {display:none!important}
+#fundProviderInsights.terminal-history-mode #fundLazyExtras .history-grid {display:grid!important}
+
+@media(max-width:1000px){
+  #researchView .terminal-metric-strip{grid-template-columns:repeat(3,1fr)}
+  #researchView .terminal-metric-strip .research-metric-card:nth-child(3){border-right:0}
+  #researchView .fund-identity-rail{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:700px){
+  #researchView .research-hero{padding:14px}
+  #researchView .terminal-metric-strip{grid-template-columns:repeat(3,1fr)}
+  #researchView .terminal-metric-strip .research-metric-card{padding:10px;min-height:66px}
+  #researchView .terminal-metric-strip .research-metric-card strong{font-size:14px}
+  #researchView .fund-identity-rail{grid-template-columns:repeat(2,1fr)}
+  .terminal-tab{padding:10px 13px}
+}

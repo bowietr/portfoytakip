@@ -6,10 +6,9 @@ Portföyüm; yatırım fonlarını araştırmak, portföyü takip etmek ve yatı
 
 - Portföy ve işlem takibi
 - Yatırım fonu araştırma ve analizi
-- Fonoloji ve TEFAS verileri
-- Getiri ve risk metrikleri
-- Fon portföy dağılımı ve performans grafikleri
+- Fonoloji ve TEFAS veri altyapısı
+- Getiri, risk ve portföy metrikleri
+- Performans ve geçmiş grafikler
 - Açık / koyu tema
-- Verilerin cihazda saklanması
 
 > Bu uygulamadaki bilgiler yatırım tavsiyesi değildir.
