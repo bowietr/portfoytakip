@@ -1,4 +1,4 @@
-const APP_VERSION = "1.20.2";
+const APP_VERSION = "1.20.3";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -2006,7 +2006,9 @@ function resetResearchScroll() {
   }
   const view=$("researchView");
   if(view) view.scrollTop=0;
-  resetResearchScroll();
+  if(typeof window.scrollTo==="function") {
+    window.scrollTo({top:0,left:0,behavior:"auto"});
+  }
 }
 
 function setupNav() {
