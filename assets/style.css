@@ -2985,3 +2985,64 @@ body.terminal-app-mode .negative{color:#ff5b57 !important}
     grid-template-columns:240px minmax(0,1fr) !important;
   }
 }
+
+
+/* =========================================================
+   V1.21.4 — HISTORY GRAPH REAL WIDTH FIX
+   Outer wrapper is one full-width column; inner history grid
+   owns the 50/50 split.
+   ========================================================= */
+body.terminal-app-mode.research-terminal-mode #researchSecondarySections{
+  display:grid !important;
+  grid-template-columns:minmax(0,1fr) !important;
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  gap:12px !important;
+}
+
+body.terminal-app-mode.research-terminal-mode #researchSecondarySections > .history-grid{
+  grid-column:1 / -1 !important;
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  gap:12px !important;
+}
+
+body.terminal-app-mode.research-terminal-mode #researchSecondarySections .terminal-history-card{
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+  min-height:430px !important;
+  padding:16px !important;
+}
+
+body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provider-history-chart{
+  position:relative !important;
+  width:100% !important;
+  max-width:none !important;
+  height:355px !important;
+  min-height:355px !important;
+}
+
+body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provider-history-chart canvas{
+  display:block !important;
+  width:100% !important;
+  height:100% !important;
+  max-width:100% !important;
+}
+
+@media(max-width:1050px){
+  body.terminal-app-mode.research-terminal-mode #researchSecondarySections > .history-grid{
+    grid-template-columns:1fr !important;
+  }
+  body.terminal-app-mode.research-terminal-mode #researchSecondarySections .terminal-history-card{
+    min-height:410px !important;
+  }
+  body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provider-history-chart{
+    height:335px !important;
+    min-height:335px !important;
+  }
+}
