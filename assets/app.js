@@ -1,4 +1,4 @@
-const APP_VERSION = "1.19.0";
+const APP_VERSION = "1.20.1";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1795,14 +1795,18 @@ function renderTerminalAum(rows=[]){
 }
 
 function setupTerminalQuickSearch(){
-  const code=$("researchCode"),form=$("researchForm");
-  if(!code||!form||form.dataset.terminalReady==="1") return;
-  form.dataset.terminalReady="1";
-  const sync=v=>String(v||"").toLocaleUpperCase("tr-TR").replace(/\.IS$/,"").trim();
-  code.addEventListener("input",()=>{code.value=sync(code.value);});
+  const quick=$("terminalQuickCode"),code=$("researchCode"),form=$("researchForm");
+  if(!quick||!code||!form||quick.dataset.ready==="1") return;
+  quick.dataset.ready="1";
+  const sync=v=>String(v||"").toLocaleUpperCase("tr-TR").replace(/\.IS$/,"");
+  quick.addEventListener("input",()=>{quick.value=sync(quick.value);code.value=quick.value;});
+  code.addEventListener("input",()=>{quick.value=sync(code.value);});
+  quick.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){e.preventDefault();code.value=sync(quick.value);form.requestSubmit();}
+  });
   document.addEventListener("keydown",e=>{
     if(e.key==="/" && document.activeElement?.tagName!=="INPUT" && document.activeElement?.tagName!=="SELECT"){
-      e.preventDefault();code.focus();
+      e.preventDefault();quick.focus();
     }
   });
   const refresh=$("terminalRefreshResearch");
@@ -1817,6 +1821,7 @@ function updateTerminalTimestamps(d){
 }
 
 function renderFundResearch(data) {
+  window.scrollTo({top:0,left:0,behavior:"auto"});
   const d=data.data||data;
   state.activeResearchFundCode=d.code||null;
   document.body.classList.add("research-terminal-mode");
@@ -1947,7 +1952,6 @@ function renderStockResearch(data) {
 function setupResearch() {
   const form=$("researchForm");
   if (!form) return;
-  setupTerminalQuickSearch();
 
   const codeInput=$("researchCode");
   if (codeInput) {
@@ -2005,6 +2009,7 @@ function setupNav() {
       $(`${btn.dataset.view}View`).classList.add("active");
       document.body.classList.toggle("research-terminal-mode",btn.dataset.view==="research");
       $("pageTitle").textContent = titles[btn.dataset.view];
+      window.scrollTo({top:0,left:0,behavior:"auto"});
       if (btn.dataset.view === "settings") $("apiBaseInput").value = (JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")).apiBase || "";
     });
   });
