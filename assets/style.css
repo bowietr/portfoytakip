@@ -2352,3 +2352,392 @@ body.research-terminal-mode #researchSecondarySections .provider-history-chart{
     grid-template-columns:1fr;
   }
 }
+
+
+/* =========================================================
+   V1.21.0 — GLOBAL PORTFÖYÜM TERMINAL DESIGN SYSTEM
+   Research terminal language expanded to the whole app.
+   ========================================================= */
+
+body.terminal-app-mode{
+  --t-bg:#070b10;
+  --t-panel:#090f16;
+  --t-panel-2:#0c131b;
+  --t-line:#202b36;
+  --t-line-soft:#17212a;
+  --t-text:#eef3f8;
+  --t-muted:#83909c;
+  --t-blue:#318cff;
+  --t-blue-soft:rgba(49,140,255,.08);
+  --t-green:#42d97f;
+  --t-red:#ff5b57;
+  --t-gold:#d8bd7c;
+  background:var(--t-bg);
+  color:var(--t-text);
+  font-variant-numeric:tabular-nums;
+}
+
+body.terminal-app-mode .app-shell{
+  background:var(--t-bg);
+}
+
+body.terminal-app-mode .sidebar{
+  background:linear-gradient(180deg,#070b10 0%,#080d13 100%);
+  border-right:1px solid var(--t-line);
+  color:var(--t-text);
+}
+
+body.terminal-app-mode .brand{
+  padding-top:0;
+}
+body.terminal-app-mode .brand-mark{
+  background:linear-gradient(145deg,#287cff,#4ba1ff);
+  color:#07111d;
+  border-radius:7px;
+  box-shadow:0 0 22px rgba(49,140,255,.2);
+}
+body.terminal-app-mode .brand strong{
+  color:#f5f7fa;
+  letter-spacing:.01em;
+}
+body.terminal-app-mode .brand small{
+  color:var(--t-blue);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.22em;
+  text-transform:uppercase;
+}
+
+body.terminal-app-mode .nav-item{
+  border:1px solid transparent;
+  border-radius:7px;
+  color:#aeb8c2;
+  background:transparent;
+  font-weight:650;
+}
+body.terminal-app-mode .nav-item:hover{
+  transform:none;
+  background:rgba(49,140,255,.035);
+  color:#dce6ef;
+}
+body.terminal-app-mode .nav-item.active{
+  background:var(--t-blue-soft);
+  border-color:#237ee8;
+  color:#62aaff;
+  box-shadow:none;
+}
+
+body.terminal-app-mode .main{
+  background:var(--t-bg);
+  color:var(--t-text);
+}
+
+body.terminal-app-mode .topbar{
+  border-bottom:1px solid var(--t-line-soft);
+  padding-bottom:14px;
+  margin-bottom:16px;
+}
+body.terminal-app-mode .eyebrow{
+  color:var(--t-blue);
+  font-size:9px;
+  letter-spacing:.16em;
+}
+body.terminal-app-mode h1{
+  color:#f5f8fb;
+  font-size:24px;
+}
+body.terminal-app-mode h2{
+  color:#f1f5f8;
+}
+body.terminal-app-mode p,
+body.terminal-app-mode small{
+  color:var(--t-muted);
+}
+
+body.terminal-app-mode .status-pill{
+  border:1px solid var(--t-line);
+  background:var(--t-panel);
+  color:#a9b4be;
+  box-shadow:none;
+}
+body.terminal-app-mode .primary-btn,
+body.terminal-app-mode .secondary-btn,
+body.terminal-app-mode .danger-btn,
+body.terminal-app-mode .ghost-btn{
+  border-radius:6px;
+  box-shadow:none;
+}
+body.terminal-app-mode .primary-btn{
+  background:#0d2f56;
+  border-color:#1e64b3;
+  color:#61aaff;
+}
+body.terminal-app-mode .primary-btn:hover{
+  background:#123c6a;
+}
+body.terminal-app-mode .secondary-btn,
+body.terminal-app-mode .ghost-btn{
+  background:var(--t-panel);
+  border-color:var(--t-line);
+  color:#dce5ed;
+}
+body.terminal-app-mode .danger-btn{
+  background:rgba(255,91,87,.05);
+  border-color:rgba(255,91,87,.35);
+  color:var(--t-red);
+}
+
+/* panels / cards */
+body.terminal-app-mode .metric-card,
+body.terminal-app-mode .panel,
+body.terminal-app-mode .asset-card,
+body.terminal-app-mode .settings-panel{
+  background:var(--t-panel);
+  border:1px solid var(--t-line);
+  border-radius:7px;
+  box-shadow:none;
+}
+
+body.terminal-app-mode .metric-card{
+  min-height:104px;
+  padding:15px;
+}
+body.terminal-app-mode .metric-card span{
+  color:#7f8b97;
+  font-size:9px;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+}
+body.terminal-app-mode .metric-card strong{
+  margin-top:9px;
+  color:#f3f7fa;
+  font:700 22px ui-monospace,SFMono-Regular,Menlo,monospace;
+  letter-spacing:-.02em;
+}
+body.terminal-app-mode .metric-card small{
+  color:#687581;
+  font-size:9px;
+}
+
+body.terminal-app-mode .panel{
+  padding:14px;
+  margin-bottom:12px;
+}
+body.terminal-app-mode .panel-head{
+  margin-bottom:11px;
+  padding-bottom:8px;
+  border-bottom:1px solid var(--t-line-soft);
+}
+body.terminal-app-mode .panel-head h2{
+  font-size:12px;
+}
+body.terminal-app-mode .panel-head p{
+  font-size:9px;
+  color:#798692;
+}
+
+/* charts */
+body.terminal-app-mode .chart-wrap{
+  background:transparent;
+}
+body.terminal-app-mode canvas{
+  filter:none;
+}
+body.terminal-app-mode .chart-badge{
+  background:#0c141d;
+  border:1px solid var(--t-line);
+  color:#8fa0ad;
+  border-radius:5px;
+  font-size:8px;
+}
+
+/* tables */
+body.terminal-app-mode .table-wrap{
+  border:1px solid var(--t-line);
+  border-radius:6px;
+  overflow:auto;
+}
+body.terminal-app-mode table{
+  background:var(--t-panel);
+}
+body.terminal-app-mode th{
+  background:#0a1118;
+  color:#778491;
+  font-size:8px;
+  letter-spacing:.07em;
+  border-bottom:1px solid var(--t-line);
+}
+body.terminal-app-mode td{
+  color:#dbe4ec;
+  border-bottom:1px solid var(--t-line-soft);
+  font-size:11px;
+}
+body.terminal-app-mode tr:hover td{
+  background:rgba(49,140,255,.025);
+}
+
+/* portfolio cards */
+body.terminal-app-mode .asset-grid{
+  gap:10px;
+}
+body.terminal-app-mode .asset-card{
+  padding:14px;
+}
+body.terminal-app-mode .asset-icon,
+body.terminal-app-mode .asset-symbol{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+body.terminal-app-mode .asset-symbol{
+  color:#f2f6f9;
+}
+body.terminal-app-mode .asset-sub{
+  color:#70808d;
+}
+body.terminal-app-mode .asset-stat{
+  background:#0b1219;
+  border:1px solid var(--t-line-soft);
+  border-radius:5px;
+}
+body.terminal-app-mode .asset-stat span{
+  color:#75828e;
+  font-size:8px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+body.terminal-app-mode .asset-stat strong{
+  color:#e5ecf2;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+
+/* transactions / analytics */
+body.terminal-app-mode .analytics-toolbar{
+  border:1px solid var(--t-line);
+  background:var(--t-panel);
+  border-radius:7px;
+  padding:12px 14px;
+  margin-bottom:10px;
+}
+body.terminal-app-mode .analytics-toolbar h2{
+  font-size:12px;
+}
+body.terminal-app-mode .analytics-toolbar p{
+  font-size:8px;
+}
+body.terminal-app-mode .range-tabs{
+  border:1px solid var(--t-line);
+  border-radius:5px;
+  overflow:hidden;
+  gap:0;
+}
+body.terminal-app-mode .range-btn{
+  border:0;
+  border-right:1px solid var(--t-line);
+  border-radius:0;
+  background:#0a1017;
+  color:#84919d;
+  font-size:8px;
+  padding:7px 10px;
+}
+body.terminal-app-mode .range-btn:last-child{
+  border-right:0;
+}
+body.terminal-app-mode .range-btn.active{
+  background:#1767c0;
+  color:#fff;
+}
+
+/* forms */
+body.terminal-app-mode input,
+body.terminal-app-mode select,
+body.terminal-app-mode textarea{
+  background:#0b1118;
+  border:1px solid var(--t-line);
+  color:#e4ebf1;
+  border-radius:6px;
+  box-shadow:none;
+}
+body.terminal-app-mode input:focus,
+body.terminal-app-mode select:focus,
+body.terminal-app-mode textarea:focus{
+  border-color:#287ed8;
+  outline:none;
+  box-shadow:0 0 0 2px rgba(49,140,255,.08);
+}
+body.terminal-app-mode label{
+  color:#7d8995;
+}
+
+/* settings */
+body.terminal-app-mode .settings-panel{
+  max-width:900px;
+}
+body.terminal-app-mode .settings-panel > h2,
+body.terminal-app-mode .settings-panel .panel-head h2{
+  font-size:13px;
+}
+body.terminal-app-mode .notice{
+  color:#73808c;
+  border-left:2px solid var(--t-blue);
+  padding-left:10px;
+}
+
+/* modal */
+body.terminal-app-mode .modal{
+  background:#090f16;
+  color:#eef3f8;
+  border:1px solid var(--t-line);
+  border-radius:8px;
+  box-shadow:0 30px 80px rgba(0,0,0,.55);
+}
+body.terminal-app-mode .modal::backdrop{
+  background:rgba(1,4,8,.78);
+}
+body.terminal-app-mode .modal-head{
+  border-bottom:1px solid var(--t-line-soft);
+  padding-bottom:10px;
+}
+
+/* positive / negative */
+body.terminal-app-mode .positive{color:var(--t-green)!important}
+body.terminal-app-mode .negative{color:var(--t-red)!important}
+
+/* bottom sidebar */
+body.terminal-app-mode .sidebar-bottom{
+  color:#75818c;
+}
+body.terminal-app-mode .sidebar-bottom small{
+  color:#66727e;
+}
+
+/* compact terminal spacing */
+body.terminal-app-mode .summary-grid,
+body.terminal-app-mode .dashboard-grid,
+body.terminal-app-mode .analytics-grid,
+body.terminal-app-mode .asset-grid{
+  gap:10px;
+}
+
+/* keep research fixed behavior and style */
+body.terminal-app-mode.research-terminal-mode{
+  background:var(--t-bg);
+}
+
+/* tablet */
+@media (min-width:761px){
+  body.terminal-app-mode:not(.research-terminal-mode) .main{
+    background:#070b10;
+  }
+}
+
+@media (max-width:760px){
+  body.terminal-app-mode .sidebar{
+    background:#080d13;
+    border-top:1px solid var(--t-line);
+  }
+  body.terminal-app-mode .nav-item{
+    border-radius:5px;
+  }
+  body.terminal-app-mode .metric-card{
+    min-height:96px;
+  }
+}
