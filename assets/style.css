@@ -2332,3 +2332,23 @@ body.research-terminal-mode .terminal-live-status{
 
 /* v1.20.4: removed duplicate monthly-return card; remaining research cards may span available row */
 .research-terminal-mode .research-grid > :only-child{grid-column:1/-1;}
+
+
+/* V1.20.7 — History tab is historical data only */
+body.research-terminal-mode #researchSecondarySections .history-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+}
+body.research-terminal-mode #researchSecondarySections .terminal-history-card{
+  margin:0;
+  min-width:0;
+}
+body.research-terminal-mode #researchSecondarySections .provider-history-chart{
+  height:300px;
+}
+@media(max-width:900px){
+  body.research-terminal-mode #researchSecondarySections .history-grid{
+    grid-template-columns:1fr;
+  }
+}

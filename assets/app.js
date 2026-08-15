@@ -1,4 +1,4 @@
-const APP_VERSION = "1.20.6";
+const APP_VERSION = "1.20.7";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1543,13 +1543,57 @@ async function loadFundExtras(code) {
 
     host.innerHTML=cards.join("");
 
+    // Geçmiş sekmesi: yalnızca tarihsel grafikler.
+    const historyHost=$("researchSecondarySections");
+    if (historyHost) {
+      const historyCards=[];
+      if (aum.length>=2) {
+        historyCards.push(`
+          <article class="panel terminal-history-card">
+            <div class="panel-head">
+              <div>
+                <h2>Fon Büyüklüğü Geçmişi</h2>
+                <p>1 yıllık yönetilen varlık değişimi</p>
+              </div>
+            </div>
+            <div class="chart-wrap provider-history-chart">
+              <canvas id="fundAumHistoryChart"></canvas>
+            </div>
+          </article>`);
+      }
+      if (investors.length>=2) {
+        historyCards.push(`
+          <article class="panel terminal-history-card">
+            <div class="panel-head">
+              <div>
+                <h2>Yatırımcı Sayısı Geçmişi</h2>
+                <p>1 yıllık yatırımcı değişimi</p>
+              </div>
+            </div>
+            <div class="chart-wrap provider-history-chart">
+              <canvas id="fundInvestorHistoryChart"></canvas>
+            </div>
+          </article>`);
+      }
+      historyHost.innerHTML=historyCards.length
+        ? `<div class="provider-grid history-grid provider-grid-${historyCards.length}">${historyCards.join("")}</div>`
+        : `<article class="panel provider-loading-panel"><div><strong>Geçmiş veri bulunamadı</strong><span>Bu fon için yeterli tarihsel seri bulunmuyor.</span></div></article>`;
+    }
+
     if (aum.length>=2) {
       renderTerminalAum(aum);
+      renderFundHistoryChart("fundAumHistoryChart","fundAumHistoryChart",aum,"Fon Büyüklüğü",v=>`${compactNumber(v)} ₺`);
     }
-    if (investors.length>=2) renderFundHistoryChart("fundInvestorHistoryChart","fundInvestorHistoryChart",investors,"Yatırımcı",v=>compactNumber(v));
+    if (investors.length>=2) {
+      renderFundHistoryChart("fundInvestorHistoryChart","fundInvestorHistoryChart",investors,"Yatırımcı",v=>compactNumber(v));
+    }
   } catch(err) {
     host.innerHTML=`<article class="panel provider-loading-panel provider-error">
       <div><strong>Detay verileri yüklenemedi</strong><span>${escapeHtml(err.message)}</span></div>
+    </article>`;
+    const historyHost=$("researchSecondarySections");
+    if (historyHost) historyHost.innerHTML=`<article class="panel provider-loading-panel provider-error">
+      <div><strong>Geçmiş verileri yüklenemedi</strong><span>${escapeHtml(err.message)}</span></div>
     </article>`;
   }
 }
@@ -1838,28 +1882,12 @@ function renderFundResearch(data) {
     researchDetailItem("Son Fiyat Tarihi",d.date,"text")
   ].join("");
 
-  const sizePanel=`<article class="panel research-mini-panel"><div class="panel-head"><div><h2>Fon Büyüklüğü</h2><p>Fonoloji ana kaynak</p></div></div><div class="research-detail-grid">
-    ${researchDetailItem("Fon Toplam Değeri",meta.fundTotalValue,"compactMoney")}
-    ${researchDetailItem("Yatırımcı Sayısı",meta.investorCount,"compact")}
-    ${researchDetailItem("Tedavüldeki Pay",meta.shareCount,"compact")}
-    ${researchDetailItem("Risk Profili",meta.riskValue,"number",meta.riskLabel||"—")}
-  </div></article>`;
-  const profilePanel=`<article class="panel research-mini-panel"><div class="panel-head"><div><h2>Fon Profili</h2><p>Fonoloji fon kimliği ve işlem bilgileri</p></div></div><div class="research-detail-grid">
-    ${researchDetailItem("Kategori",d.category,"text")}
-    ${researchDetailItem("Yönetim Şirketi",d.managementCompany,"text")}
-    ${researchDetailItem("ISIN",d.isin,"text")}
-    ${researchDetailItem("İşlem Durumu",d.tradingStatus,"text")}
-    ${researchDetailItem("Alış Valörü",d.buyValor,"number")}
-    ${researchDetailItem("Satış Valörü",d.sellValor,"number")}
-  </div></article>`;
-  const feePanel=`<article class="panel research-mini-panel"><div class="panel-head"><div><h2>Ücret ve Giderler</h2><p>KAP'ta doğrulanabilen oranlar</p></div></div><div class="research-detail-grid">
-    ${researchDetailItem("Yıllık Yönetim Ücreti",fees.annualManagementFeePct,"percent")}
-    ${researchDetailItem("Toplam Gider Oranı",fees.totalExpenseRatioPct,"percent")}
-    ${researchDetailItem("Giriş Komisyonu",fees.entryCommissionPct,"percent")}
-    ${researchDetailItem("Çıkış Komisyonu",fees.exitCommissionPct,"percent")}
-    ${researchDetailItem("Performans Ücreti",fees.performanceFeePct,"percent")}
-  </div></article>`;
-  $("researchSecondarySections").innerHTML=sizePanel+profilePanel+feePanel;
+  // Geçmiş sekmesi yalnızca tarihsel grafiklere ayrılır.
+  $("researchSecondarySections").innerHTML=`
+    <article class="panel provider-loading-panel">
+      <div class="provider-spinner"></div>
+      <div><strong>Geçmiş verileri yükleniyor</strong><span>Fon büyüklüğü ve yatırımcı geçmişi kontrol ediliyor.</span></div>
+    </article>`;
 
   const tabs=$("fundTerminalTabs"); if(tabs) tabs.hidden=false;
   setupFundTerminalTabs();
