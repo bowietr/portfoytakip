@@ -1718,3 +1718,214 @@ html:not([data-theme="dark"]) .chart-badge {
   #researchView .fund-identity-rail{grid-template-columns:repeat(2,1fr)}
   .terminal-tab{padding:10px 13px}
 }
+
+
+/* =========================================================
+   V1.18.0 — PORTFÖYÜM TERMINAL / Dark Terminal Refinement
+   ========================================================= */
+html[data-theme="dark"] #researchView {
+  --terminal-bg:#070b10;
+  --terminal-panel:#0b1118;
+  --terminal-panel-2:#0e151e;
+  --terminal-line:#1d2834;
+  --terminal-accent:#318cff;
+  --terminal-green:#36d47b;
+  --terminal-red:#ff5b57;
+}
+html[data-theme="dark"] #researchView {
+  background:var(--terminal-bg);
+}
+html[data-theme="dark"] #researchView .panel,
+html[data-theme="dark"] #researchView .research-search-panel,
+html[data-theme="dark"] #researchView .fund-terminal-tabs,
+html[data-theme="dark"] #researchView .terminal-metric-strip {
+  background:var(--terminal-panel);
+  border-color:var(--terminal-line);
+}
+html[data-theme="dark"] #researchView .research-result .panel {
+  box-shadow:0 0 0 1px rgba(255,255,255,.008);
+}
+
+/* top hero */
+#researchView .terminal-hero {
+  display:grid;
+  grid-template-columns:minmax(0,1.55fr) minmax(330px,.9fr);
+  gap:0;
+  padding:0;
+  overflow:hidden;
+}
+#researchView .terminal-hero-main {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding:22px 24px;
+  min-width:0;
+}
+#researchView .fund-hero-facts {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  border-left:1px solid var(--terminal-line);
+  align-content:center;
+  padding:8px 18px;
+}
+#researchView .fund-hero-facts[hidden]{display:none!important}
+#researchView .fund-hero-fact {
+  padding:9px 10px;
+  min-width:0;
+  border-bottom:1px solid var(--terminal-line);
+}
+#researchView .fund-hero-fact:nth-last-child(-n+2){border-bottom:0}
+#researchView .fund-hero-fact span {
+  display:block;
+  color:var(--terminal-accent);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+#researchView .fund-hero-fact strong {
+  display:block;
+  color:var(--text);
+  font-size:10px;
+  font-weight:700;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+#researchView .research-logo {
+  width:62px;
+  height:62px;
+}
+#researchView .research-price-block strong {
+  font-size:31px;
+  letter-spacing:-.04em;
+}
+
+/* metric strip */
+#researchView .terminal-metric-strip {
+  margin-top:10px;
+}
+html[data-theme="dark"] #researchView .terminal-metric-strip .research-metric-card {
+  background:transparent;
+}
+#researchView .terminal-metric-strip .research-metric-card strong {
+  font-size:18px;
+}
+#researchView .terminal-metric-strip .research-metric-card.gain strong,
+html[data-theme="dark"] #researchView .positive {
+  color:var(--terminal-green);
+}
+#researchView .terminal-metric-strip .research-metric-card.loss strong,
+html[data-theme="dark"] #researchView .negative {
+  color:var(--terminal-red);
+}
+
+/* tabs */
+#researchView .fund-terminal-tabs {
+  margin-top:10px;
+  border-radius:8px;
+}
+html[data-theme="dark"] #researchView .terminal-tab.active {
+  color:#5aa8ff;
+  background:rgba(49,140,255,.07);
+}
+html[data-theme="dark"] #researchView .terminal-tab.active::after {
+  background:#318cff;
+}
+
+/* chart controls */
+.terminal-chart-head {
+  align-items:center;
+}
+.fund-range-controls {
+  display:flex;
+  border:1px solid var(--terminal-line);
+  border-radius:7px;
+  overflow:hidden;
+}
+.fund-range-controls[hidden]{display:none!important}
+.fund-range-controls button {
+  border:0;
+  border-right:1px solid var(--terminal-line);
+  background:transparent;
+  color:var(--muted);
+  font-size:9px;
+  font-weight:800;
+  padding:7px 10px;
+  cursor:pointer;
+}
+.fund-range-controls button:last-child{border-right:0}
+.fund-range-controls button.active {
+  color:white;
+  background:var(--terminal-accent);
+}
+#researchView .research-chart-wrap {
+  min-height:360px;
+}
+
+/* dense risk table */
+#researchView .research-details-panel .research-detail-grid {
+  grid-template-columns:repeat(2,minmax(0,1fr));
+}
+#researchView .research-details-panel .research-detail-item {
+  min-height:72px;
+  padding:11px 13px;
+}
+#researchView .research-details-panel .research-detail-item span {
+  font-size:8px;
+  letter-spacing:.055em;
+}
+#researchView .research-details-panel .research-detail-item strong {
+  font-size:14px;
+}
+
+/* provider panels match terminal */
+html[data-theme="dark"] #researchView .heat-cell,
+html[data-theme="dark"] #researchView .holdings-table,
+html[data-theme="dark"] #researchView .allocation-row i {
+  border-color:var(--terminal-line);
+}
+html[data-theme="dark"] #researchView .heat-cell {
+  background:#0a1017;
+}
+html[data-theme="dark"] #researchView .allocation-row i {
+  background:#111922;
+}
+
+/* subtle terminal source footer */
+#researchView .research-disclaimer {
+  padding:10px 2px 2px;
+  font-size:8px;
+  letter-spacing:.02em;
+}
+
+@media(max-width:1100px){
+  #researchView .terminal-hero{
+    grid-template-columns:1fr;
+  }
+  #researchView .fund-hero-facts{
+    border-left:0;
+    border-top:1px solid var(--terminal-line);
+    grid-template-columns:repeat(4,minmax(0,1fr));
+  }
+}
+@media(max-width:760px){
+  #researchView .terminal-hero-main{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+  #researchView .research-price-block{
+    align-self:stretch;
+    text-align:left;
+  }
+  #researchView .fund-hero-facts{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  #researchView .research-chart-wrap{
+    min-height:300px;
+  }
+}
+
+#researchView .fund-identity-rail{display:none!important}

@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.17.0" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.18.0" />
 </head>
 <body>
   <div class="app-shell">
@@ -277,22 +277,25 @@
         </article>
 
         <div id="researchResult" class="research-result" hidden>
-          <article class="research-hero panel">
-            <div class="research-identity">
-              <div id="researchLogo" class="research-logo">—</div>
-              <div>
-                <div class="research-title-line">
-                  <h2 id="researchName">—</h2>
-                  <span id="researchBadge" class="research-badge">—</span>
+          <article class="research-hero panel terminal-hero">
+            <div class="terminal-hero-main">
+              <div class="research-identity">
+                <div id="researchLogo" class="research-logo">—</div>
+                <div>
+                  <div class="research-title-line">
+                    <h2 id="researchName">—</h2>
+                    <span id="researchBadge" class="research-badge">—</span>
+                  </div>
+                  <p id="researchMeta">—</p>
                 </div>
-                <p id="researchMeta">—</p>
+              </div>
+              <div class="research-price-block">
+                <span>Son fiyat</span>
+                <strong id="researchPrice">—</strong>
+                <div id="researchDaily" class="research-daily">—</div>
               </div>
             </div>
-            <div class="research-price-block">
-              <span>Son fiyat</span>
-              <strong id="researchPrice">—</strong>
-              <div id="researchDaily" class="research-daily">—</div>
-            </div>
+            <div id="fundHeroFacts" class="fund-hero-facts" hidden></div>
           </article>
 
           <nav id="fundTerminalTabs" class="fund-terminal-tabs" aria-label="Fon terminali bölümleri" hidden>
@@ -304,14 +307,19 @@
           </nav>
 
           <div id="researchPrimaryMetrics" class="research-metric-grid terminal-metric-strip"></div>
-          <div id="fundIdentityRail" class="fund-identity-rail terminal-section" data-terminal-section="overview" hidden></div>
 
           <div class="research-layout terminal-section" data-terminal-section="overview">
             <article class="panel chart-panel research-chart-panel">
-              <div class="panel-head">
+              <div class="panel-head terminal-chart-head">
                 <div>
-                  <h2 id="researchChartTitle">Dönemsel Performans</h2>
-                  <p id="researchChartSubtitle">Getiri yüzdeleri</p>
+                  <h2 id="researchChartTitle">Fon Performansı</h2>
+                  <p id="researchChartSubtitle">Seçili dönemde kümülatif getiri</p>
+                </div>
+                <div id="fundRangeControls" class="fund-range-controls" hidden>
+                  <button type="button" data-range-months="1">1A</button>
+                  <button type="button" data-range-months="3">3A</button>
+                  <button type="button" data-range-months="6">6A</button>
+                  <button type="button" class="active" data-range-months="12">1Y</button>
                 </div>
               </div>
               <div class="chart-wrap chart-wrap-wide research-chart-wrap">
@@ -522,6 +530,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.17.0"></script>
+  <script src="./assets/app.js?v=1.18.0"></script>
 </body>
 </html>

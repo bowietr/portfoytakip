@@ -1,4 +1,4 @@
-const APP_VERSION = "1.17.0";
+const APP_VERSION = "1.18.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -985,17 +985,87 @@ async function fetchResearch(type, code) {
   return data;
 }
 
-function renderResearchPerformanceChart(data, type) {
+function renderResearchPerformanceChart(data, type, months=12) {
   if (!window.Chart) return;
   const ctx = $("researchChart");
   if (!ctx) return;
   if (state.researchChart) state.researchChart.destroy();
 
+  const colors = semanticColors();
+
+  if (type === "fund") {
+    const source = Array.isArray(data?.series?.price) ? data.series.price : [];
+    const clean = source
+      .map(x => ({date:new Date(x.date), value:Number(x.value)}))
+      .filter(x => !Number.isNaN(x.date.getTime()) && x.value > 0)
+      .sort((a,b)=>a.date-b.date);
+
+    const cutoff = clean.length
+      ? new Date(clean[clean.length-1].date.getTime())
+      : null;
+    if (cutoff) cutoff.setMonth(cutoff.getMonth()-Number(months||12));
+
+    const rows = cutoff ? clean.filter(x=>x.date>=cutoff) : clean;
+
+    $("researchChartTitle").textContent = "Fon Performansı";
+    $("researchChartSubtitle").textContent = rows.length >= 2
+      ? "Seçili dönemde kümülatif getiri"
+      : "Tarihsel seri bulunamadı";
+
+    if (rows.length >= 2) {
+      const base = rows[0].value;
+      const values = rows.map(x => (x.value/base-1)*100);
+      const last = values[values.length-1];
+      const lineColor = last >= 0 ? colors.positive : colors.negative;
+
+      state.researchChart = new Chart(ctx,{
+        type:"line",
+        data:{
+          labels:rows.map(x=>x.date.toLocaleDateString("tr-TR",{month:"short",year:"2-digit"})),
+          datasets:[{
+            label:data.code || "Fon",
+            data:values,
+            borderColor:lineColor,
+            backgroundColor:lineColor,
+            pointRadius:0,
+            pointHoverRadius:3,
+            borderWidth:2,
+            tension:.18,
+            fill:false
+          }]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          interaction:{mode:"index",intersect:false},
+          plugins:{
+            legend:{display:false},
+            tooltip:{
+              callbacks:{
+                label:ctx=>`${ctx.raw>=0?"+":""}${Number(ctx.raw).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})}%`
+              }
+            }
+          },
+          scales:{
+            x:{
+              grid:{display:false},
+              ticks:{color:chartTextColor(),autoSkip:true,maxTicksLimit:8,maxRotation:0}
+            },
+            y:{
+              grid:{color:chartGridColor()},
+              ticks:{color:chartTextColor(),callback:v=>`${Number(v).toFixed(0)}%`}
+            }
+          }
+        }
+      });
+      return;
+    }
+  }
+
   const p = data.performance || {};
   const rows = [
     ["1H", p.week], ["1A", p.month1], ["3A", p.month3], ["6A", p.month6], ["1Y", p.year1]
   ].filter(([,v]) => Number.isFinite(Number(v)));
-  const colors = semanticColors();
 
   $("researchChartTitle").textContent = type === "fund" ? "Fon Performansı" : "Hisse Performansı";
   $("researchChartSubtitle").textContent = rows.length ? "Seçili dönemlerde yüzde getiri" : "Dönemsel veri bulunamadı";
@@ -1007,9 +1077,9 @@ function renderResearchPerformanceChart(data, type) {
       datasets:[{
         data:rows.map(x => Number(x[1])),
         backgroundColor:rows.map(x => Number(x[1]) >= 0 ? colors.positive : colors.negative),
-        borderRadius:8,
+        borderRadius:6,
         borderSkipped:false,
-        maxBarThickness:44
+        maxBarThickness:38
       }]
     },
     options:{
@@ -1024,6 +1094,17 @@ function renderResearchPerformanceChart(data, type) {
   });
 }
 
+function setupFundRangeControls(data) {
+  const host=$("fundRangeControls");
+  if (!host) return;
+  host.hidden=false;
+  host.querySelectorAll("[data-range-months]").forEach(btn=>{
+    btn.onclick=()=>{
+      host.querySelectorAll("[data-range-months]").forEach(x=>x.classList.toggle("active",x===btn));
+      renderResearchPerformanceChart(data,"fund",Number(btn.dataset.rangeMonths||12));
+    };
+  });
+}
 
 const FUND_META_CACHE_KEY = "portfoyum_fund_research_meta_v1";
 
@@ -1550,22 +1631,27 @@ function setupFundTerminalTabs() {
   });
 }
 
-function renderFundIdentityRail(d,meta,fees) {
-  const host=$("fundIdentityRail");
+function renderFundHeroFacts(d,meta,fees) {
+  const host=$("fundHeroFacts");
   if (!host) return;
   host.hidden=false;
-  const entries=[
-    ["Kategori",d.category||"—"],
-    ["Risk",meta.riskValue ? `${meta.riskValue} / 7` : "—"],
-    ["Fon Büyüklüğü",metricValue(meta.fundTotalValue,"compactMoney")],
-    ["Yatırımcı",metricValue(meta.investorCount,"compact")],
-    ["Yönetici",d.managementCompany||"—"],
-    ["Yönetim Üc.",metricValue(fees.annualManagementFeePct,"percent")],
-    ["Valör",[d.buyValor!=null?`A T+${d.buyValor}`:null,d.sellValor!=null?`S T+${d.sellValor}`:null].filter(Boolean).join(" · ")||"—"]
-  ];
-  host.innerHTML=entries.map(([k,v])=>`<div class="fund-identity-cell"><span>${escapeHtml(k)}</span><strong>${escapeHtml(String(v))}</strong></div>`).join("");
-}
 
+  const facts=[
+    ["Kategori", d.category || "—"],
+    ["Yönetici", d.managementCompany || "—"],
+    ["Risk", meta.riskValue ? `${meta.riskValue} / 7` : "—"],
+    ["Yönetim Üc.", metricValue(fees.annualManagementFeePct,"percent")],
+    ["Fon Büyüklüğü", metricValue(meta.fundTotalValue,"compactMoney")],
+    ["Valör", [d.buyValor!=null?`A T+${d.buyValor}`:null,d.sellValor!=null?`S T+${d.sellValor}`:null].filter(Boolean).join(" · ") || "—"],
+    ["Yatırımcı", metricValue(meta.investorCount,"compact")]
+  ];
+
+  host.innerHTML=facts.map(([k,v])=>`
+    <div class="fund-hero-fact">
+      <span>${escapeHtml(k)}</span>
+      <strong title="${escapeHtml(String(v))}">${escapeHtml(String(v))}</strong>
+    </div>`).join("");
+}
 function renderFundResearch(data) {
   const d = data.data || data;
   state.activeResearchFundCode = d.code || null;
@@ -1593,7 +1679,7 @@ function renderFundResearch(data) {
   ].join("");
   const terminalTabs=$("fundTerminalTabs"); if (terminalTabs) terminalTabs.hidden=false;
   setupFundTerminalTabs();
-  renderFundIdentityRail(d,meta,fees);
+  renderFundHeroFacts(d,meta,fees);
   setFundTerminalTab("overview");
 
   $("researchDetailTitle").textContent = "Risk ve Fiyat İstatistikleri";
@@ -1663,7 +1749,8 @@ function renderFundResearch(data) {
   $("researchSecondarySections").innerHTML = sizePanel + profilePanel + feePanel;
   $("researchDisclaimer").textContent = "Fon ana metrikleri Fonoloji API’den; ücret bilgileri bulunabildiğinde KAP’tan alınır. Fiyat/geçmiş tarafında Fonoloji timeseries önceliklidir, TEFAS fallback olarak korunur. Geçmiş performans gelecekteki getiriyi garanti etmez.";
 
-  renderResearchPerformanceChart(d,"fund");
+  renderResearchPerformanceChart(d,"fund",12);
+  setupFundRangeControls(d);
   renderFundAdvancedCharts(d);
   renderFundProviderInsights(d);
   loadFundExtras(d.code);
@@ -1672,7 +1759,8 @@ function renderFundResearch(data) {
 function renderStockResearch(data) {
   state.activeResearchFundCode=null;
   const terminalTabs=$("fundTerminalTabs"); if (terminalTabs) terminalTabs.hidden=true;
-  const identityRail=$("fundIdentityRail"); if (identityRail) identityRail.hidden=true;
+  const heroFacts=$("fundHeroFacts"); if (heroFacts) heroFacts.hidden=true;
+  const rangeControls=$("fundRangeControls"); if (rangeControls) rangeControls.hidden=true;
   document.querySelectorAll("#researchResult .terminal-section").forEach(el=>el.classList.remove("terminal-tab-hidden"));
   const provider=$("fundProviderInsights"); if (provider) provider.hidden=true;
   const adv=$("fundAdvancedAnalysis"); if (adv) adv.hidden=true; destroyFundResearchCharts();
