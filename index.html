@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.18.0" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.19.0" />
 </head>
 <body>
   <div class="app-shell">
@@ -17,8 +17,8 @@
       <div class="brand">
         <div class="brand-mark">P</div>
         <div>
-          <strong>Portföyüm</strong>
-          <small>Yatırım Takip</small>
+          <strong>PORTFÖYÜM</strong>
+          <small>TERMINAL</small>
         </div>
       </div>
 
@@ -31,7 +31,12 @@
       </nav>
 
       <div class="sidebar-bottom">
-        <small>Veriler bu cihazda saklanır.</small>
+        <div class="terminal-theme-switch" aria-label="Tema">
+          <button id="terminalDarkBtn" type="button" class="active">◉ Koyu</button>
+          <button id="terminalLightBtn" type="button">○ Açık</button>
+        </div>
+        <small class="terminal-source-note">Veriler Fonoloji üzerinden<br>anlık olarak sağlanmaktadır.</small>
+        <small class="terminal-version">V1.19.0</small>
       </div>
     </aside>
 
@@ -244,142 +249,160 @@
         </article>
       </section>
 
-      <section id="researchView" class="view">
-        <article class="panel research-search-panel">
-          <div class="research-search-copy">
-            <p class="eyebrow">VARLIK ARAŞTIR</p>
-            <h2>Portföye eklemeden incele</h2>
-            <p>Fon veya BIST kodunu gir; fiyat, performans, risk, değerleme ve teknik metrikleri tek ekranda gör.</p>
+      <section id="researchView" class="view terminal-research-view">
+        <div class="terminal-topline">
+          <div class="terminal-search-shell">
+            <span class="terminal-search-icon">⌕</span>
+            <input id="terminalQuickCode"
+                   maxlength="12"
+                   autocomplete="off"
+                   autocapitalize="characters"
+                   spellcheck="false"
+                   placeholder="Fon veya BIST kodu girin..." />
+            <kbd>/</kbd>
           </div>
-          <form id="researchForm" class="research-form">
-            <label>
-              Varlık türü
-              <select id="researchType">
-                <option value="fund">Yatırım Fonu</option>
-                <option value="stock">BIST Hissesi</option>
-              </select>
-            </label>
-            <label class="research-code-field">
-              Kod
-              <input id="researchCode"
-                     maxlength="12"
-                     autocomplete="off"
-                     autocapitalize="characters"
-                     spellcheck="false"
-                     inputmode="text"
-                     oninput="this.value = this.value.toLocaleUpperCase('tr-TR')"
-                     placeholder="Örn: TTE veya FROTO"
-                     required />
-            </label>
-            <button class="primary-btn research-submit" type="submit">Araştır</button>
-          </form>
-          <div id="researchStatus" class="research-status">Bir varlık kodu yazarak başlayabilirsin.</div>
-        </article>
+          <div class="terminal-live-status">
+            <span class="live-dot"></span>
+            <b>Fonoloji</b>
+            <span class="live-word">CANLI</span>
+            <i></i>
+            <span id="terminalLastUpdate">Son güncelleme: —</span>
+            <button id="terminalRefreshResearch" type="button" title="Yenile">↻</button>
+          </div>
+        </div>
 
-        <div id="researchResult" class="research-result" hidden>
-          <article class="research-hero panel terminal-hero">
-            <div class="terminal-hero-main">
-              <div class="research-identity">
-                <div id="researchLogo" class="research-logo">—</div>
-                <div>
-                  <div class="research-title-line">
-                    <h2 id="researchName">—</h2>
-                    <span id="researchBadge" class="research-badge">—</span>
-                  </div>
-                  <p id="researchMeta">—</p>
+        <form id="researchForm" class="terminal-research-form">
+          <label>
+            <select id="researchType">
+              <option value="fund">Yatırım Fonu</option>
+              <option value="stock">BIST Hissesi</option>
+            </select>
+          </label>
+          <label>
+            <input id="researchCode"
+                   maxlength="12"
+                   autocomplete="off"
+                   autocapitalize="characters"
+                   spellcheck="false"
+                   inputmode="text"
+                   oninput="this.value = this.value.toLocaleUpperCase('tr-TR')"
+                   placeholder="AFT"
+                   required />
+          </label>
+          <button class="terminal-search-btn" type="submit">Araştır</button>
+        </form>
+        <div id="researchStatus" class="research-status terminal-research-status">Bir fon kodu girerek başlayabilirsin.</div>
+
+        <div id="researchResult" class="research-result terminal-result" hidden>
+          <article class="terminal-fund-head">
+            <div class="terminal-fund-summary">
+              <div id="researchLogo" class="terminal-fund-code">—</div>
+              <div class="terminal-fund-copy">
+                <div class="terminal-fund-title-row">
+                  <h2 id="researchName">—</h2>
+                  <span id="researchBadge" class="terminal-fund-badge">—</span>
                 </div>
+                <p id="researchMeta">—</p>
               </div>
-              <div class="research-price-block">
-                <span>Son fiyat</span>
+              <div class="terminal-price">
+                <span>SON FİYAT</span>
                 <strong id="researchPrice">—</strong>
                 <div id="researchDaily" class="research-daily">—</div>
               </div>
             </div>
-            <div id="fundHeroFacts" class="fund-hero-facts" hidden></div>
+            <div id="fundHeroFacts" class="terminal-fund-facts" hidden></div>
           </article>
 
-          <nav id="fundTerminalTabs" class="fund-terminal-tabs" aria-label="Fon terminali bölümleri" hidden>
-            <button type="button" class="terminal-tab active" data-terminal-tab="overview">Genel Bakış</button>
-            <button type="button" class="terminal-tab" data-terminal-tab="performance">Performans</button>
-            <button type="button" class="terminal-tab" data-terminal-tab="risk">Risk</button>
-            <button type="button" class="terminal-tab" data-terminal-tab="portfolio">Portföy</button>
-            <button type="button" class="terminal-tab" data-terminal-tab="history">Geçmiş</button>
+          <div id="researchPrimaryMetrics" class="terminal-performance-strip"></div>
+
+          <nav id="fundTerminalTabs" class="terminal-tabs" aria-label="Fon terminali bölümleri" hidden>
+            <button type="button" class="terminal-tab active" data-terminal-tab="overview">▣ Genel Bakış</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="performance">⌁ Performans</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="risk">△ Risk</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="portfolio">▧ Portföy</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="history">◉ Geçmiş</button>
           </nav>
 
-          <div id="researchPrimaryMetrics" class="research-metric-grid terminal-metric-strip"></div>
-
-          <div class="research-layout terminal-section" data-terminal-section="overview">
-            <article class="panel chart-panel research-chart-panel">
-              <div class="panel-head terminal-chart-head">
+          <div class="terminal-overview-grid terminal-section" data-terminal-section="overview">
+            <article class="terminal-panel terminal-performance-panel">
+              <div class="terminal-panel-head">
                 <div>
                   <h2 id="researchChartTitle">Fon Performansı</h2>
                   <p id="researchChartSubtitle">Seçili dönemde kümülatif getiri</p>
                 </div>
-                <div id="fundRangeControls" class="fund-range-controls" hidden>
-                  <button type="button" data-range-months="1">1A</button>
-                  <button type="button" data-range-months="3">3A</button>
-                  <button type="button" data-range-months="6">6A</button>
-                  <button type="button" class="active" data-range-months="12">1Y</button>
-                </div>
               </div>
-              <div class="chart-wrap chart-wrap-wide research-chart-wrap">
+              <div id="fundRangeControls" class="fund-range-controls" hidden>
+                <button type="button" data-range-key="1W">1H</button>
+                <button type="button" data-range-key="1M">1A</button>
+                <button type="button" data-range-key="3M">3A</button>
+                <button type="button" data-range-key="6M">6A</button>
+                <button type="button" data-range-key="YTD">YTD</button>
+                <button type="button" class="active" data-range-key="1Y">1Y</button>
+                <button type="button" data-range-key="3Y">3Y</button>
+                <button type="button" data-range-key="ALL">TÜMÜ</button>
+              </div>
+              <div class="terminal-chart-wrap">
                 <canvas id="researchChart"></canvas>
               </div>
+              <div class="terminal-chart-legend">
+                <span class="legend-fund"><i></i><b id="terminalLegendFund">Fon Getirisi</b></span>
+                <span class="legend-benchmark"><i></i>Karşılaştırma Endeksi</span>
+              </div>
+              <div class="terminal-chart-source">Kaynak: Fonoloji <i></i> Para Birimi: TRY <i></i> <span id="terminalChartUpdate">Güncelleme: —</span></div>
             </article>
 
-            <article class="panel research-details-panel">
-              <div class="panel-head">
+            <article class="terminal-panel terminal-risk-panel">
+              <div class="terminal-panel-head">
                 <div>
-                  <h2 id="researchDetailTitle">Detaylı Metrikler</h2>
+                  <h2 id="researchDetailTitle">Risk ve Fiyat İstatistikleri</h2>
                   <p>Risk, fiyat ve istatistik göstergeleri</p>
                 </div>
+                <span class="terminal-info">ⓘ</span>
               </div>
-              <div id="researchDetailMetrics" class="research-detail-grid"></div>
+              <div id="researchDetailMetrics" class="terminal-risk-grid"></div>
+            </article>
+          </div>
+
+          <div class="terminal-overview-bottom terminal-section" data-terminal-section="overview">
+            <article id="terminalMonthlyPanel" class="terminal-panel" hidden>
+              <div class="terminal-panel-head">
+                <div><h2>Aylık Getiri Haritası (%)</h2></div>
+              </div>
+              <div id="terminalMonthlyHeatmap" class="terminal-monthly-wrap"></div>
+              <div class="terminal-chart-source">Kaynak: Fonoloji</div>
+            </article>
+
+            <article id="terminalAumPanel" class="terminal-panel" hidden>
+              <div class="terminal-panel-head">
+                <div><h2>Fon Büyüklüğü (AUM)</h2></div>
+                <span class="terminal-range-pill">1Y⌄</span>
+              </div>
+              <div class="terminal-aum-chart">
+                <canvas id="terminalAumChart"></canvas>
+              </div>
+              <div class="terminal-chart-source">Kaynak: Fonoloji</div>
             </article>
           </div>
 
           <div id="fundAdvancedAnalysis" class="fund-advanced-analysis terminal-section" data-terminal-section="performance" hidden>
             <article class="panel research-wide-panel">
-              <div class="panel-head">
-                <div>
-                  <h2>1 Yıllık Fiyat Gelişimi</h2>
-                  <p>TEFAS günlük birim pay fiyatı</p>
-                </div>
-              </div>
-              <div class="chart-wrap research-series-chart">
-                <canvas id="fundPriceHistoryChart"></canvas>
-              </div>
+              <div class="panel-head"><div><h2>1 Yıllık Fiyat Gelişimi</h2><p>Fonoloji / TEFAS günlük birim pay fiyatı</p></div></div>
+              <div class="chart-wrap research-series-chart"><canvas id="fundPriceHistoryChart"></canvas></div>
             </article>
-
             <div class="research-dual-charts">
               <article class="panel research-wide-panel">
-                <div class="panel-head">
-                  <div>
-                    <h2>Drawdown</h2>
-                    <p>Zirveden gerçekleşen düşüş</p>
-                  </div>
-                </div>
-                <div class="chart-wrap research-series-chart compact">
-                  <canvas id="fundDrawdownChart"></canvas>
-                </div>
+                <div class="panel-head"><div><h2>Drawdown</h2><p>Zirveden gerçekleşen düşüş</p></div></div>
+                <div class="chart-wrap research-series-chart compact"><canvas id="fundDrawdownChart"></canvas></div>
               </article>
-
               <article class="panel research-wide-panel">
-                <div class="panel-head">
-                  <div>
-                    <h2>Rolling Volatilite</h2>
-                    <p>30 ve 90 günlük yıllıklandırılmış oynaklık</p>
-                  </div>
-                </div>
-                <div class="chart-wrap research-series-chart compact">
-                  <canvas id="fundVolatilityChart"></canvas>
-                </div>
+                <div class="panel-head"><div><h2>Rolling Volatilite</h2><p>30 ve 90 günlük yıllıklandırılmış oynaklık</p></div></div>
+                <div class="chart-wrap research-series-chart compact"><canvas id="fundVolatilityChart"></canvas></div>
               </article>
             </div>
           </div>
 
           <div id="fundProviderInsights" class="fund-provider-insights terminal-section" data-terminal-section="portfolio" hidden></div>
-          <div id="researchSecondarySections" class="research-secondary-sections terminal-section" data-terminal-section="overview"></div>
+          <div id="researchSecondarySections" class="research-secondary-sections terminal-section" data-terminal-section="history"></div>
           <p id="researchDisclaimer" class="research-disclaimer"></p>
         </div>
       </section>
@@ -530,6 +553,6 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.18.0"></script>
+  <script src="./assets/app.js?v=1.19.0"></script>
 </body>
 </html>
