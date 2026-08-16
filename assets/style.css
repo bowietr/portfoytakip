@@ -1952,56 +1952,15 @@ body.research-terminal-mode .sidebar{
   border-right:1px solid #1b2530;
   color:#d8e0e8;
 }
-body.research-terminal-mode .brand{
-  gap:11px;
-  padding:0 8px 20px;
-}
-body.research-terminal-mode .brand-mark{
-  width:42px;height:42px;border-radius:7px;
-  background:linear-gradient(145deg,#287cff,#4ba1ff);
-  color:#07111d;
-  font-size:0;
-  position:relative;
-  box-shadow:0 0 22px rgba(49,140,255,.22);
-}
-body.research-terminal-mode .brand-mark::before{
-  content:"P";
-  color:#06101a;
-  font:900 27px/42px Manrope,sans-serif;
-}
-body.research-terminal-mode .brand strong{
-  color:#f5f7fa;font-size:15px;letter-spacing:.02em;
-}
-body.research-terminal-mode .brand small{
-  color:#318cff;font-size:8px;font-weight:800;letter-spacing:.25em;margin-top:2px;
-}
-body.research-terminal-mode .nav{
-  margin-top:28px;
-  display:grid;
-  gap:7px;
-}
-body.research-terminal-mode .nav-item{
-  height:44px;
-  border:1px solid transparent;
-  border-radius:7px;
-  background:transparent;
-  color:#b2bdc8;
-  font-size:13px;
-  justify-content:flex-start;
-  padding:0 13px;
-}
-body.research-terminal-mode .nav-item.active{
-  border-color:#237ee8;
-  background:rgba(31,119,219,.08);
-  color:#61aaff;
-  box-shadow:inset 0 0 0 1px rgba(49,140,255,.06);
-}
-body.research-terminal-mode .sidebar-bottom{
-  margin-top:auto;
-  padding:0 8px;
-  display:grid;
-  gap:16px;
-}
+
+
+
+
+
+
+
+
+
 .terminal-theme-switch{
   display:flex;
   border:1px solid #24303c;
@@ -2931,36 +2890,14 @@ body.terminal-app-mode .negative{color:#ff5b57 !important}
   }
 
   /* Logo/mark ölçüsü sekme değişiminde artık büyümez */
-  body.terminal-app-mode.research-terminal-mode .brand{
-    gap:11px !important;
-    padding:4px 8px 24px !important;
-  }
-  body.terminal-app-mode.research-terminal-mode .brand-mark{
-    width:40px !important;
-    height:40px !important;
-    border-radius:7px !important;
-  }
-  body.terminal-app-mode.research-terminal-mode .brand-mark::before{
-    font:900 25px/40px Manrope,sans-serif !important;
-  }
-  body.terminal-app-mode.research-terminal-mode .brand strong{
-    font-size:inherit !important;
-    letter-spacing:.01em !important;
-  }
-  body.terminal-app-mode.research-terminal-mode .brand small{
-    font-size:8px !important;
-    letter-spacing:.22em !important;
-  }
+  
+  
+  
+  
+  
 
   /* Menü ölçüsü Genel Bakış ile aynı */
-  body.terminal-app-mode.research-terminal-mode .nav-item{
-    height:auto !important;
-    min-height:0 !important;
-    padding:11px 13px !important;
-    font-size:inherit !important;
-    line-height:normal !important;
-    gap:10px !important;
-  }
+  
 
   /* İçerik/sidebar sınırı da Genel Bakış ile aynı noktada */
   body.terminal-app-mode.research-terminal-mode .main{
@@ -2968,9 +2905,7 @@ body.terminal-app-mode .negative{color:#ff5b57 !important}
   }
 
   /* Sidebar alt tema kontrolü sekme değişiminde boyut değiştirmez */
-  body.terminal-app-mode.research-terminal-mode .sidebar-bottom{
-    padding:0 8px !important;
-  }
+  
 }
 
 /* Tablet yatay görünümde de aynı mantık; özel 210px research küçültmesini iptal et */
@@ -3102,35 +3037,10 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
   }
 
   body.terminal-app-mode .nav,
-  body.terminal-app-mode.research-terminal-mode .nav{
-    display:grid !important;
-    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
-    align-items:stretch !important;
-    gap:4px !important;
-    width:100% !important;
-    height:52px !important;
-    margin:0 !important;
-    padding:0 !important;
-  }
+  
 
   body.terminal-app-mode .nav-item,
-  body.terminal-app-mode.research-terminal-mode .nav-item{
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    width:100% !important;
-    height:52px !important;
-    min-height:52px !important;
-    padding:0 !important;
-    margin:0 !important;
-    border:1px solid transparent !important;
-    border-radius:6px !important;
-    background:transparent !important;
-    color:#9aa6b2 !important;
-    font-size:18px !important;
-    line-height:1 !important;
-    gap:0 !important;
-  }
+  
 
   /* First image behavior: icon-only bottom bar */
   body.terminal-app-mode .nav-item span,
@@ -3228,31 +3138,16 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
 
   /* Brand and nav geometry is identical */
   body.terminal-app-mode .brand,
-  body.terminal-app-mode.research-terminal-mode .brand{
-    gap:11px !important;
-    padding:4px 8px 24px !important;
-  }
+  
 
   body.terminal-app-mode .brand-mark,
-  body.terminal-app-mode.research-terminal-mode .brand-mark{
-    width:40px !important;
-    height:40px !important;
-  }
+  
 
   body.terminal-app-mode .nav-item,
-  body.terminal-app-mode.research-terminal-mode .nav-item{
-    min-height:0 !important;
-    height:auto !important;
-    padding:11px 13px !important;
-    gap:10px !important;
-    font-size:inherit !important;
-    line-height:normal !important;
-  }
+  
 
   body.terminal-app-mode .sidebar-bottom,
-  body.terminal-app-mode.research-terminal-mode .sidebar-bottom{
-    padding:0 8px !important;
-  }
+  
 }
 
 /* Tablet landscape should still match General, not use a narrower research rail */
@@ -3294,77 +3189,24 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
   }
 
   /* EXACT General brand geometry */
-  body.terminal-app-mode.research-terminal-mode .brand{
-    display:flex !important;
-    align-items:center !important;
-    gap:11px !important;
-    padding:4px 8px 24px !important;
-  }
+  
 
   /* Kill the old research trick: font-size:0 + synthetic ::before P */
-  body.terminal-app-mode.research-terminal-mode .brand-mark{
-    width:40px !important;
-    height:40px !important;
-    display:grid !important;
-    place-items:center !important;
-    font-size:16px !important;
-    font-weight:800 !important;
-    line-height:40px !important;
-    border-radius:7px !important;
-  }
+  
 
-  body.terminal-app-mode.research-terminal-mode .brand-mark::before{
-    content:none !important;
-    display:none !important;
-  }
+  
 
-  body.terminal-app-mode.research-terminal-mode .brand strong{
-    display:block !important;
-    font-size:15px !important;
-    line-height:normal !important;
-    letter-spacing:.01em !important;
-  }
+  
 
-  body.terminal-app-mode.research-terminal-mode .brand small{
-    display:block !important;
-    margin-top:0 !important;
-    font-size:8px !important;
-    line-height:normal !important;
-    letter-spacing:.22em !important;
-  }
+  
 
   /* EXACT General nav geometry — old research margin-top:28px removed */
-  body.terminal-app-mode.research-terminal-mode .nav{
-    display:grid !important;
-    grid-template-columns:1fr !important;
-    gap:7px !important;
-    margin:0 !important;
-    padding:0 !important;
-  }
+  
 
-  body.terminal-app-mode.research-terminal-mode .nav-item{
-    display:flex !important;
-    flex-direction:row !important;
-    align-items:center !important;
-    justify-content:flex-start !important;
-    gap:10px !important;
-    width:100% !important;
-    height:auto !important;
-    min-height:0 !important;
-    padding:11px 13px !important;
-    margin:0 !important;
-    font-size:inherit !important;
-    line-height:normal !important;
-    text-align:left !important;
-  }
+  
 
   /* EXACT General footer geometry */
-  body.terminal-app-mode.research-terminal-mode .sidebar-bottom{
-    margin-top:auto !important;
-    padding:0 !important;
-    display:grid !important;
-    gap:10px !important;
-  }
+  
 
   /* Research content may scroll independently, chrome may not move */
   body.terminal-app-mode.research-terminal-mode .main{
@@ -3402,7 +3244,62 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
     display:none !important;
   }
 
-  body.terminal-app-mode.research-terminal-mode .nav{
+  
+}
+
+
+/* =========================================================
+   V1.21.8 — SINGLE-SOURCE SIDEBAR CHROME
+   Research no longer owns logo / brand / nav styling.
+   Generic .terminal-app-mode styles are the only visual source.
+   ========================================================= */
+@media (min-width:901px){
+  body.terminal-app-mode.research-terminal-mode .sidebar{
+    position:fixed !important;
+    top:0 !important;
+    left:0 !important;
+    bottom:0 !important;
+    width:240px !important;
+    height:100vh !important;
+    padding:22px 16px !important;
     margin:0 !important;
+  }
+
+  body.terminal-app-mode.research-terminal-mode .main{
+    position:fixed !important;
+    top:0 !important;
+    left:240px !important;
+    right:0 !important;
+    bottom:0 !important;
+    width:auto !important;
+    height:100vh !important;
+    margin:0 !important;
+    padding:0 18px 18px !important;
+    overflow-x:hidden !important;
+    overflow-y:auto !important;
+  }
+}
+
+/* Mobile/tablet: only geometry differs; shared nav visuals remain generic */
+@media (max-width:900px){
+  body.terminal-app-mode.research-terminal-mode .sidebar{
+    position:fixed !important;
+    z-index:1000 !important;
+    top:auto !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+    width:100% !important;
+    height:66px !important;
+    min-height:66px !important;
+    max-height:66px !important;
+    padding:7px 10px !important;
+    margin:0 !important;
+    overflow:hidden !important;
+  }
+
+  body.terminal-app-mode.research-terminal-mode .sidebar .brand,
+  body.terminal-app-mode.research-terminal-mode .sidebar .sidebar-bottom{
+    display:none !important;
   }
 }
