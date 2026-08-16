@@ -1,4 +1,4 @@
-const APP_VERSION = "1.22.1";
+const APP_VERSION = "1.22.2";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1616,17 +1616,9 @@ function setFundTerminalTab(tab="overview") {
 
   document.querySelectorAll("#researchResult .terminal-section").forEach(el=>{
     const visible=el.dataset.terminalSection===tab;
-    el.classList.toggle("terminal-tab-hidden",!visible);
     el.hidden=!visible;
+    el.classList.toggle("terminal-tab-hidden",!visible);
   });
-
-  // Geçmiş grafikleri yalnızca Geçmiş sekmesinde yaşayabilir.
-  const historyHost=$("researchSecondarySections");
-  if (historyHost) {
-    const showHistory=tab==="history";
-    historyHost.hidden=!showHistory;
-    historyHost.classList.toggle("terminal-tab-hidden",!showHistory);
-  }
 }
 
 function setupFundTerminalTabs() {

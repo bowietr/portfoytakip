@@ -2928,7 +2928,6 @@ body.terminal-app-mode .negative{color:#ff5b57 !important}
    owns the 50/50 split.
    ========================================================= */
 body.terminal-app-mode.research-terminal-mode #researchSecondarySections{
-  display:grid !important;
   grid-template-columns:minmax(0,1fr) !important;
   width:100% !important;
   max-width:none !important;
@@ -3322,4 +3321,18 @@ html[data-theme="dark"]{
 #researchSecondarySections[hidden],
 #researchSecondarySections.terminal-tab-hidden{
   display:none!important;
+}
+
+
+/* =========================================================
+   V1.22.2 — TRUE HISTORY TAB ISOLATION
+   Never allow legacy display:grid!important to override hidden state.
+   ========================================================= */
+body.terminal-app-mode.research-terminal-mode #researchSecondarySections[hidden],
+body.terminal-app-mode.research-terminal-mode #researchSecondarySections.terminal-tab-hidden{
+  display:none !important;
+}
+
+body.terminal-app-mode.research-terminal-mode #researchSecondarySections:not([hidden]):not(.terminal-tab-hidden){
+  display:grid !important;
 }
