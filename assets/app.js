@@ -1,4 +1,4 @@
-const APP_VERSION = "1.21.9";
+const APP_VERSION = "1.22.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1608,7 +1608,10 @@ function setFundTerminalTab(tab="overview") {
     btn.classList.toggle("active",btn.dataset.terminalTab===tab);
   });
   document.querySelectorAll("#researchResult .terminal-section").forEach(el=>{
-    el.classList.toggle("terminal-tab-hidden",el.dataset.terminalSection!==tab);
+    const visible=el.dataset.terminalSection===tab;
+    el.classList.toggle("terminal-tab-hidden",!visible);
+    // Geçmiş grafikleri Genel sekmesine kesinlikle sızmasın.
+    if (el.id === "researchSecondarySections") el.style.display = tab === "history" ? "" : "none";
   });
 }
 

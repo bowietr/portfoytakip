@@ -3311,3 +3311,7 @@ html,
 html[data-theme="dark"]{
   color-scheme:dark;
 }
+
+
+/* V1.22.0 — history charts are isolated from General/Overview */
+#researchSecondarySections.terminal-tab-hidden{display:none!important;}
