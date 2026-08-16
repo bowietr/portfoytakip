@@ -1,4 +1,4 @@
-const APP_VERSION = "1.22.0";
+const APP_VERSION = "1.22.1";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1582,6 +1582,12 @@ async function loadFundExtras(code) {
       historyHost.innerHTML=historyCards.length
         ? `<div class="provider-grid history-grid provider-grid-${historyCards.length}">${historyCards.join("")}</div>`
         : `<article class="panel provider-loading-panel"><div><strong>Geçmiş veri bulunamadı</strong><span>Bu fon için yeterli tarihsel seri bulunmuyor.</span></div></article>`;
+
+      // Asenkron veri yüklenmesi sekme görünürlüğünü değiştirmesin.
+      const activeTab=document.querySelector("#fundTerminalTabs .terminal-tab.active")?.dataset.terminalTab || "overview";
+      const showHistory=activeTab==="history";
+      historyHost.hidden=!showHistory;
+      historyHost.classList.toggle("terminal-tab-hidden",!showHistory);
     }
 
     if (aum.length>=2) {
@@ -1607,12 +1613,20 @@ function setFundTerminalTab(tab="overview") {
   document.querySelectorAll("#fundTerminalTabs .terminal-tab").forEach(btn=>{
     btn.classList.toggle("active",btn.dataset.terminalTab===tab);
   });
+
   document.querySelectorAll("#researchResult .terminal-section").forEach(el=>{
     const visible=el.dataset.terminalSection===tab;
     el.classList.toggle("terminal-tab-hidden",!visible);
-    // Geçmiş grafikleri Genel sekmesine kesinlikle sızmasın.
-    if (el.id === "researchSecondarySections") el.style.display = tab === "history" ? "" : "none";
+    el.hidden=!visible;
   });
+
+  // Geçmiş grafikleri yalnızca Geçmiş sekmesinde yaşayabilir.
+  const historyHost=$("researchSecondarySections");
+  if (historyHost) {
+    const showHistory=tab==="history";
+    historyHost.hidden=!showHistory;
+    historyHost.classList.toggle("terminal-tab-hidden",!showHistory);
+  }
 }
 
 function setupFundTerminalTabs() {

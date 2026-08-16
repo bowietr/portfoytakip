@@ -3315,3 +3315,11 @@ html[data-theme="dark"]{
 
 /* V1.22.0 — history charts are isolated from General/Overview */
 #researchSecondarySections.terminal-tab-hidden{display:none!important;}
+
+
+/* V1.22.1 — strict history tab isolation */
+#researchResult [hidden]{display:none!important;}
+#researchSecondarySections[hidden],
+#researchSecondarySections.terminal-tab-hidden{
+  display:none!important;
+}
