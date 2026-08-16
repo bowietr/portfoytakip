@@ -1,4 +1,4 @@
-const APP_VERSION = "1.23.2";
+const APP_VERSION = "1.23.3";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -896,8 +896,8 @@ function getApiBase() {
 }
 
 function requireApiBase() {
-  const base=requireApiBase();
-  if (!base) throw new Error("Portföyüm API adresi yapılandırılmamış. config.js içindeki apiBase değerini tanımlayın.");
+  const base=getApiBase();
+  if (!base) throw new Error("Portföyüm API bağlantısı yapılandırılmamış.");
   return base;
 }
 
