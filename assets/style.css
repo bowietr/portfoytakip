@@ -3336,3 +3336,117 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections.termina
 body.terminal-app-mode.research-terminal-mode #researchSecondarySections:not([hidden]):not(.terminal-tab-hidden){
   display:grid !important;
 }
+
+
+/* =========================================================
+   V1.22.3 — MOBILE BOTTOM NAV RESTORE
+   Must always win over older sidebar/research rules.
+   ========================================================= */
+@media (max-width:900px){
+
+  body.terminal-app-mode{
+    padding-bottom:74px !important;
+  }
+
+  body.terminal-app-mode .sidebar,
+  body.terminal-app-mode.research-terminal-mode .sidebar{
+    display:block !important;
+    visibility:visible !important;
+    opacity:1 !important;
+
+    position:fixed !important;
+    z-index:9999 !important;
+
+    top:auto !important;
+    left:0 !important;
+    right:0 !important;
+    bottom:0 !important;
+
+    width:100% !important;
+    height:66px !important;
+    min-height:66px !important;
+    max-height:66px !important;
+
+    margin:0 !important;
+    padding:7px 10px !important;
+
+    overflow:hidden !important;
+
+    background:rgba(7,11,16,.98) !important;
+    border:0 !important;
+    border-top:1px solid #202b36 !important;
+    box-shadow:0 -8px 24px rgba(0,0,0,.24) !important;
+
+    transform:none !important;
+    pointer-events:auto !important;
+  }
+
+  body.terminal-app-mode .sidebar .brand,
+  body.terminal-app-mode .sidebar .sidebar-bottom,
+  body.terminal-app-mode.research-terminal-mode .sidebar .brand,
+  body.terminal-app-mode.research-terminal-mode .sidebar .sidebar-bottom{
+    display:none !important;
+  }
+
+  body.terminal-app-mode .nav,
+  body.terminal-app-mode.research-terminal-mode .nav{
+    display:grid !important;
+    visibility:visible !important;
+    opacity:1 !important;
+
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    gap:4px !important;
+
+    width:100% !important;
+    height:52px !important;
+
+    margin:0 !important;
+    padding:0 !important;
+  }
+
+  body.terminal-app-mode .nav-item,
+  body.terminal-app-mode.research-terminal-mode .nav-item{
+    display:flex !important;
+    visibility:visible !important;
+    opacity:1 !important;
+
+    align-items:center !important;
+    justify-content:center !important;
+
+    width:100% !important;
+    height:52px !important;
+    min-height:52px !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    border:1px solid transparent !important;
+    border-radius:7px !important;
+    background:transparent !important;
+
+    color:#9aa6b2 !important;
+    font-size:18px !important;
+    line-height:1 !important;
+
+    pointer-events:auto !important;
+  }
+
+  /* only icon visible on mobile/tablet */
+  body.terminal-app-mode .nav-item span,
+  body.terminal-app-mode.research-terminal-mode .nav-item span{
+    display:none !important;
+  }
+
+  body.terminal-app-mode .nav-item.active,
+  body.terminal-app-mode.research-terminal-mode .nav-item.active{
+    background:#10243a !important;
+    border-color:#318cff !important;
+    color:#61aaff !important;
+  }
+
+  /* Ensure content never covers the fixed nav */
+  body.terminal-app-mode .main,
+  body.terminal-app-mode.research-terminal-mode .main{
+    padding-bottom:88px !important;
+  }
+}
