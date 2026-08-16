@@ -1,14 +1,15 @@
-# Portföyüm
+# Portföyüm Terminal
 
-Portföyüm; yatırım fonlarını araştırmak, portföyü takip etmek ve yatırım verilerini tek ekranda incelemek için geliştirilmiş kişisel yatırım takip uygulamasıdır.
+Portföyüm Terminal; yatırım fonlarını araştırmak, portföyü takip etmek ve yatırım verilerini tek ekranda incelemek için geliştirilmiş kişisel yatırım terminalidir.
 
-## Özellikler
+## Yayın mimarisi
 
-- Portföy ve işlem takibi
-- Yatırım fonu araştırma ve analizi
-- Fonoloji ve TEFAS veri altyapısı
-- Getiri, risk ve portföy metrikleri
-- Performans ve geçmiş grafikler
-- Açık / koyu tema
+Son kullanıcı Worker adresi veya Fonoloji API anahtarı girmez.
+
+`Uygulama → Portföyüm Worker → Fonoloji / TEFAS`
+
+Uygulama sahibi yalnızca bir kez `config.js` içindeki `apiBase` değerini kendi Cloudflare Worker adresiyle değiştirir. `FONOLOJI_KEY` frontend'e yazılmaz; Cloudflare Secret olarak kalır.
+
+Worker tarafında response cache, Fonoloji cache + stale fallback, rate limiting ve opsiyonel origin allowlist bulunur.
 
 > Bu uygulamadaki bilgiler yatırım tavsiyesi değildir.

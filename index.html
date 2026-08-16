@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.22.4" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.23.1" />
 
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon-48.png">
@@ -39,7 +39,7 @@
 
       <div class="sidebar-bottom">
         <small class="terminal-source-note">Veriler Fonoloji üzerinden<br>anlık olarak sağlanmaktadır.</small>
-        <small class="terminal-version">V1.22.4</small>
+        <small class="terminal-version">V1.23.1</small>
       </div>
     </aside>
 
@@ -398,22 +398,7 @@
       </section>
 
       <section id="settingsView" class="view">
-        <article class="panel settings-panel">
-          <h2>TEFAS Veri Bağlantısı</h2>
-          <p>
-            GitHub Pages tarayıcıdan TEFAS'a doğrudan erişimde CORS engeline takılabileceği için
-            Cloudflare Worker adresini buraya girin.
-          </p>
-          <label>
-            Worker URL
-            <input id="apiBaseInput" type="url" placeholder="https://portfoyum-api.kullanici.workers.dev" />
-          </label>
-          <div class="inline-actions">
-            <button id="saveApiBtn" class="primary-btn">Kaydet</button>
-            <button id="testApiBtn" class="secondary-btn">TTE ile Test Et</button>
-          </div>
-          <div id="apiTestResult" class="notice"></div>
-        </article>
+        
 
         <article class="panel settings-panel">
           <h2>Veri Yönetimi</h2>
@@ -532,6 +517,7 @@
   </dialog>
 
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
-  <script src="./assets/app.js?v=1.22.4"></script>
+  <script src="./config.js"></script>
+  <script src="./assets/app.js?v=1.23.1"></script>
 </body>
 </html>

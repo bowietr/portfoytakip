@@ -1,4 +1,4 @@
-const APP_VERSION = "1.22.4";
+const APP_VERSION = "1.23.1";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -49,7 +49,6 @@ function load() {
   }
 
   const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
-  $("apiBaseInput").value = settings.apiBase || "";
   if ("theme" in settings) {
     delete settings.theme;
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
@@ -827,12 +826,11 @@ function addTransaction(e) {
 
 
 async function fetchStockPrice(code) {
-  const base = getApiBase();
-  if (!base) throw new Error("Önce Ayarlar bölümünden Worker URL adresini kaydedin.");
+  const base = requireApiBase();
 
   const cleanCode = String(code || "").trim().toUpperCase().replace(/\.IS$/, "");
   const r = await fetch(`${base}/api/stock/${encodeURIComponent(cleanCode)}`, {
-    headers: { "Accept": "application/json" }
+    headers: apiHeaders()
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok || data.ok === false) throw new Error(data.error || `API hatası (${r.status})`);
@@ -885,15 +883,47 @@ function deleteTx(id) {
 }
 
 function getApiBase() {
-  return $("apiBaseInput").value.trim().replace(/\/+$/, "");
+  const configured=String(window.PORTFOYUM_CONFIG?.apiBase || "").trim().replace(/\/+$/, "");
+  const placeholder=!configured || /YOUR-CLOUDFLARE-SUBDOMAIN/i.test(configured);
+  if (!placeholder) return configured;
+
+  // Sadece geliştirici geçişi için eski localStorage ayarını destekle.
+  try {
+    return String(JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}").apiBase || "").trim().replace(/\/+$/, "");
+  } catch {
+    return "";
+  }
+}
+
+function requireApiBase() {
+  const base=requireApiBase();
+  if (!base) throw new Error("Portföyüm API adresi yapılandırılmamış. config.js içindeki apiBase değerini tanımlayın.");
+  return base;
+}
+
+function getClientId() {
+  const key="portfoyum_client_id";
+  let id=localStorage.getItem(key);
+  if (!id) {
+    id=crypto.randomUUID();
+    localStorage.setItem(key,id);
+  }
+  return id;
+}
+
+function apiHeaders(extra={}) {
+  return {
+    "Accept":"application/json",
+    "X-Portfoyum-Client":getClientId(),
+    ...extra
+  };
 }
 
 async function fetchFundPrice(code) {
-  const base = getApiBase();
-  if (!base) throw new Error("Önce Ayarlar bölümünden Worker URL adresini kaydedin.");
+  const base = requireApiBase();
 
   const r = await fetch(`${base}/api/fund/${encodeURIComponent(code)}`, {
-    headers: { "Accept": "application/json" }
+    headers: apiHeaders()
   });
   const data = await r.json().catch(() => ({}));
   if (!r.ok || data.ok === false) throw new Error(data.error || `API hatası (${r.status})`);
@@ -981,10 +1011,9 @@ function researchDetailItem(label, value, format="number", helper="") {
 }
 
 async function fetchResearch(type, code) {
-  const base = getApiBase();
-  if (!base) throw new Error("Önce Ayarlar bölümünden Worker URL adresini kaydedin.");
+  const base = requireApiBase();
   const cleanCode = String(code || "").trim().toUpperCase().replace(/\.IS$/, "");
-  const r = await fetch(`${base}/api/research/${type}/${encodeURIComponent(cleanCode)}`, { headers:{"Accept":"application/json"} });
+  const r = await fetch(`${base}/api/research/${type}/${encodeURIComponent(cleanCode)}`, { headers:apiHeaders() });
   const data = await r.json().catch(() => ({}));
   if (!r.ok || data.ok === false) throw new Error(data.error || `API hatası (${r.status})`);
   return data;
@@ -1484,8 +1513,8 @@ function renderProviderMainCharts(d) {
 }
 
 async function fetchFundExtras(code) {
-  const base=getApiBase();
-  const r=await fetch(`${base}/api/research/fund/${encodeURIComponent(code)}/extras`,{headers:{"Accept":"application/json"}});
+  const base=requireApiBase();
+  const r=await fetch(`${base}/api/research/fund/${encodeURIComponent(code)}/extras`,{headers:apiHeaders()});
   const data=await r.json().catch(()=>({}));
   if (!r.ok || data.ok===false) throw new Error(data.error||`API hatası (${r.status})`);
   return data.data||data;
@@ -2037,7 +2066,6 @@ function setupNav() {
         resetResearchScroll();
         requestAnimationFrame(resetResearchScroll);
       }
-      if (btn.dataset.view === "settings") $("apiBaseInput").value = (JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}")).apiBase || "";
     });
   });
 }
@@ -2070,22 +2098,6 @@ function setupFilters() {
 }
 
 function setupSettings() {
-  $("saveApiBtn").addEventListener("click", () => {
-    saveSettings({ apiBase: getApiBase() });
-    $("apiTestResult").textContent = "Worker adresi kaydedildi.";
-  });
-
-  $("testApiBtn").addEventListener("click", async () => {
-    $("apiTestResult").textContent = "Test ediliyor…";
-    try {
-      const d = await fetchFundPrice("TTE");
-      $("apiTestResult").textContent = `Bağlantı başarılı. TTE fiyatı: ${money(d.price)}${d.date ? " · " + new Date(d.date).toLocaleDateString("tr-TR") : ""}`;
-    } catch (e) {
-      $("apiTestResult").textContent = `Bağlantı hatası: ${e.message}`;
-    }
-  });
-
-
   $("exportBtn").addEventListener("click", () => {
     const blob = new Blob([JSON.stringify({assets:state.assets, transactions:state.transactions, history:state.history}, null, 2)], {type:"application/json"});
     const a = document.createElement("a");

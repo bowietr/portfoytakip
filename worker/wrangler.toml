@@ -1,3 +1,18 @@
 name = "portfoyum-api"
 main = "worker.js"
-compatibility_date = "2026-08-01"
+compatibility_date = "2026-08-17"
+
+[secrets]
+required = [ "FONOLOJI_KEY" ]
+
+# İsteğe bağlı yayın domaini kısıtı:
+# [vars]
+# ALLOWED_ORIGINS = "https://kullanici.github.io"
+
+[[ratelimits]]
+name = "PORTFOYUM_RATE_LIMITER"
+namespace_id = "23001"
+
+  [ratelimits.simple]
+  limit = 120
+  period = 60

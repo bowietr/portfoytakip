@@ -13,15 +13,27 @@
 const TEFAS_URL = "https://www.tefas.gov.tr/api/funds/fonFiyatBilgiGetir";
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
+    const originState=validateOrigin(request,env);
+    if (!originState.ok) {
+      return jsonForRequest(request,env,{ok:false,error:"Origin izinli değil."},403);
+    }
+
+    if (request.method !== "OPTIONS" && url.pathname.startsWith("/api/")) {
+      const limitState=await enforceRateLimit(request,env,url.pathname);
+      if (!limitState.ok) {
+        return jsonForRequest(request,env,{ok:false,error:"Çok fazla istek gönderildi. Kısa süre sonra tekrar deneyin."},429,{"Retry-After":"60"});
+      }
+    }
+
     if (request.method === "OPTIONS") {
-      return new Response(null, { status: 204, headers: corsHeaders() });
+      return new Response(null, { status: 204, headers: corsHeaders(request, env) });
     }
 
     if (url.pathname === "/" || url.pathname === "/health") {
-      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.16.1" });
+      return json({ ok: true, service: "portfoyum-market-proxy", version: "1.23.0" });
     }
 
     const fonolojiTestMatch = url.pathname.match(/^\/api\/fonoloji-test\/([A-Za-z0-9._-]+)$/);
@@ -37,7 +49,7 @@ export default {
     if (fundExtrasMatch) {
       const code = fundExtrasMatch[1].trim().toUpperCase().replace(/\.IS$/, "");
       if (!/^[A-Z0-9]{2,12}$/.test(code)) return json({ok:false,error:"Geçersiz fon kodu."},400);
-      return await handleFundResearchExtras(code, env);
+      return await cachedApiResponse(request, ctx, 3600, () => handleFundResearchExtras(code, env));
     }
 
     if (url.pathname === "/api/fonoloji/quota") {
@@ -49,7 +61,7 @@ export default {
       const type = researchMatch[1];
       const researchCode = researchMatch[2].trim().toUpperCase().replace(/\.IS$/, "");
       if (!/^[A-Z0-9]{2,12}$/.test(researchCode)) return json({ok:false,error:"Geçersiz varlık kodu."},400);
-      return type === "fund" ? await handleFundResearch(researchCode, env) : await handleStockResearch(researchCode);
+      return type === "fund" ? await cachedApiResponse(request, ctx, 600, () => handleFundResearch(researchCode, env)) : await cachedApiResponse(request, ctx, 60, () => handleStockResearch(researchCode));
     }
 
     const stockMatch = url.pathname.match(/^\/api\/stock\/([A-Za-z0-9._-]+)$/);
@@ -99,6 +111,84 @@ export default {
 };
 
 
+
+function allowedOrigins(env) {
+  const raw=String(env?.ALLOWED_ORIGINS || "").trim();
+  return raw ? raw.split(",").map(x=>x.trim()).filter(Boolean) : [];
+}
+
+function validateOrigin(request, env) {
+  const origin=request.headers.get("Origin");
+  if (!origin) return {ok:true};
+  const allowed=allowedOrigins(env);
+  if (!allowed.length || allowed.includes("*")) return {ok:true};
+  return {ok:allowed.includes(origin)};
+}
+
+function corsHeaders(request=null, env=null) {
+  const origin=request?.headers?.get?.("Origin") || "";
+  const allowed=allowedOrigins(env);
+  let allowOrigin="*";
+  if (origin && allowed.length && !allowed.includes("*") && allowed.includes(origin)) allowOrigin=origin;
+  return {
+    "Access-Control-Allow-Origin":allowOrigin,
+    "Access-Control-Allow-Methods":"GET,OPTIONS",
+    "Access-Control-Allow-Headers":"Content-Type, X-Portfoyum-Client",
+    "Vary":"Origin"
+  };
+}
+
+async function enforceRateLimit(request, env, pathname) {
+  if (!env?.PORTFOYUM_RATE_LIMITER?.limit) return {ok:true};
+  const client=String(request.headers.get("X-Portfoyum-Client") || "anonymous").slice(0,100);
+  const routeClass=pathname.replace(/[A-Z0-9]{2,12}/gi,":code").slice(0,120);
+  try {
+    const {success}=await env.PORTFOYUM_RATE_LIMITER.limit({key:`${client}:${routeClass}`});
+    return {ok:!!success};
+  } catch {
+    return {ok:true};
+  }
+}
+
+function publicCacheKey(request) {
+  const u=new URL(request.url);
+  return new Request(`https://cache.portfoyum.local/public${u.pathname}${u.search}`,{method:"GET"});
+}
+
+async function cachedApiResponse(request, ctx, ttl, producer) {
+  const cache=caches.default;
+  const key=publicCacheKey(request);
+  try {
+    const hit=await cache.match(key);
+    if (hit) {
+      const out=new Response(hit.body,hit);
+      out.headers.set("X-Portfoyum-Cache","HIT");
+      return out;
+    }
+  } catch {}
+
+  const response=await producer();
+  if (!response.ok || ttl<=0) return response;
+
+  const cached=new Response(response.body,response);
+  cached.headers.set("Cache-Control",`public, max-age=30, s-maxage=${ttl}`);
+  cached.headers.set("X-Portfoyum-Cache","MISS");
+  const copy=cached.clone();
+  if (ctx?.waitUntil) ctx.waitUntil(cache.put(key,copy));
+  else await cache.put(key,copy);
+  return cached;
+}
+
+function jsonForRequest(request, env, data, status=200, extraHeaders={}) {
+  return new Response(JSON.stringify(data),{
+    status,
+    headers:{
+      "Content-Type":"application/json; charset=utf-8",
+      ...corsHeaders(request,env),
+      ...extraHeaders
+    }
+  });
+}
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -1132,63 +1222,66 @@ function fonolojiCacheRequest(path) {
 }
 
 async function fonolojiGet(path, env, options={}) {
-  const key = env?.FONOLOJI_KEY;
+  const key=env?.FONOLOJI_KEY;
   if (!key) throw new Error("FONOLOJI_KEY tanımlı değil.");
 
-  const ttl = Number(options.ttl ?? 0);
-  const cache = caches.default;
-  const cacheRequest = fonolojiCacheRequest(path);
+  const ttl=Number(options.ttl ?? 0);
+  const staleTtl=Number(options.staleTtl ?? Math.max(ttl*4,86400));
+  const cache=caches.default;
+  const cacheRequest=fonolojiCacheRequest(path);
 
-  if (ttl > 0) {
-    try {
-      const cached = await cache.match(cacheRequest);
-      if (cached) {
-        const wrapped = await cached.json();
-        if (wrapped?.body) return wrapped.body;
-      }
-    } catch {}
-  }
-
-  const url = `https://fonoloji.com/v1${path}`;
-  const response = await fetch(url, {
-    method: "GET",
-    headers: {
-      "X-API-Key": key,
-      "Accept": "application/json",
-      "User-Agent": "Portfoyum/1.16.1"
-    }
-  });
-
-  const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(
-      `Fonoloji HTTP ${response.status}${text ? `: ${text.slice(0,180)}` : ""}`
-    );
-  }
-
-  let body;
+  let cachedBody=null;
+  let cachedAge=Infinity;
   try {
-    body = JSON.parse(text);
-  } catch {
-    throw new Error("Fonoloji geçersiz JSON döndürdü.");
-  }
+    const cached=await cache.match(cacheRequest);
+    if (cached) {
+      const wrapped=await cached.json();
+      if (wrapped?.body) {
+        cachedBody=wrapped.body;
+        cachedAge=Math.max(0,(Date.now()-Number(wrapped.cachedAt||0))/1000);
+        if (ttl>0 && cachedAge<=ttl) return cachedBody;
+      }
+    }
+  } catch {}
 
-  if (ttl > 0) {
-    try {
-      await cache.put(
-        cacheRequest,
-        new Response(JSON.stringify({cachedAt:Date.now(),body}), {
+  try {
+    const response=await fetch(`https://fonoloji.com/v1${path}`,{
+      method:"GET",
+      headers:{
+        "X-API-Key":key,
+        "Accept":"application/json",
+        "User-Agent":"Portfoyum/1.23.0"
+      }
+    });
+    const text=await response.text();
+
+    if (!response.ok) {
+      if (cachedBody && cachedAge<=staleTtl) return cachedBody;
+      throw new Error(`Fonoloji HTTP ${response.status}${text ? `: ${text.slice(0,180)}` : ""}`);
+    }
+
+    let body;
+    try { body=JSON.parse(text); }
+    catch {
+      if (cachedBody && cachedAge<=staleTtl) return cachedBody;
+      throw new Error("Fonoloji geçersiz JSON döndürdü.");
+    }
+
+    if (ttl>0) {
+      try {
+        await cache.put(cacheRequest,new Response(JSON.stringify({cachedAt:Date.now(),body}),{
           headers:{
             "Content-Type":"application/json",
-            "Cache-Control":`public, max-age=${ttl}`
+            "Cache-Control":`public, max-age=${staleTtl}`
           }
-        })
-      );
-    } catch {}
+        }));
+      } catch {}
+    }
+    return body;
+  } catch(err) {
+    if (cachedBody && cachedAge<=staleTtl) return cachedBody;
+    throw err;
   }
-
-  return body;
 }
 
 async function fetchFonolojiFund(code, env) {
@@ -1998,15 +2091,6 @@ async function handleStock(code, env) {
       error: String(err?.message || err)
     }, 500);
   }
-}
-
-function corsHeaders() {
-  return {
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "GET,OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
-    "Cache-Control": "public, max-age=300"
-  };
 }
 
 function json(data, status=200) {
