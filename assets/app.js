@@ -1,4 +1,4 @@
-const APP_VERSION = "1.21.8";
+const APP_VERSION = "1.21.9";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -50,7 +50,11 @@ function load() {
 
   const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
   $("apiBaseInput").value = settings.apiBase || "";
-  document.documentElement.dataset.theme = settings.theme || "light";
+  if ("theme" in settings) {
+    delete settings.theme;
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+  document.documentElement.dataset.theme = "dark";
   if ($("dataStatus")) $("dataStatus").textContent = `Portföyüm v${APP_VERSION}`;
 }
 
@@ -2071,23 +2075,6 @@ function setupSettings() {
       $("apiTestResult").textContent = `Bağlantı hatası: ${e.message}`;
     }
   });
-
-  $("themeToggle").addEventListener("click", () => {
-    const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-    document.documentElement.dataset.theme = next;
-    saveSettings({ theme: next });
-    renderCharts();
-  });
-  const terminalDarkBtn=$("terminalDarkBtn");
-  const terminalLightBtn=$("terminalLightBtn");
-  const syncTerminalThemeButtons=()=>{
-    const dark=document.documentElement.dataset.theme==="dark";
-    if(terminalDarkBtn) terminalDarkBtn.classList.toggle("active",dark);
-    if(terminalLightBtn) terminalLightBtn.classList.toggle("active",!dark);
-  };
-  if(terminalDarkBtn) terminalDarkBtn.addEventListener("click",()=>{document.documentElement.dataset.theme="dark";saveSettings({theme:"dark"});syncTerminalThemeButtons();});
-  if(terminalLightBtn) terminalLightBtn.addEventListener("click",()=>{document.documentElement.dataset.theme="light";saveSettings({theme:"light"});syncTerminalThemeButtons();});
-  syncTerminalThemeButtons();
 
 
   $("exportBtn").addEventListener("click", () => {

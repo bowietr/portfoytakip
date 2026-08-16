@@ -3303,3 +3303,11 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
     display:none !important;
   }
 }
+
+
+/* V1.21.9 — single terminal theme */
+:root,
+html,
+html[data-theme="dark"]{
+  color-scheme:dark;
+}
