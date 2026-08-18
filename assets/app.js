@@ -1,4 +1,4 @@
-const APP_VERSION = "1.24.0";
+const APP_VERSION = "1.24.1";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -444,8 +444,7 @@ async function fetchFundModelData(code){
   const key=String(code||"").toUpperCase();
   const cached=fundModelCache.get(key);
   if(cached && Date.now()-cached.time<FUND_MODEL_CACHE_MS) return cached.data;
-  const base=(window.PORTFOYUM_CONFIG?.API_BASE||"").replace(/\/$/,"");
-  if(!base) throw new Error("API adresi bulunamadı.");
+  const base=requireApiBase();
   const r=await fetch(`${base}/api/research/fund/${encodeURIComponent(key)}`,{
     headers:{"X-Portfoyum-Client":getClientId()}
   });
@@ -457,7 +456,10 @@ async function fetchFundModelData(code){
 
 async function runPortfolioFundModel(){
   const btn=$("runFundModelAnalysis"), status=$("fundModelStatus"), host=$("fundModelResults");
-  const funds=state.assets.filter(a=>a.type==="fund");
+  const funds=state.assets.filter(a=>{
+    const t=String(a?.type||"").toLowerCase();
+    return t==="fund" || t==="fon" || t==="yatirim_fonu" || t==="investment_fund";
+  });
   if(!funds.length){
     status.textContent="Portföyünde analiz edilecek yatırım fonu yok.";
     host.innerHTML="";
@@ -2351,4 +2353,18 @@ window.deleteAsset = deleteAsset;
 window.deleteTx = deleteTx;
 
 
-document.getElementById("runFundModelAnalysis")?.addEventListener("click", runPortfolioFundModel);
+const fundModelButton = document.getElementById("runFundModelAnalysis");
+if (fundModelButton) {
+  fundModelButton.addEventListener("click", async (event) => {
+    event.preventDefault();
+    try {
+      await runPortfolioFundModel();
+    } catch (err) {
+      const status = document.getElementById("fundModelStatus");
+      if (status) status.textContent = `Analiz hatası: ${String(err?.message || err)}`;
+      fundModelButton.disabled = false;
+      fundModelButton.textContent = "✦ Analiz Et";
+      console.error("Fund model analysis error:", err);
+    }
+  });
+}
