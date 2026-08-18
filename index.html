@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.23.7" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.23.8" />
 
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon-48.png">
@@ -30,16 +30,41 @@
       </div>
 
       <nav class="nav">
-        <button class="nav-item active" data-view="dashboard">⌂ <span>GENEL BAKIŞ</span></button>
-        <button class="nav-item" data-view="portfolio">◫ <span>PORTFÖY</span></button>
-        <button class="nav-item" data-view="transactions">⇄ <span>İŞLEMLER</span></button>
-        <button class="nav-item" data-view="research">⌕ <span>VARLIK ARAŞTIR</span></button>
-        <button class="nav-item" data-view="settings">⚙ <span>AYARLAR</span></button>
+        <button class="nav-item active" data-view="dashboard">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M3.5 10.5 12 3.8l8.5 6.7v9.2H3.5zM9.3 19.7v-6.2h5.4v6.2"/></svg>
+          </span>
+          <span class="nav-label">GENEL BAKIŞ</span>
+        </button>
+        <button class="nav-item" data-view="portfolio">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M11 3.3a8.7 8.7 0 1 0 8.7 8.7H11zM14 3.5v7h7A7 7 0 0 0 14 3.5Z"/></svg>
+          </span>
+          <span class="nav-label">PORTFÖY</span>
+        </button>
+        <button class="nav-item" data-view="transactions">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 7h14m0 0-3-3m3 3-3 3M20 17H6m0 0 3 3m-3-3 3-3"/></svg>
+          </span>
+          <span class="nav-label">İŞLEMLER</span>
+        </button>
+        <button class="nav-item" data-view="research">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Zm5.3-2.2L21 21M5.8 10.8h2.1l1.3-2.5 2.1 5 1.6-3h2.2"/></svg>
+          </span>
+          <span class="nav-label">VARLIK ARAŞTIR</span>
+        </button>
+        <button class="nav-item" data-view="settings">
+          <span class="nav-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m12 2.8 8 4.6v9.2l-8 4.6-8-4.6V7.4zM12 8l3.5 2v4L12 16l-3.5-2v-4z"/></svg>
+          </span>
+          <span class="nav-label">AYARLAR</span>
+        </button>
       </nav>
 
       <div class="sidebar-bottom">
         <small class="terminal-source-note">Veriler Fonoloji üzerinden<br>anlık olarak sağlanmaktadır.</small>
-        <small class="terminal-version">V1.23.7</small>
+        <small class="terminal-version">V1.23.8</small>
       </div>
     </aside>
 
@@ -523,6 +548,6 @@
       apiBase: "https://portfoyum-api.haydarcicek94.workers.dev"
     };
   </script>
-  <script src="./assets/app.js?v=1.23.7"></script>
+  <script src="./assets/app.js?v=1.23.8"></script>
 </body>
 </html>

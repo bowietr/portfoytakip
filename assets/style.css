@@ -3502,87 +3502,64 @@ body.terminal-app-mode .overview-allocation-panel canvas {
 
 
 /* =========================================================
-   V1.23.7 — TERMINAL SIDEBAR ICON SYSTEM + UPPERCASE NAV
+   V1.23.8 — FIXED TERMINAL NAV ICON SYSTEM
+   Icon and label are explicit, independent elements.
    ========================================================= */
-body.terminal-app-mode .sidebar .nav-item,
-body.terminal-app-mode .sidebar-nav .nav-item,
-body.terminal-app-mode .mobile-nav .nav-item {
+body.terminal-app-mode .sidebar .nav-item {
   text-transform: uppercase !important;
-  letter-spacing: .015em;
+  letter-spacing: .015em !important;
 }
 
-/* Normalize icon boxes */
-body.terminal-app-mode .nav-item .nav-icon,
-body.terminal-app-mode .nav-item > span:first-child {
+body.terminal-app-mode .sidebar .nav-item .nav-icon {
   width: 24px !important;
   height: 24px !important;
   min-width: 24px !important;
+  flex: 0 0 24px !important;
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  font-size: 0 !important;
-  line-height: 1 !important;
-  color: currentColor;
+  color: #9aa6b2 !important;
 }
 
-/* Keep any existing SVG visually consistent */
-body.terminal-app-mode .nav-item svg {
+body.terminal-app-mode .sidebar .nav-item .nav-icon svg {
+  display: block !important;
   width: 22px !important;
   height: 22px !important;
+  overflow: visible !important;
+}
+
+body.terminal-app-mode .sidebar .nav-item .nav-icon path {
+  fill: none !important;
+  stroke: currentColor !important;
   stroke-width: 1.8 !important;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
+  vector-effect: non-scaling-stroke;
 }
 
-/* New terminal-style icon glyphs, drawn as SVG masks. */
-body.terminal-app-mode .nav-item .nav-icon::before,
-body.terminal-app-mode .nav-item > span:first-child::before {
-  content: "" !important;
-  width: 22px;
-  height: 22px;
-  display: block;
-  background: currentColor;
-  -webkit-mask: var(--terminal-nav-icon) center / contain no-repeat;
-  mask: var(--terminal-nav-icon) center / contain no-repeat;
+body.terminal-app-mode .sidebar .nav-item .nav-label {
+  display: inline-block !important;
+  width: auto !important;
+  height: auto !important;
+  min-width: 0 !important;
+  flex: 1 1 auto !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  background: transparent !important;
+  color: inherit !important;
 }
 
-/* General overview — architectural dashboard/home */
-body.terminal-app-mode [data-page="overview"] .nav-icon,
-body.terminal-app-mode [data-view="overview"] .nav-icon,
-body.terminal-app-mode a[href="#overview"] .nav-icon {
-  --terminal-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M3.5 10.5 12 3.8l8.5 6.7v9.2H3.5zM9.3 19.7v-6.2h5.4v6.2'/%3E%3C/svg%3E");
-}
-
-/* Portfolio — allocation/pie */
-body.terminal-app-mode [data-page="portfolio"] .nav-icon,
-body.terminal-app-mode [data-view="portfolio"] .nav-icon,
-body.terminal-app-mode a[href="#portfolio"] .nav-icon {
-  --terminal-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M11 3.3a8.7 8.7 0 1 0 8.7 8.7H11zM14 3.5v7h7A7 7 0 0 0 14 3.5Z'/%3E%3C/svg%3E");
-}
-
-/* Transactions — bidirectional trade arrows */
-body.terminal-app-mode [data-page="transactions"] .nav-icon,
-body.terminal-app-mode [data-view="transactions"] .nav-icon,
-body.terminal-app-mode a[href="#transactions"] .nav-icon {
-  --terminal-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M4 7h14m0 0-3-3m3 3-3 3M20 17H6m0 0 3 3m-3-3 3-3'/%3E%3C/svg%3E");
-}
-
-/* Research — market pulse inside magnifier */
-body.terminal-app-mode [data-page="research"] .nav-icon,
-body.terminal-app-mode [data-view="research"] .nav-icon,
-body.terminal-app-mode a[href="#research"] .nav-icon {
-  --terminal-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Zm5.3-2.2L21 21M5.8 10.8h2.1l1.3-2.5 2.1 5 1.6-3h2.2'/%3E%3C/svg%3E");
-}
-
-/* Settings — terminal hex/core */
-body.terminal-app-mode [data-page="settings"] .nav-icon,
-body.terminal-app-mode [data-view="settings"] .nav-icon,
-body.terminal-app-mode a[href="#settings"] .nav-icon {
-  --terminal-nav-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='m12 2.8 8 4.6v9.2l-8 4.6-8-4.6V7.4zM12 8l3.5 2v4L12 16l-3.5-2v-4z'/%3E%3C/svg%3E");
-}
-
-/* Active item gets the terminal blue without glow overload. */
-body.terminal-app-mode .nav-item.active .nav-icon,
-body.terminal-app-mode .nav-item.active > span:first-child {
+body.terminal-app-mode .sidebar .nav-item.active .nav-icon {
   color: #58a6ff !important;
+}
+
+/* Mobile/tablet bottom bar: show icons only, labels remain intact in DOM. */
+@media (max-width: 900px) {
+  body.terminal-app-mode .sidebar .nav-item .nav-label {
+    display: none !important;
+  }
+
+  body.terminal-app-mode .sidebar .nav-item .nav-icon {
+    margin: 0 auto !important;
+  }
 }
