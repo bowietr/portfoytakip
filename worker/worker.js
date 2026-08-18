@@ -56,6 +56,23 @@ export default {
       return await handleFonolojiQuota(env);
     }
 
+    const modelFundMatch = url.pathname.match(/^\/api\/model\/fund\/([A-Za-z0-9._-]+)$/);
+    if (modelFundMatch) {
+      const code = modelFundMatch[1].trim().toUpperCase().replace(/\.IS$/, "");
+      if (!/^[A-Z0-9]{2,12}$/.test(code)) {
+        return json({ok:false,error:"Geçersiz fon kodu."},400);
+      }
+
+      // Final model response is cached for 6 hours.
+      // A repeated analysis of the same fund should normally consume 0 Fonoloji quota.
+      return await cachedApiResponse(
+        request,
+        ctx,
+        21600,
+        () => handleFundModelData(code, env)
+      );
+    }
+
     const researchMatch = url.pathname.match(/^\/api\/research\/(fund|stock)\/([A-Za-z0-9._-]+)$/);
     if (researchMatch) {
       const type = researchMatch[1];
@@ -1250,7 +1267,7 @@ async function fonolojiGet(path, env, options={}) {
       headers:{
         "X-API-Key":key,
         "Accept":"application/json",
-        "User-Agent":"Portfoyum/1.23.0"
+        "User-Agent":"Portfoyum/1.24.3"
       }
     });
     const text=await response.text();
@@ -1305,6 +1322,109 @@ async function fetchFonolojiFund(code, env) {
     lifetime: body?.lifetime ?? null,
     flows: body?.flows ?? null
   };
+}
+
+
+async function fetchFonolojiFundForModel(code, env) {
+  const normalized = String(code || "").trim().toUpperCase();
+
+  // Model analysis deliberately uses only /funds/:code.
+  // No timeseries, history, portfolio or analysis request is made here.
+  // Six-hour upstream freshness protects the Fonoloji monthly quota.
+  const body = await fonolojiGet(
+    `/funds/${encodeURIComponent(normalized)}`,
+    env,
+    {ttl:21600, staleTtl:86400}
+  );
+
+  const fund = body?.fund;
+  if (!fund) {
+    throw new Error("Fonoloji model verisinde fund objesi bulunamadı.");
+  }
+  if (String(fund.code || "").toUpperCase() !== normalized) {
+    throw new Error(`Fonoloji farklı fon döndürdü: ${String(fund.code || "bilinmiyor")}`);
+  }
+  return fund;
+}
+
+function modelPct(value) {
+  const n=Number(value);
+  return Number.isFinite(n) ? n*100 : null;
+}
+
+function modelNullablePositive(value) {
+  const n=Number(value);
+  return Number.isFinite(n) && n>0 ? n : null;
+}
+
+async function handleFundModelData(code, env) {
+  try {
+    const f=await fetchFonolojiFundForModel(code,env);
+    const price=Number.isFinite(Number(f?.current_price)) ? Number(f.current_price) : null;
+
+    return json({
+      ok:true,
+      data:{
+        type:"fund",
+        source:"Fonoloji · model-optimized",
+        code,
+        name:f?.name || code,
+        category:f?.category ?? null,
+        price,
+
+        performance:{
+          day1:Number.isFinite(Number(f?.return_1d)) ? modelPct(f.return_1d) : null,
+          week:Number.isFinite(Number(f?.return_1w)) ? modelPct(f.return_1w) : null,
+          month1:Number.isFinite(Number(f?.return_1m)) ? modelPct(f.return_1m) : null,
+          month3:Number.isFinite(Number(f?.return_3m)) ? modelPct(f.return_3m) : null,
+          month6:Number.isFinite(Number(f?.return_6m)) ? modelPct(f.return_6m) : null,
+          year1:Number.isFinite(Number(f?.return_1y)) ? modelPct(f.return_1y) : null,
+          ytd:Number.isFinite(Number(f?.return_ytd)) ? modelPct(f.return_ytd) : null,
+          realReturn1yPct:Number.isFinite(Number(f?.real_return_1y)) ? modelPct(f.real_return_1y) : null,
+          annualizedReturnPct:null
+        },
+
+        stats:{
+          ma30:Number.isFinite(Number(f?.ma_30)) ? Number(f.ma_30) : null,
+          ma90:Number.isFinite(Number(f?.ma_90)) ? Number(f.ma_90) : null,
+          ma200:Number.isFinite(Number(f?.ma_200)) ? Number(f.ma_200) : null
+        },
+
+        risk:{
+          source:"Fonoloji",
+          volatility90dPct:Number.isFinite(Number(f?.volatility_90)) ? modelPct(f.volatility_90) : null,
+          annualizedVolatilityPct:null,
+          volatility30dPct:null,
+          maxDrawdownPct:Number.isFinite(Number(f?.max_drawdown_1y)) ? modelPct(f.max_drawdown_1y) : null,
+          // Not requested separately: leaving it null prevents another Fonoloji call.
+          positiveDayRatioPct:null,
+          downsideDeviationPct:null,
+          sharpe:Number.isFinite(Number(f?.sharpe_90)) ? Number(f.sharpe_90) : null,
+          sortino:Number.isFinite(Number(f?.sortino_90)) ? Number(f.sortino_90) : null,
+          calmar:Number.isFinite(Number(f?.calmar_1y)) ? Number(f.calmar_1y) : null,
+          beta1y:Number.isFinite(Number(f?.beta_1y)) ? Number(f.beta_1y) : null
+        },
+
+        metadata:{
+          fundTotalValue:modelNullablePositive(f?.aum),
+          investorCount:modelNullablePositive(f?.investor_count),
+          shareCount:null,
+          riskValue:validRiskValue(f?.risk_score),
+          riskLabel:riskLabel(validRiskValue(f?.risk_score)),
+          firstSeen:f?.first_seen ?? null,
+          lastSeen:f?.last_seen ?? null
+        },
+
+        modelMeta:{
+          upstreamCallsOnMiss:1,
+          upstreamEndpoint:"/funds/:code",
+          workerCacheSeconds:21600
+        }
+      }
+    });
+  } catch(err) {
+    return json({ok:false,error:String(err?.message||err)},500);
+  }
 }
 
 async function fetchFonolojiTimeseries(code, env) {

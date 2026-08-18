@@ -1,4 +1,4 @@
-const APP_VERSION = "1.24.2";
+const APP_VERSION = "1.24.3";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -293,7 +293,7 @@ function renderCards() {
 
 
 const FUND_MODEL_VERSION = "1.0";
-const FUND_MODEL_CACHE_MS = 10 * 60 * 1000;
+const FUND_MODEL_CACHE_MS = 60 * 60 * 1000;
 const fundModelCache = new Map();
 
 function clampModel(v,min=0,max=100){ return Math.max(min,Math.min(max,Number(v)||0)); }
@@ -445,7 +445,7 @@ async function fetchFundModelData(code){
   const cached=fundModelCache.get(key);
   if(cached && Date.now()-cached.time<FUND_MODEL_CACHE_MS) return cached.data;
   const base=requireApiBase();
-  const r=await fetch(`${base}/api/research/fund/${encodeURIComponent(key)}`,{
+  const r=await fetch(`${base}/api/model/fund/${encodeURIComponent(key)}`,{
     headers:{"X-Portfoyum-Client":getClientId()}
   });
   const body=await r.json().catch(()=>({}));
