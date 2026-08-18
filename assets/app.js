@@ -1,4 +1,4 @@
-const APP_VERSION = "1.24.1";
+const APP_VERSION = "1.24.2";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -455,7 +455,10 @@ async function fetchFundModelData(code){
 }
 
 async function runPortfolioFundModel(){
-  const btn=$("runFundModelAnalysis"), status=$("fundModelStatus"), host=$("fundModelResults");
+  const btn=document.getElementById("runFundModelAnalysis");
+  const status=document.getElementById("fundModelStatus");
+  const host=document.getElementById("fundModelResults");
+  if(!btn || !status || !host) throw new Error("Model analizi arayüzü bulunamadı.");
   const funds=state.assets.filter(a=>{
     const t=String(a?.type||"").toLowerCase();
     return t==="fund" || t==="fon" || t==="yatirim_fonu" || t==="investment_fund";
@@ -463,6 +466,8 @@ async function runPortfolioFundModel(){
   if(!funds.length){
     status.textContent="Portföyünde analiz edilecek yatırım fonu yok.";
     host.innerHTML="";
+    btn.disabled=false;
+    btn.textContent="✦ Analiz Et";
     return;
   }
   btn.disabled=true; btn.textContent="Analiz ediliyor…";
@@ -483,6 +488,27 @@ async function runPortfolioFundModel(){
   status.textContent=`${ok}/${funds.length} fon analiz edildi · Model v${FUND_MODEL_VERSION}`;
   btn.disabled=false; btn.textContent="✦ Yeniden Analiz Et";
 }
+
+
+window.runPortfolioFundModelSafe = async function () {
+  const btn = document.getElementById("runFundModelAnalysis");
+  const status = document.getElementById("fundModelStatus");
+  try {
+    if (status) status.textContent = "Analiz başlatılıyor…";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "Analiz ediliyor…";
+    }
+    await runPortfolioFundModel();
+  } catch (err) {
+    if (status) status.textContent = `Analiz hatası: ${String(err?.message || err)}`;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "✦ Analiz Et";
+    }
+    console.error("Fund model analysis error:", err);
+  }
+};
 
 function renderTransactions() {
   const list = [...state.transactions].sort((a,b) => String(b.date).localeCompare(String(a.date)));
@@ -2353,18 +2379,3 @@ window.deleteAsset = deleteAsset;
 window.deleteTx = deleteTx;
 
 
-const fundModelButton = document.getElementById("runFundModelAnalysis");
-if (fundModelButton) {
-  fundModelButton.addEventListener("click", async (event) => {
-    event.preventDefault();
-    try {
-      await runPortfolioFundModel();
-    } catch (err) {
-      const status = document.getElementById("fundModelStatus");
-      if (status) status.textContent = `Analiz hatası: ${String(err?.message || err)}`;
-      fundModelButton.disabled = false;
-      fundModelButton.textContent = "✦ Analiz Et";
-      console.error("Fund model analysis error:", err);
-    }
-  });
-}
