@@ -1,4 +1,4 @@
-const APP_VERSION = "1.23.3";
+const APP_VERSION = "1.23.4";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -352,7 +352,7 @@ function renderCharts() {
 }
 
 function historyRangeLabel(range) {
-  return ({ "1M":"1 Ay", "3M":"3 Ay", "6M":"6 Ay", "1Y":"1 Yıl", "ALL":"Tümü" })[range] || "Tümü";
+  return ({ "1W":"1 Hafta", "1M":"1 Ay", "3M":"3 Ay", "6M":"6 Ay", "1Y":"1 Yıl", "ALL":"Tümü" })[range] || "Tümü";
 }
 
 function updateHistoryRangeSummary(points = getFilteredHistory()) {
@@ -370,8 +370,13 @@ function getFilteredHistory() {
 
   const latestDate = new Date(points.at(-1).date + "T12:00:00");
   const from = new Date(latestDate);
-  const months = { "1M":1, "3M":3, "6M":6, "1Y":12 }[state.historyRange] || 0;
-  from.setMonth(from.getMonth() - months);
+
+  if (state.historyRange === "1W") {
+    from.setDate(from.getDate() - 7);
+  } else {
+    const months = { "1M":1, "3M":3, "6M":6, "1Y":12 }[state.historyRange] || 0;
+    from.setMonth(from.getMonth() - months);
+  }
 
   return points.filter(x => new Date(x.date + "T12:00:00") >= from);
 }
