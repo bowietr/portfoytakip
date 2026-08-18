@@ -1,4 +1,4 @@
-const APP_VERSION = "1.23.8";
+const APP_VERSION = "1.24.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -289,6 +289,197 @@ function renderCards() {
       </div>
     </article>`;
   }).join("") : `<div class="empty-state">Bu kategoride varlık yok.</div>`;
+}
+
+
+const FUND_MODEL_VERSION = "1.0";
+const FUND_MODEL_CACHE_MS = 10 * 60 * 1000;
+const fundModelCache = new Map();
+
+function clampModel(v,min=0,max=100){ return Math.max(min,Math.min(max,Number(v)||0)); }
+function finiteModel(v){ const n=Number(v); return Number.isFinite(n) ? n : null; }
+function modelPts(value, bands) {
+  const v=finiteModel(value);
+  if(v===null) return null;
+  for(const [min,pts] of bands) if(v>=min) return pts;
+  return 0;
+}
+function ratioPts(price, ma, maxPts){
+  price=finiteModel(price); ma=finiteModel(ma);
+  if(!(price>0) || !(ma>0)) return null;
+  const d=(price/ma-1)*100;
+  if(d>=5) return maxPts;
+  if(d>=0) return maxPts*.75;
+  if(d>=-5) return maxPts*.35;
+  return 0;
+}
+function scoreFundModel(d){
+  const p=d?.performance||{}, r=d?.risk||{}, s=d?.stats||{}, m=d?.metadata||{};
+  const price=finiteModel(d?.price);
+
+  // 1) Trend & Momentum — 35
+  const trendParts = [
+    ["1H", modelPts(p.week, [[3,5],[1,4],[0,3],[-2,1]])],
+    ["1A", modelPts(p.month1, [[8,6],[3,5],[0,3],[-5,1]])],
+    ["3A", modelPts(p.month3, [[20,6],[8,5],[0,3],[-8,1]])],
+    ["6A", modelPts(p.month6, [[35,5],[15,4],[0,2],[-10,1]])],
+    ["MA30", ratioPts(price,s.ma30,5)],
+    ["MA90", ratioPts(price,s.ma90,4)],
+    ["MA200", ratioPts(price,s.ma200,4)]
+  ];
+  const trendAvail=trendParts.filter(x=>x[1]!==null);
+  const trendRaw=trendAvail.reduce((a,x)=>a+x[1],0);
+  const trendMax=trendAvail.reduce((a,x)=>{
+    const maxima={"1H":5,"1A":6,"3A":6,"6A":5,"MA30":5,"MA90":4,"MA200":4}; return a+maxima[x[0]];
+  },0);
+  const trend=trendMax ? trendRaw/trendMax*35 : null;
+
+  // 2) Risk-adjusted quality — 30
+  const riskParts = [
+    ["Sharpe", modelPts(r.sharpe, [[2,8],[1,6],[0.5,4],[0,2]])],
+    ["Sortino", modelPts(r.sortino, [[3,7],[1.5,5],[0.5,3],[0,1]])],
+    ["Calmar", modelPts(r.calmar, [[2,6],[1,4],[0.5,2],[0,1]])],
+    ["Drawdown", (()=>{const v=finiteModel(r.maxDrawdownPct); if(v===null)return null; const a=Math.abs(v); return a<=10?5:a<=20?4:a<=30?2:a<=40?1:0;})()],
+    ["Volatilite", (()=>{const v=finiteModel(r.volatility90dPct); if(v===null)return null; return v<=10?4:v<=20?3:v<=30?2:v<=45?1:0;})()]
+  ];
+  const riskMaxima={"Sharpe":8,"Sortino":7,"Calmar":6,"Drawdown":5,"Volatilite":4};
+  const riskAvail=riskParts.filter(x=>x[1]!==null);
+  const riskMax=riskAvail.reduce((a,x)=>a+riskMaxima[x[0]],0);
+  const riskScore=riskMax ? riskAvail.reduce((a,x)=>a+x[1],0)/riskMax*30 : null;
+
+  // 3) Relative/structural strength — 20.
+  // Uses real return, YTD and positive-day ratio when category percentile isn't in the current payload.
+  const relParts=[
+    ["Reel 1Y", modelPts(p.realReturn1yPct, [[30,7],[10,6],[0,4],[-10,2]])],
+    ["YTD", modelPts(p.ytd, [[30,7],[15,6],[5,4],[0,3],[-10,1]])],
+    ["Pozitif Gün", modelPts(r.positiveDayRatioPct, [[58,6],[54,5],[50,3],[45,1]])]
+  ];
+  const relMaxima={"Reel 1Y":7,"YTD":7,"Pozitif Gün":6};
+  const relAvail=relParts.filter(x=>x[1]!==null);
+  const relMax=relAvail.reduce((a,x)=>a+relMaxima[x[0]],0);
+  const relative=relMax ? relAvail.reduce((a,x)=>a+x[1],0)/relMax*20 : null;
+
+  // 4) Fund health — 15. Current API payload has AUM, investor count, age and risk score.
+  const ageDays=m.firstSeen ? Math.max(0,(Date.now()-new Date(m.firstSeen).getTime())/86400000) : null;
+  const healthParts=[
+    ["AUM", (()=>{const v=finiteModel(m.fundTotalValue); if(v===null)return null; return v>=1e9?5:v>=250e6?4:v>=50e6?3:v>=10e6?2:1;})()],
+    ["Yatırımcı", (()=>{const v=finiteModel(m.investorCount); if(v===null)return null; return v>=50000?4:v>=10000?3:v>=1000?2:1;})()],
+    ["Geçmiş", ageDays===null?null:(ageDays>=1095?4:ageDays>=730?3:ageDays>=365?2:1)],
+    ["Risk Verisi", finiteModel(m.riskValue)===null?null:2]
+  ];
+  const healthMaxima={"AUM":5,"Yatırımcı":4,"Geçmiş":4,"Risk Verisi":2};
+  const healthAvail=healthParts.filter(x=>x[1]!==null);
+  const healthMax=healthAvail.reduce((a,x)=>a+healthMaxima[x[0]],0);
+  const health=healthMax ? healthAvail.reduce((a,x)=>a+x[1],0)/healthMax*15 : null;
+
+  const sections=[["Trend",trend,35],["Risk",riskScore,30],["Göreli Güç",relative,20],["Fon Sağlığı",health,15]];
+  const available=sections.filter(x=>x[1]!==null);
+  const availableWeight=available.reduce((a,x)=>a+x[2],0);
+  const score=availableWeight ? clampModel(available.reduce((a,x)=>a+x[1],0)/availableWeight*100) : null;
+
+  // Data completeness is calculated from actual metric availability.
+  const allMetrics=[...trendParts,...riskParts,...relParts,...healthParts];
+  const completeness=allMetrics.length ? allMetrics.filter(x=>x[1]!==null).length/allMetrics.length*100 : 0;
+
+  let signal="YETERSİZ VERİ";
+  if(score!==null && completeness>=60){
+    signal=score>=75?"AL":score>=50?"TUT":"SAT";
+  }
+
+  const sectionAgreement = available.length ? available.filter(x => (x[1]/x[2]*100) >= 50).length/available.length : 0;
+  let confidence="Düşük";
+  if(completeness>=85 && (sectionAgreement>=.75 || sectionAgreement<=.25)) confidence="Yüksek";
+  else if(completeness>=70) confidence="Orta";
+
+  const reasons=[];
+  if(trend!==null) reasons.push(trend>=25?"Trend ve momentum güçlü":trend>=17.5?"Trend görünümü dengeli":"Trend/momentum zayıf");
+  if(riskScore!==null) reasons.push(riskScore>=21?"Risk düzeltilmiş kalite güçlü":riskScore>=15?"Risk metrikleri dengeli":"Risk metrikleri baskı oluşturuyor");
+  if(relative!==null) reasons.push(relative>=14?"Göreli güç olumlu":relative>=10?"Göreli güç nötr":"Göreli güç zayıf");
+  if(health!==null) reasons.push(health>=10.5?"Fon sağlığı güçlü":health>=7.5?"Fon sağlığı dengeli":"Fon sağlığı puanı düşük");
+
+  return {
+    version:FUND_MODEL_VERSION,
+    score:score===null?null:Math.round(score),
+    signal, confidence, completeness:Math.round(completeness),
+    sections:{
+      trend:trend===null?null:Math.round(trend*10)/10,
+      risk:riskScore===null?null:Math.round(riskScore*10)/10,
+      relative:relative===null?null:Math.round(relative*10)/10,
+      health:health===null?null:Math.round(health*10)/10
+    },
+    reasons
+  };
+}
+
+function fundModelSignalClass(signal){
+  return signal==="AL"?"model-buy":signal==="SAT"?"model-sell":signal==="TUT"?"model-hold":"model-na";
+}
+function modelSection(label,val,max){
+  const pctv=val===null?0:Math.max(0,Math.min(100,val/max*100));
+  return `<div class="model-meter-row"><span>${label}</span><div class="model-meter"><i style="width:${pctv}%"></i></div><strong>${val===null?"—":val.toFixed(1)}<small>/${max}</small></strong></div>`;
+}
+function renderFundModelCard(asset, data, model){
+  const cls=fundModelSignalClass(model.signal);
+  return `<article class="fund-model-card ${cls}">
+    <div class="fund-model-card-top">
+      <div><span class="fund-model-code">${escapeHtml(asset.code)}</span><small>${escapeHtml(data?.name||asset.name||"Yatırım Fonu")}</small></div>
+      <div class="fund-model-signal"><span>MODEL SİNYALİ</span><strong>${model.signal}</strong></div>
+    </div>
+    <div class="fund-model-scoreline">
+      <div class="fund-model-score"><strong>${model.score===null?"—":model.score}</strong><span>/100</span></div>
+      <div><b>Güven: ${model.confidence}</b><small>Veri tamlığı %${model.completeness}</small></div>
+    </div>
+    <div class="fund-model-meters">
+      ${modelSection("Trend",model.sections.trend,35)}
+      ${modelSection("Risk",model.sections.risk,30)}
+      ${modelSection("Göreli Güç",model.sections.relative,20)}
+      ${modelSection("Fon Sağlığı",model.sections.health,15)}
+    </div>
+    <div class="fund-model-reasons">${model.reasons.map(x=>`<span>• ${escapeHtml(x)}</span>`).join("")}</div>
+    <div class="fund-model-foot">Model v${model.version} · Fonoloji verileri · Otomatik emir oluşturmaz.</div>
+  </article>`;
+}
+
+async function fetchFundModelData(code){
+  const key=String(code||"").toUpperCase();
+  const cached=fundModelCache.get(key);
+  if(cached && Date.now()-cached.time<FUND_MODEL_CACHE_MS) return cached.data;
+  const base=(window.PORTFOYUM_CONFIG?.API_BASE||"").replace(/\/$/,"");
+  if(!base) throw new Error("API adresi bulunamadı.");
+  const r=await fetch(`${base}/api/research/fund/${encodeURIComponent(key)}`,{
+    headers:{"X-Portfoyum-Client":getClientId()}
+  });
+  const body=await r.json().catch(()=>({}));
+  if(!r.ok || !body?.ok || !body?.data) throw new Error(body?.error||`${key} verisi alınamadı.`);
+  fundModelCache.set(key,{time:Date.now(),data:body.data});
+  return body.data;
+}
+
+async function runPortfolioFundModel(){
+  const btn=$("runFundModelAnalysis"), status=$("fundModelStatus"), host=$("fundModelResults");
+  const funds=state.assets.filter(a=>a.type==="fund");
+  if(!funds.length){
+    status.textContent="Portföyünde analiz edilecek yatırım fonu yok.";
+    host.innerHTML="";
+    return;
+  }
+  btn.disabled=true; btn.textContent="Analiz ediliyor…";
+  status.textContent=`${funds.length} fon için metrikler hazırlanıyor…`;
+  host.innerHTML="";
+  const cards=[];
+  let ok=0;
+  for(const asset of funds){
+    try{
+      const data=await fetchFundModelData(asset.code);
+      const model=scoreFundModel(data);
+      cards.push(renderFundModelCard(asset,data,model)); ok++;
+    }catch(err){
+      cards.push(`<article class="fund-model-card model-na"><div class="fund-model-card-top"><div><span class="fund-model-code">${escapeHtml(asset.code)}</span></div><div class="fund-model-signal"><strong>HATA</strong></div></div><p>${escapeHtml(String(err?.message||err))}</p></article>`);
+    }
+  }
+  host.innerHTML=cards.join("");
+  status.textContent=`${ok}/${funds.length} fon analiz edildi · Model v${FUND_MODEL_VERSION}`;
+  btn.disabled=false; btn.textContent="✦ Yeniden Analiz Et";
 }
 
 function renderTransactions() {
@@ -2159,3 +2350,5 @@ window.updateStockPrice = updateStockPrice;
 window.deleteAsset = deleteAsset;
 window.deleteTx = deleteTx;
 
+
+document.getElementById("runFundModelAnalysis")?.addEventListener("click", runPortfolioFundModel);

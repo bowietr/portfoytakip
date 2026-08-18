@@ -3563,3 +3563,30 @@ body.terminal-app-mode .sidebar .nav-item.active .nav-icon {
     margin: 0 auto !important;
   }
 }
+
+
+/* =========================================================
+   V1.24.0 — PORTFÖY FON MODEL ANALİZİ
+   ========================================================= */
+.fund-model-panel{margin:0 0 18px;border:1px solid var(--border);border-radius:14px;background:var(--panel);overflow:hidden}
+.fund-model-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px 22px}
+.fund-model-head h2{margin:4px 0 4px;font-size:20px}.fund-model-head p{margin:0;color:var(--muted);font-size:13px}
+.fund-model-kicker{font-size:10px;font-weight:800;letter-spacing:.16em;color:#58a6ff}
+.fund-model-disclaimer{padding:10px 22px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);font-size:10px;letter-spacing:.08em;color:var(--muted)}
+.fund-model-status{padding:12px 22px;color:var(--muted);font-size:12px}
+.fund-model-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;padding:0 22px 22px}
+.fund-model-card{border:1px solid var(--border);border-radius:12px;background:var(--bg);padding:17px;position:relative;overflow:hidden}
+.fund-model-card:before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:#7f8a98}
+.fund-model-card.model-buy:before{background:#36d17d}.fund-model-card.model-sell:before{background:#ff6262}.fund-model-card.model-hold:before{background:#58a6ff}
+.fund-model-card-top{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.fund-model-card-top>div:first-child{min-width:0;display:flex;flex-direction:column;gap:5px}
+.fund-model-code{font-size:20px;font-weight:850}.fund-model-card-top small{color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:390px}
+.fund-model-signal{text-align:right}.fund-model-signal span{display:block;font-size:9px;letter-spacing:.12em;color:var(--muted)}.fund-model-signal strong{font-size:24px}
+.model-buy .fund-model-signal strong{color:#36d17d}.model-sell .fund-model-signal strong{color:#ff6262}.model-hold .fund-model-signal strong{color:#58a6ff}
+.fund-model-scoreline{display:flex;align-items:center;gap:14px;margin:17px 0}.fund-model-score{display:flex;align-items:baseline}.fund-model-score strong{font-size:36px;line-height:1}.fund-model-score span{color:var(--muted)}
+.fund-model-scoreline>div:last-child{display:flex;flex-direction:column;gap:4px}.fund-model-scoreline small{color:var(--muted)}
+.fund-model-meters{display:grid;gap:9px}.model-meter-row{display:grid;grid-template-columns:82px 1fr 58px;align-items:center;gap:9px;font-size:11px;color:var(--muted)}
+.model-meter{height:5px;border-radius:99px;background:rgba(127,138,152,.16);overflow:hidden}.model-meter i{display:block;height:100%;border-radius:inherit;background:#58a6ff}
+.model-meter-row strong{text-align:right;color:var(--text)}.model-meter-row strong small{color:var(--muted);font-weight:500}
+.fund-model-reasons{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:15px;padding-top:13px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
+.fund-model-foot{margin-top:12px;font-size:9px;color:var(--muted);opacity:.8}
+@media(max-width:900px){.fund-model-head{align-items:flex-start;flex-direction:column}.fund-model-grid{grid-template-columns:1fr;padding:0 14px 14px}.fund-model-head,.fund-model-status,.fund-model-disclaimer{padding-left:14px;padding-right:14px}.fund-model-head .primary-btn{width:100%}.model-meter-row{grid-template-columns:74px 1fr 55px}}
