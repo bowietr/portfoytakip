@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.23.4" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.23.5" />
 
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon-48.png">
@@ -39,7 +39,7 @@
 
       <div class="sidebar-bottom">
         <small class="terminal-source-note">Veriler Fonoloji üzerinden<br>anlık olarak sağlanmaktadır.</small>
-        <small class="terminal-version">V1.23.4</small>
+        <small class="terminal-version">V1.23.5</small>
       </div>
     </aside>
 
@@ -80,19 +80,7 @@
         </div>
 
         <div class="dashboard-grid">
-          <article class="panel chart-panel">
-            <div class="panel-head">
-              <div>
-                <h2>Varlık Dağılımı</h2>
-                <p>Portföy değerine göre</p>
-              </div>
-            </div>
-            <div class="chart-wrap">
-              <canvas id="allocationChart"></canvas>
-            </div>
-          </article>
-
-          <article class="panel">
+          <article class="overview-positions-panel panel">
             <div class="panel-head">
               <div>
                 <h2>En Büyük Pozisyonlar</h2>
@@ -101,6 +89,18 @@
             </div>
             <div id="topPositions" class="position-list empty-state">
               Henüz varlık eklenmedi.
+            </div>
+          </article>
+
+          <article class="overview-allocation-panel panel chart-panel">
+            <div class="panel-head">
+              <div>
+                <h2>Varlık Dağılımı</h2>
+                <p>Portföy değerine göre</p>
+              </div>
+            </div>
+            <div class="chart-wrap">
+              <canvas id="allocationChart"></canvas>
             </div>
           </article>
         </div>
@@ -523,6 +523,6 @@
       apiBase: "https://portfoyum-api.haydarcicek94.workers.dev"
     };
   </script>
-  <script src="./assets/app.js?v=1.23.4"></script>
+  <script src="./assets/app.js?v=1.23.5"></script>
 </body>
 </html>

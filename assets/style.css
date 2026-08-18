@@ -3450,3 +3450,74 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections:not([hi
     padding-bottom:88px !important;
   }
 }
+
+
+/* =========================================================
+   V1.23.5 — OVERVIEW PRIMARY PANELS LAYOUT
+   En Büyük Pozisyonlar solda ve geniş; Varlık Dağılımı sağda ve dar.
+   ========================================================= */
+
+/* Desktop / landscape tablet */
+@media (min-width: 901px) {
+  body.terminal-app-mode .overview-grid,
+  body.terminal-app-mode .dashboard-grid,
+  body.terminal-app-mode .overview-main-grid {
+    align-items: stretch;
+  }
+
+  body.terminal-app-mode .overview-positions-panel {
+    grid-column: span 7 !important;
+    min-width: 0 !important;
+  }
+
+  body.terminal-app-mode .overview-allocation-panel {
+    grid-column: span 5 !important;
+    min-width: 0 !important;
+  }
+
+  /* If the parent is a two-column grid rather than a 12-col grid,
+     give the row an explicit proportional split. */
+  body.terminal-app-mode .overview-positions-panel:first-child,
+  body.terminal-app-mode .overview-allocation-panel:last-child {
+    align-self: stretch !important;
+  }
+}
+
+/* Exact two-card row targeting via :has for modern browsers */
+@media (min-width: 901px) {
+  body.terminal-app-mode *:has(> .overview-positions-panel):has(> .overview-allocation-panel) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.95fr) !important;
+    gap: 12px !important;
+    align-items: stretch !important;
+  }
+
+  body.terminal-app-mode .overview-positions-panel,
+  body.terminal-app-mode .overview-allocation-panel {
+    width: 100% !important;
+    height: 100% !important;
+  }
+}
+
+/* Keep the donut comfortably sized inside the narrower card */
+@media (min-width: 901px) {
+  body.terminal-app-mode .overview-allocation-panel canvas {
+    max-width: 360px !important;
+    max-height: 360px !important;
+    margin-inline: auto !important;
+  }
+}
+
+/* Narrow screens: stack naturally and keep readable proportions */
+@media (max-width: 900px) {
+  body.terminal-app-mode *:has(> .overview-positions-panel):has(> .overview-allocation-panel) {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  body.terminal-app-mode .overview-positions-panel,
+  body.terminal-app-mode .overview-allocation-panel {
+    width: 100% !important;
+  }
+}
