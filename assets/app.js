@@ -1,4 +1,4 @@
-const APP_VERSION = "1.26.3";
+const APP_VERSION = "1.26.4";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -559,7 +559,7 @@ function renderTopPositions() {
   $("topPositions").innerHTML = list.length ? list.map(({a,c}) => {
     const weight = total ? c.value/total*100 : 0;
     return `<div class="position-row">
-      <div class="position-logo">${escapeHtml(a.code.slice(0,2))}</div>
+      <div class="position-logo" data-code-length="${String(a.code||"").length}">${escapeHtml(a.code)}</div>
       <div class="position-name"><strong>${escapeHtml(a.code)}</strong><small>${escapeHtml(a.name || (a.type==="fund"?"Yatırım Fonu":"Hisse"))}</small></div>
       <div class="position-weight"><strong>${pct(weight)}</strong><small>${money(c.value)}</small></div>
     </div>`;

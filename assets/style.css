@@ -4650,3 +4650,69 @@ body.terminal-pro-theme #researchView .loss,
 body.terminal-pro-theme #researchView .loss strong {
   color:#ff5c4a !important;
 }
+
+
+/* =========================================================
+   V1.26.4 — TOP POSITIONS FULL FUND CODE
+   ========================================================= */
+
+body.terminal-pro-theme .position-row {
+  grid-template-columns:auto minmax(0,1fr) auto !important;
+}
+
+body.terminal-pro-theme .position-logo {
+  width:auto !important;
+  min-width:52px !important;
+  max-width:92px !important;
+  height:42px !important;
+  padding:0 10px !important;
+  border-radius:8px !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  white-space:nowrap !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  font-family:"SFMono-Regular",Consolas,"Liberation Mono",monospace !important;
+  font-size:15px !important;
+  font-weight:800 !important;
+  letter-spacing:.02em !important;
+  line-height:1 !important;
+  background:#151108 !important;
+  color:#ffbd2e !important;
+  border:1px solid rgba(224,162,27,.34) !important;
+}
+
+/* Slightly tighter text for longer BIST/fund codes */
+body.terminal-pro-theme .position-logo[data-code-length="4"],
+body.terminal-pro-theme .position-logo[data-code-length="5"],
+body.terminal-pro-theme .position-logo[data-code-length="6"] {
+  font-size:13px !important;
+  padding-inline:9px !important;
+}
+
+body.terminal-pro-theme .position-logo[data-code-length="7"],
+body.terminal-pro-theme .position-logo[data-code-length="8"] {
+  font-size:11px !important;
+  padding-inline:8px !important;
+}
+
+body.terminal-pro-theme .position-name {
+  min-width:0 !important;
+}
+
+body.terminal-pro-theme .position-name strong,
+body.terminal-pro-theme .position-name small {
+  overflow:hidden !important;
+  text-overflow:ellipsis !important;
+}
+
+@media(max-width:700px){
+  body.terminal-pro-theme .position-logo{
+    min-width:48px !important;
+    max-width:78px !important;
+    height:40px !important;
+    font-size:13px !important;
+    padding-inline:8px !important;
+  }
+}
