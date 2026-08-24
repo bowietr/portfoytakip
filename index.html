@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <title>Portföyüm</title>
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
-  <link rel="stylesheet" href="./assets/style.css?v=1.24.3" />
+  <link rel="stylesheet" href="./assets/style.css?v=1.25.0" />
 
   <link rel="icon" type="image/png" sizes="32x32" href="assets/icons/icon-32.png">
   <link rel="icon" type="image/png" sizes="48x48" href="assets/icons/icon-48.png">
@@ -52,7 +52,7 @@
           <span class="nav-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24"><path d="M10.5 18a7.5 7.5 0 1 0 0-15 7.5 7.5 0 0 0 0 15Zm5.3-2.2L21 21M5.8 10.8h2.1l1.3-2.5 2.1 5 1.6-3h2.2"/></svg>
           </span>
-          <span class="nav-label">VARLIK ARAŞTIR</span>
+          <span class="nav-label">FON ARA</span>
         </button>
         <button class="nav-item" data-view="settings">
           <span class="nav-icon" aria-hidden="true">
@@ -64,7 +64,7 @@
 
       <div class="sidebar-bottom">
         <small class="terminal-source-note">Veriler Fonoloji üzerinden<br>anlık olarak sağlanmaktadır.</small>
-        <small class="terminal-version">V1.24.3</small>
+        <small class="terminal-version">V1.25.0</small>
       </div>
     </aside>
 
@@ -246,24 +246,7 @@
           </div>
           <button class="primary-btn" data-open-modal="asset">+ Yeni Varlık</button>
         </div>
-
-        <section id="fundModelPanel" class="fund-model-panel">
-          <div class="fund-model-head">
-            <div>
-              <span class="fund-model-kicker">PORTFÖY MODELİ</span>
-              <h2>Fon Model Analizi</h2>
-              <p>Yalnızca portföyündeki yatırım fonlarını; trend, risk, göreli güç ve fon sağlığı metrikleriyle puanlar.</p>
-            </div>
-            <button id="runFundModelAnalysis" class="primary-btn" type="button" onclick="window.runPortfolioFundModelSafe()">✦ Analiz Et</button>
-          </div>
-          <div class="fund-model-disclaimer">
-            MODEL SİNYALİ · YATIRIM TAVSİYESİ DEĞİLDİR · Otomatik emir oluşturmaz.
-          </div>
-          <div id="fundModelStatus" class="fund-model-status">Analiz henüz çalıştırılmadı.</div>
-          <div id="fundModelResults" class="fund-model-grid"></div>
-        </section>
-
-        <div id="assetCards" class="asset-grid"></div>
+<div id="assetCards" class="asset-grid"></div>
       </section>
 
       <section id="transactionsView" class="view">
@@ -355,6 +338,7 @@
             <button type="button" class="terminal-tab" data-terminal-tab="performance">⌁ Performans</button>
             <button type="button" class="terminal-tab" data-terminal-tab="portfolio">▧ Portföy</button>
             <button type="button" class="terminal-tab" data-terminal-tab="history">◉ Geçmiş</button>
+            <button type="button" class="terminal-tab" data-terminal-tab="model">✦ Model Analizi</button>
           </nav>
 
           <div class="terminal-overview-grid terminal-section" data-terminal-section="overview">
@@ -435,6 +419,23 @@
 
           <div id="fundProviderInsights" class="fund-provider-insights terminal-section" data-terminal-section="portfolio" hidden></div>
           <div id="researchSecondarySections" class="research-secondary-sections terminal-section terminal-tab-hidden" data-terminal-section="history" hidden></div>
+
+          <div id="researchModelSection" class="terminal-section terminal-tab-hidden research-model-section" data-terminal-section="model" hidden>
+            <article class="terminal-panel research-model-panel">
+              <div class="model-analysis-head">
+                <div>
+                  <span class="fund-model-kicker">FON MODELİ</span>
+                  <h2 id="researchModelTitle">Model Analizi</h2>
+                  <p id="researchModelSubtitle">Aratılan fonun trend, risk, göreli güç ve fon sağlığı metrikleri.</p>
+                </div>
+                <div id="researchModelSignalBadge" class="research-model-badge model-na">—</div>
+              </div>
+              <div class="fund-model-disclaimer">MODEL SİNYALİ · YATIRIM TAVSİYESİ DEĞİLDİR · Otomatik emir oluşturmaz.</div>
+              <div id="researchModelStatus" class="fund-model-status">MODEL ANALİZİ sekmesini açtığında analiz otomatik çalışır.</div>
+              <div id="researchModelResults" class="fund-model-grid research-model-grid"></div>
+            </article>
+          </div>
+
           <p id="researchDisclaimer" class="research-disclaimer"></p>
         </div>
       </section>
@@ -564,6 +565,6 @@
       apiBase: "https://portfoyum-api.haydarcicek94.workers.dev"
     };
   </script>
-  <script src="./assets/app.js?v=1.24.3"></script>
+  <script src="./assets/app.js?v=1.25.0"></script>
 </body>
 </html>

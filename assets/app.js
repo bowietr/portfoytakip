@@ -1,4 +1,4 @@
-const APP_VERSION = "1.24.3";
+const APP_VERSION = "1.25.0";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -490,25 +490,45 @@ async function runPortfolioFundModel(){
 }
 
 
-window.runPortfolioFundModelSafe = async function () {
-  const btn = document.getElementById("runFundModelAnalysis");
-  const status = document.getElementById("fundModelStatus");
-  try {
-    if (status) status.textContent = "Analiz başlatılıyor…";
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = "Analiz ediliyor…";
-    }
-    await runPortfolioFundModel();
-  } catch (err) {
-    if (status) status.textContent = `Analiz hatası: ${String(err?.message || err)}`;
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = "✦ Analiz Et";
-    }
-    console.error("Fund model analysis error:", err);
-  }
-};
+
+
+let activeResearchModelCode="";
+let activeResearchModelPromise=null;
+
+async function runResearchFundModelAnalysis(){
+  const host=$("researchModelResults"), status=$("researchModelStatus"), badge=$("researchModelSignalBadge");
+  if(!host||!status) return;
+  const code=String(state.activeResearchFundCode||"").trim().toUpperCase();
+  if(!code){status.textContent="Önce bir yatırım fonu ara.";host.innerHTML="";return;}
+  if(code===activeResearchModelCode && host.innerHTML.trim()) return;
+  if(activeResearchModelPromise) return activeResearchModelPromise;
+  activeResearchModelCode=code;
+  status.textContent=`${code} analiz ediliyor…`;
+  host.innerHTML="";
+  activeResearchModelPromise=(async()=>{
+    try{
+      const data=await fetchFundModelData(code);
+      const model=scoreFundModel(data);
+      const cls=fundModelSignalClass(model.signal);
+      if(badge){badge.className=`research-model-badge ${cls}`;badge.textContent=model.signal;}
+      const title=$("researchModelTitle"); if(title) title.textContent=`${code} Model Analizi`;
+      const sub=$("researchModelSubtitle"); if(sub) sub.textContent=data?.name||"Yatırım Fonu";
+      host.innerHTML=`<article class="fund-model-card ${cls} research-model-single-card">
+        <div class="fund-model-card-top"><div><span class="fund-model-code">${escapeHtml(code)}</span><small>${escapeHtml(data?.name||"Yatırım Fonu")}</small></div><div class="fund-model-signal"><span>MODEL SİNYALİ</span><strong>${model.signal}</strong></div></div>
+        <div class="fund-model-scoreline"><div class="fund-model-score"><strong>${model.score===null?"—":model.score}</strong><span>/100</span></div><div><b>Güven: ${model.confidence}</b><small>Veri tamlığı %${model.completeness}</small></div></div>
+        <div class="fund-model-meters">${modelSection("Trend",model.sections.trend,35)}${modelSection("Risk",model.sections.risk,30)}${modelSection("Göreli Güç",model.sections.relative,20)}${modelSection("Fon Sağlığı",model.sections.health,15)}</div>
+        <div class="fund-model-reasons">${model.reasons.map(x=>`<span>• ${escapeHtml(x)}</span>`).join("")}</div>
+        <div class="fund-model-foot">Model v${model.version} · Fonoloji verileri · Otomatik emir oluşturmaz.</div>
+      </article>`;
+      status.textContent=`${code} analiz edildi · Model v${FUND_MODEL_VERSION}`;
+    }catch(err){
+      if(badge){badge.className="research-model-badge model-na";badge.textContent="HATA";}
+      status.textContent=`Analiz hatası: ${String(err?.message||err)}`;
+      host.innerHTML="";
+    }finally{activeResearchModelPromise=null;}
+  })();
+  return activeResearchModelPromise;
+}
 
 function renderTransactions() {
   const list = [...state.transactions].sort((a,b) => String(b.date).localeCompare(String(a.date)));
@@ -1872,6 +1892,8 @@ function setFundTerminalTab(tab="overview") {
     el.hidden=!visible;
     el.classList.toggle("terminal-tab-hidden",!visible);
   });
+
+  if(tab==="model") runResearchFundModelAnalysis();
 }
 
 function setupFundTerminalTabs() {
@@ -2105,6 +2127,8 @@ function renderFundResearch(data) {
   resetResearchScroll();
   const d=data.data||data;
   state.activeResearchFundCode=d.code||null;
+  activeResearchModelCode="";
+  const modelHost=$("researchModelResults"); if(modelHost) modelHost.innerHTML="";
   document.body.classList.add("research-terminal-mode");
 
   const daily=Number(d.changePercent);
@@ -2277,7 +2301,7 @@ function resetResearchScroll() {
 }
 
 function setupNav() {
-  const titles = { dashboard:"Genel Bakış", portfolio:"Portföy", transactions:"İşlemler", research:"Varlık Araştır", settings:"Ayarlar" };
+  const titles = { dashboard:"Genel Bakış", portfolio:"Portföy", transactions:"İşlemler", research:"Fon Ara", settings:"Ayarlar" };
   document.querySelectorAll(".nav-item").forEach(btn => {
     btn.addEventListener("click", () => {
       document.querySelectorAll(".nav-item").forEach(x => x.classList.remove("active"));
