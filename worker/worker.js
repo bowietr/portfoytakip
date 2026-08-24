@@ -1830,16 +1830,18 @@ async function handleFundResearch(code, env) {
   try {
     // Fonoloji is the primary fund-research provider.
     // TEFAS remains the fallback for historical NAV and locally computed metrics.
-    const [fonolojiRoot, fonolojiTs] = await Promise.all([
+    const [fonolojiRoot, fonolojiHistory] = await Promise.all([
       fetchFonolojiFund(code, env).catch(() => null),
-      fetchFonolojiTimeseries(code, env).catch(() => null)
+      fetchFonolojiHistory(code, env).catch(() => null)
     ]);
 
     const f = fonolojiRoot?.fund ?? null;
 
-    // TEFAS is fetched only when Fonoloji cannot provide a usable historical NAV series
-    // or when fallback metadata is required.
-    const fonolojiNavProbe = fonolojiNavSeries(fonolojiTs);
+    // Canonical 1Y NAV source for charts. Some funds return incomplete timeseries blocks.
+    const fonolojiHistoryRows = fonolojiHistoryPoints(fonolojiHistory);
+    const fonolojiNavProbe = fonolojiHistoryRows
+      .map(x => ({date:x.date, value:Number(x.price)}))
+      .filter(x => x.date && Number.isFinite(x.value) && x.value > 0);
     let historyPayload = null;
     let profilePayload = null;
     let detailMetrics = {};
@@ -1907,8 +1909,7 @@ async function handleFundResearch(code, env) {
     const rolling30 = rollingVolatilitySeries(prices,30);
     const rolling90 = rollingVolatilitySeries(prices,90);
 
-    const providerDd = fonolojiDrawdownSeries(fonolojiTs);
-    const ddSeries = providerDd.length ? providerDd : drawdownSeries(prices);
+    const ddSeries = drawdownSeries(prices);
 
     const riskValue =
       validRiskValue(f?.risk_score) ??
@@ -1939,11 +1940,10 @@ async function handleFundResearch(code, env) {
     const fees = await fetchKapFundFees(code, f?.name || latest?.name || code);
 
     const allocation = normalizeAllocation(fPortfolio);
-    const benchmark = fonolojiBenchmarkSeries(fonolojiTs);
-    const providerMonthly = fonolojiMonthlyReturns(fonolojiTs);
-    const monthly = providerMonthly.length
-      ? providerMonthly
-      : monthlyReturnsFromNav(fonolojiNav);
+    const benchmark = [];
+    const monthly = monthlyReturnsFromNav(
+      prices.map(x => ({date:x.date, value:x.price}))
+    );
 
     return json({
       ok:true,

@@ -1,4 +1,4 @@
-const APP_VERSION = "1.25.0";
+const APP_VERSION = "1.25.1";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -1439,6 +1439,24 @@ function fundSeriesLabels(rows) {
   return rows.map(x => new Date(x.date).toLocaleDateString("tr-TR",{day:"2-digit",month:"short"}));
 }
 
+
+function setFundChartEmpty(canvasId, empty) {
+  const canvas=document.getElementById(canvasId);
+  const card=canvas?.closest(".panel");
+  if(!card) return;
+  let note=card.querySelector(".chart-empty-note");
+  if(empty){
+    if(!note){
+      note=document.createElement("div");
+      note.className="chart-empty-note";
+      note.textContent="Bu fon için yeterli tarihsel seri bulunamadı.";
+      card.appendChild(note);
+    }
+  }else if(note){
+    note.remove();
+  }
+}
+
 function renderFundAdvancedCharts(d) {
   const host = $("fundAdvancedAnalysis");
   if (!host) return;
@@ -1450,6 +1468,10 @@ function renderFundAdvancedCharts(d) {
   const dd=Array.isArray(series.drawdown)?series.drawdown:[];
   const v30=Array.isArray(series.volatility30)?series.volatility30:[];
   const v90=Array.isArray(series.volatility90)?series.volatility90:[];
+
+  setFundChartEmpty("fundPriceHistoryChart", price.length < 2);
+  setFundChartEmpty("fundDrawdownChart", dd.length < 2);
+  setFundChartEmpty("fundVolatilityChart", v30.length < 2 && v90.length < 2);
 
   const commonOptions = {
     responsive:true,
