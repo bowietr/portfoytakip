@@ -4070,3 +4070,332 @@ body.terminal-pro-theme *::-webkit-scrollbar-track {
     border-radius: 7px !important;
   }
 }
+
+
+/* =========================================================
+   V1.26.1 — TERMINAL PRO COMPLETE COMPONENT PASS
+   Legacy component cleanup across every view
+   ========================================================= */
+
+body.terminal-pro-theme {
+  --blue:#e0a21b !important;
+  --blue2:#ffbd2e !important;
+  --green:#e0a21b !important;
+  --green2:#ffbd2e !important;
+  --line:#29261f !important;
+  --card:#090b0d !important;
+  --card2:#0d0f11 !important;
+}
+
+/* Generic legacy selectors */
+body.terminal-pro-theme [class*="card"],
+body.terminal-pro-theme [class*="panel"],
+body.terminal-pro-theme [class*="box"],
+body.terminal-pro-theme [class*="widget"] {
+  border-color:#29261f;
+}
+
+body.terminal-pro-theme .card,
+body.terminal-pro-theme .chart-card,
+body.terminal-pro-theme .summary-card,
+body.terminal-pro-theme .position-card,
+body.terminal-pro-theme .settings-card,
+body.terminal-pro-theme .transaction-card,
+body.terminal-pro-theme .search-card,
+body.terminal-pro-theme .fund-card,
+body.terminal-pro-theme .overview-card,
+body.terminal-pro-theme .stat-card {
+  background:linear-gradient(180deg,#0a0c0e,#080a0b) !important;
+  border:1px solid #29261f !important;
+  border-radius:8px !important;
+  box-shadow:none !important;
+}
+
+/* Search / Fon Ara */
+body.terminal-pro-theme .search-row,
+body.terminal-pro-theme .research-search,
+body.terminal-pro-theme .research-toolbar,
+body.terminal-pro-theme .search-toolbar {
+  background:transparent !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme .search-status,
+body.terminal-pro-theme .live-badge,
+body.terminal-pro-theme .provider-status {
+  color:#d4a83c !important;
+}
+body.terminal-pro-theme .search-status::before,
+body.terminal-pro-theme .live-dot,
+body.terminal-pro-theme .provider-dot {
+  background:#e0a21b !important;
+  box-shadow:0 0 8px rgba(224,162,27,.35) !important;
+}
+
+/* Fund research hero + metadata */
+body.terminal-pro-theme .fund-hero,
+body.terminal-pro-theme .research-hero,
+body.terminal-pro-theme .fund-summary,
+body.terminal-pro-theme .fund-header {
+  background:#080a0b !important;
+  border:1px solid #29261f !important;
+  border-radius:8px !important;
+  box-shadow:none !important;
+}
+body.terminal-pro-theme .fund-meta-grid > *,
+body.terminal-pro-theme .research-meta-grid > *,
+body.terminal-pro-theme .fund-stat-grid > * {
+  border-color:#29261f !important;
+  background:#090b0d !important;
+}
+body.terminal-pro-theme .fund-meta-grid label,
+body.terminal-pro-theme .research-meta-grid label,
+body.terminal-pro-theme .fund-stat-grid label {
+  color:#8f8879 !important;
+  letter-spacing:.07em !important;
+  text-transform:uppercase !important;
+}
+body.terminal-pro-theme .fund-meta-grid strong,
+body.terminal-pro-theme .research-meta-grid strong {
+  color:#eee8dc !important;
+  font-family:"SFMono-Regular",Consolas,monospace !important;
+}
+
+/* Portfolio */
+body.terminal-pro-theme .portfolio-toolbar,
+body.terminal-pro-theme .portfolio-filter,
+body.terminal-pro-theme .portfolio-tabs {
+  background:#07090a !important;
+  border-color:#29261f !important;
+  box-shadow:none !important;
+}
+body.terminal-pro-theme .portfolio-item,
+body.terminal-pro-theme .holding-card,
+body.terminal-pro-theme .position-row {
+  background:#090b0d !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme .portfolio-item:hover,
+body.terminal-pro-theme .holding-card:hover,
+body.terminal-pro-theme .position-row:hover {
+  background:#0d0e0e !important;
+  border-color:#46381f !important;
+}
+
+/* Transactions */
+body.terminal-pro-theme .transaction-list,
+body.terminal-pro-theme .transactions-list,
+body.terminal-pro-theme .transaction-form {
+  background:#080a0b !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme .transaction-row {
+  border-color:#25231d !important;
+}
+body.terminal-pro-theme .transaction-type,
+body.terminal-pro-theme .transaction-badge {
+  background:rgba(224,162,27,.07) !important;
+  border:1px solid rgba(224,162,27,.25) !important;
+  color:#d7a229 !important;
+}
+
+/* Settings */
+body.terminal-pro-theme .settings-section,
+body.terminal-pro-theme .settings-group,
+body.terminal-pro-theme .setting-row {
+  background:#090b0d !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme .setting-row + .setting-row {
+  border-top:1px solid #25231d !important;
+}
+body.terminal-pro-theme .toggle,
+body.terminal-pro-theme .switch {
+  background:#171712 !important;
+  border-color:#393122 !important;
+}
+body.terminal-pro-theme .toggle.active,
+body.terminal-pro-theme .switch.active,
+body.terminal-pro-theme input:checked + .slider {
+  background:#3b2d0e !important;
+  border-color:#9f7619 !important;
+}
+body.terminal-pro-theme .toggle.active::after,
+body.terminal-pro-theme .switch.active::after,
+body.terminal-pro-theme input:checked + .slider::before {
+  background:#ffbd2e !important;
+}
+
+/* Analysis / score components */
+body.terminal-pro-theme .score-card,
+body.terminal-pro-theme .analysis-card,
+body.terminal-pro-theme .signal-card,
+body.terminal-pro-theme .model-card {
+  background:#090b0d !important;
+  border-color:#29261f !important;
+  box-shadow:none !important;
+}
+body.terminal-pro-theme .score-ring,
+body.terminal-pro-theme .score-circle {
+  border-color:#5b4314 !important;
+  color:#ffbd2e !important;
+}
+body.terminal-pro-theme .score-bar,
+body.terminal-pro-theme .progress-fill,
+body.terminal-pro-theme .meter-fill {
+  background:linear-gradient(90deg,#8f6510,#e0a21b) !important;
+}
+body.terminal-pro-theme .signal-buy,
+body.terminal-pro-theme .signal-hold {
+  color:#ffbd2e !important;
+  background:rgba(224,162,27,.06) !important;
+  border-color:rgba(224,162,27,.34) !important;
+}
+body.terminal-pro-theme .signal-sell {
+  color:#ff6656 !important;
+  background:rgba(255,92,74,.06) !important;
+  border-color:rgba(255,92,74,.3) !important;
+}
+
+/* Empty/loading/error states */
+body.terminal-pro-theme .empty-state,
+body.terminal-pro-theme .loading-state,
+body.terminal-pro-theme .placeholder,
+body.terminal-pro-theme .skeleton {
+  background:#080a0b !important;
+  border-color:#29261f !important;
+  color:#817b70 !important;
+}
+body.terminal-pro-theme .spinner {
+  border-color:#29261f !important;
+  border-top-color:#e0a21b !important;
+}
+body.terminal-pro-theme .error,
+body.terminal-pro-theme .error-text {
+  color:#ff6656 !important;
+}
+
+/* Pills / badges / chips */
+body.terminal-pro-theme .badge,
+body.terminal-pro-theme .pill,
+body.terminal-pro-theme .chip,
+body.terminal-pro-theme .tag {
+  background:#11100c !important;
+  color:#bcae8e !important;
+  border:1px solid #332d21 !important;
+  border-radius:999px !important;
+}
+body.terminal-pro-theme .badge.active,
+body.terminal-pro-theme .pill.active,
+body.terminal-pro-theme .chip.active,
+body.terminal-pro-theme .tag.active {
+  color:#ffbd2e !important;
+  border-color:#72551a !important;
+  background:#171208 !important;
+}
+
+/* All legacy segmented controls */
+body.terminal-pro-theme .segmented,
+body.terminal-pro-theme .segmented-control,
+body.terminal-pro-theme .period-selector,
+body.terminal-pro-theme .period-tabs {
+  background:#07090a !important;
+  border:1px solid #29261f !important;
+  border-radius:6px !important;
+  box-shadow:none !important;
+}
+body.terminal-pro-theme .segmented button,
+body.terminal-pro-theme .segmented-control button,
+body.terminal-pro-theme .period-selector button,
+body.terminal-pro-theme .period-tabs button {
+  color:#928c80 !important;
+  background:transparent !important;
+  border-color:#29261f !important;
+  border-radius:0 !important;
+  box-shadow:none !important;
+}
+body.terminal-pro-theme .segmented button.active,
+body.terminal-pro-theme .segmented-control button.active,
+body.terminal-pro-theme .period-selector button.active,
+body.terminal-pro-theme .period-tabs button.active {
+  color:#ffbd2e !important;
+  background:#151108 !important;
+  box-shadow:inset 0 -2px 0 #e0a21b !important;
+}
+
+/* Tooltips / chart legends */
+body.terminal-pro-theme .chart-legend,
+body.terminal-pro-theme .legend,
+body.terminal-pro-theme .tooltip {
+  color:#999286 !important;
+}
+body.terminal-pro-theme .tooltip {
+  background:#0b0c0d !important;
+  border:1px solid #3a3225 !important;
+  box-shadow:0 10px 30px rgba(0,0,0,.35) !important;
+}
+
+/* Toasts */
+body.terminal-pro-theme .toast {
+  background:#0b0d0e !important;
+  color:#e8e1d4 !important;
+  border:1px solid #3b3325 !important;
+  box-shadow:0 12px 30px rgba(0,0,0,.35) !important;
+}
+body.terminal-pro-theme .toast.success {
+  border-color:#72551a !important;
+}
+body.terminal-pro-theme .toast.error {
+  border-color:#6d3029 !important;
+}
+
+/* Mobile bottom navigation */
+@media (max-width:900px){
+  body.terminal-pro-theme .mobile-nav,
+  body.terminal-pro-theme .bottom-nav {
+    background:rgba(7,8,9,.97) !important;
+    border-top:1px solid #29261f !important;
+    box-shadow:0 -10px 28px rgba(0,0,0,.28) !important;
+  }
+  body.terminal-pro-theme .mobile-nav a,
+  body.terminal-pro-theme .mobile-nav button,
+  body.terminal-pro-theme .bottom-nav a,
+  body.terminal-pro-theme .bottom-nav button {
+    color:#8f897d !important;
+    background:transparent !important;
+  }
+  body.terminal-pro-theme .mobile-nav .active,
+  body.terminal-pro-theme .bottom-nav .active {
+    color:#ffbd2e !important;
+    background:#151108 !important;
+    border-color:#72551a !important;
+  }
+}
+
+/* Native focus + selection */
+body.terminal-pro-theme ::selection {
+  background:rgba(224,162,27,.25) !important;
+  color:#fff7e4 !important;
+}
+body.terminal-pro-theme button:focus-visible,
+body.terminal-pro-theme a:focus-visible,
+body.terminal-pro-theme input:focus-visible,
+body.terminal-pro-theme select:focus-visible {
+  outline:1px solid #e0a21b !important;
+  outline-offset:2px !important;
+}
+
+/* Final legacy color neutralizer for common utility classes */
+body.terminal-pro-theme .text-blue,
+body.terminal-pro-theme .blue,
+body.terminal-pro-theme .accent-text,
+body.terminal-pro-theme .link {
+  color:#e0a21b !important;
+}
+body.terminal-pro-theme .bg-blue,
+body.terminal-pro-theme .accent-bg {
+  background:#171208 !important;
+}
+body.terminal-pro-theme .border-blue,
+body.terminal-pro-theme .accent-border {
+  border-color:#72551a !important;
+}
