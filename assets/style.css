@@ -4597,3 +4597,56 @@ body.terminal-pro-theme #researchView .provider-spinner {
   border-color:#29261f !important;
   border-top-color:#e0a21b !important;
 }
+
+
+/* =========================================================
+   V1.26.3 — TERMINAL PRO COLOR CLEANUP
+   Removes remaining blue/green accents from Fon Ara.
+   ========================================================= */
+
+body.terminal-pro-theme #researchView .fund-hero-fact span,
+body.terminal-pro-theme #researchView .research-detail-item span,
+body.terminal-pro-theme #researchView .fund-identity-cell span,
+body.terminal-pro-theme #researchView .terminal-fund-facts span,
+body.terminal-pro-theme #researchView .terminal-fund-meta span,
+body.terminal-pro-theme #researchView .terminal-meta-label,
+body.terminal-pro-theme #researchView .research-label,
+body.terminal-pro-theme #researchView .meta-label {
+  color:#c9952a !important;
+}
+
+body.terminal-pro-theme #researchView .fund-hero-fact:nth-child(odd) span,
+body.terminal-pro-theme #researchView .research-detail-item:nth-child(odd) span {
+  color:#b88624 !important;
+}
+
+/* Any old blue utility/inline-like classes inside research */
+body.terminal-pro-theme #researchView .blue,
+body.terminal-pro-theme #researchView .text-blue,
+body.terminal-pro-theme #researchView .accent-blue,
+body.terminal-pro-theme #researchView [class*="blue"] {
+  color:#c9952a !important;
+}
+
+/* Positive values in D theme are amber, negatives remain red */
+body.terminal-pro-theme #researchView .positive,
+body.terminal-pro-theme #researchView .gain,
+body.terminal-pro-theme #researchView .gain strong,
+body.terminal-pro-theme #researchView .research-metric-card.gain strong {
+  color:#ffbd2e !important;
+}
+
+/* Chart legends and marker swatches */
+body.terminal-pro-theme #researchView .chart-legend .positive,
+body.terminal-pro-theme #researchView .legend-positive,
+body.terminal-pro-theme #researchView .fund-return-legend,
+body.terminal-pro-theme #researchView .series-primary {
+  color:#e0a21b !important;
+}
+
+/* Keep only negative semantic color red */
+body.terminal-pro-theme #researchView .negative,
+body.terminal-pro-theme #researchView .loss,
+body.terminal-pro-theme #researchView .loss strong {
+  color:#ff5c4a !important;
+}
