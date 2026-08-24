@@ -1,4 +1,4 @@
-const APP_VERSION = "1.26.1";
+const APP_VERSION = "1.26.2";
 const STORE_KEY = "portfoyum_v1";
 const SETTINGS_KEY = "portfoyum_settings_v1";
 
@@ -576,7 +576,7 @@ function chartGridColor() {
 
 function semanticColors() {
   return {
-    positive: getComputedStyle(document.documentElement).getPropertyValue("--positive").trim() || "#8fa",
+    positive: getComputedStyle(document.documentElement).getPropertyValue("--positive").trim() || "#e0a21b",
     negative: getComputedStyle(document.documentElement).getPropertyValue("--negative").trim() || "#f88",
     neutral: "#9AA39D"
   };
@@ -636,8 +636,8 @@ function renderAllocationChart() {
         data,
         borderWidth: 0,
         backgroundColor: [
-          "#318CFF","#63A9FF","#786BFF","#27B7C8","#D4A84F",
-          "#5B6F86","#935EEA","#2C75C7","#A5B4C3","#445466"
+          "#e0a21b","#ffbd2e","#b0873a","#b98a22","#D4A84F",
+          "#756e62","#9b7832","#c18d1d","#aaa294","#5e584e"
         ]
       }]
     },
@@ -699,8 +699,8 @@ function renderPortfolioHistoryChart() {
         {
           label: "Portföy Değeri",
           data: points.map(x => Number(x.value || 0)),
-          borderColor: "#318CFF",
-          backgroundColor: "rgba(49,140,255,.10)",
+          borderColor: "#e0a21b",
+          backgroundColor: "rgba(224,162,27,.09)",
           fill: true,
           tension: .32,
           pointRadius: points.length > 20 ? 0 : 2,
@@ -710,7 +710,7 @@ function renderPortfolioHistoryChart() {
         {
           label: "Ana Para",
           data: points.map(x => Number(x.cost || 0)),
-          borderColor: "#7D8B99",
+          borderColor: "#817b70",
           backgroundColor: "transparent",
           fill: false,
           tension: .25,
@@ -765,7 +765,7 @@ function renderPnlHistoryChart() {
         label: "Kâr / Zarar",
         data: pnlValues,
         borderColor: lastPnl >= 0 ? positive : negative,
-        backgroundColor: lastPnl >= 0 ? "rgba(49,140,255,.08)" : "rgba(255,91,87,.08)",
+        backgroundColor: lastPnl >= 0 ? "rgba(224,162,27,.07)" : "rgba(255,91,87,.08)",
         fill: true,
         tension: .32,
         pointRadius: points.length > 20 ? 0 : 2,
@@ -1493,8 +1493,8 @@ function renderFundAdvancedCharts(d) {
         datasets:[{
           label:"Birim Pay Fiyatı",
           data:price.map(x=>Number(x.value)),
-          borderColor:"#318CFF",
-          backgroundColor:"rgba(49,140,255,.10)",
+          borderColor:"#e0a21b",
+          backgroundColor:"rgba(224,162,27,.09)",
           fill:true,tension:.28,pointRadius:0,borderWidth:2
         }]
       },
@@ -1546,12 +1546,12 @@ function renderFundAdvancedCharts(d) {
           {
             label:"30 Gün",
             data:base.map(x=>Number(x.value)),
-            borderColor:"#318CFF",pointRadius:0,tension:.25,borderWidth:1.8
+            borderColor:"#e0a21b",pointRadius:0,tension:.25,borderWidth:1.8
           },
           {
             label:"90 Gün",
             data:base.map(x=>map90.get(String(x.date).slice(0,10))??null),
-            borderColor:"#7D8B99",pointRadius:0,tension:.25,borderWidth:1.8
+            borderColor:"#817b70",pointRadius:0,tension:.25,borderWidth:1.8
           }
         ]
       },
@@ -1996,7 +1996,7 @@ function renderResearchPerformanceChart(data,type,rangeKey="1Y") {
       const base=rows[0].value;
       const values=rows.map(x=>(x.value/base-1)*100);
       const last=values[values.length-1];
-      const lineColor=last>=0?(colors.positive||"#36d47b"):(colors.negative||"#ff5b57");
+      const lineColor=last>=0?(colors.positive||"#e0a21b"):(colors.negative||"#ff5b57");
       state.researchChart=new Chart(ctx,{
         type:"line",
         data:{
@@ -2020,8 +2020,8 @@ function renderResearchPerformanceChart(data,type,rangeKey="1Y") {
             tooltip:{callbacks:{label:c=>`${Number(c.raw)>=0?"+":""}${Number(c.raw).toLocaleString("tr-TR",{minimumFractionDigits:2,maximumFractionDigits:2})}%`}}
           },
           scales:{
-            x:{grid:{display:false},ticks:{color:"#8793a1",autoSkip:true,maxTicksLimit:9,maxRotation:0,font:{size:9}}},
-            y:{grid:{color:"rgba(111,128,145,.15)",borderDash:[3,3]},ticks:{color:"#8793a1",callback:v=>`${Number(v).toFixed(0)}%`,font:{size:9}}}
+            x:{grid:{display:false},ticks:{color:"#8f897d",autoSkip:true,maxTicksLimit:9,maxRotation:0,font:{size:9}}},
+            y:{grid:{color:"rgba(111,128,145,.15)",borderDash:[3,3]},ticks:{color:"#8f897d",callback:v=>`${Number(v).toFixed(0)}%`,font:{size:9}}}
           }
         }
       });
@@ -2103,8 +2103,8 @@ function renderTerminalAum(rows=[]){
       labels:clean.map(x=>x.date.toLocaleDateString("tr-TR",{month:"short",year:"2-digit"})),
       datasets:[{
         data:clean.map(x=>x.value),
-        borderColor:"#318cff",
-        backgroundColor:"rgba(49,140,255,.20)",
+        borderColor:"#e0a21b",
+        backgroundColor:"rgba(224,162,27,.16)",
         borderWidth:1.7,pointRadius:0,tension:.2,fill:true
       }]
     },
@@ -2112,8 +2112,8 @@ function renderTerminalAum(rows=[]){
       responsive:true,maintainAspectRatio:false,
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${compactNumber(c.raw)} ₺`}}},
       scales:{
-        x:{grid:{display:false},ticks:{color:"#8793a1",autoSkip:true,maxTicksLimit:6,maxRotation:0,font:{size:9}}},
-        y:{grid:{color:"rgba(111,128,145,.14)"},ticks:{color:"#8793a1",callback:v=>`${compactNumber(v)} ₺`,font:{size:9}}}
+        x:{grid:{display:false},ticks:{color:"#8f897d",autoSkip:true,maxTicksLimit:6,maxRotation:0,font:{size:9}}},
+        y:{grid:{color:"rgba(111,128,145,.14)"},ticks:{color:"#8f897d",callback:v=>`${compactNumber(v)} ₺`,font:{size:9}}}
       }
     }
   });
@@ -2307,7 +2307,7 @@ function setStatus(text, error=false) {
 }
 
 function escapeHtml(s="") {
-  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#a97b18;'}[m]));
 }
 
 function resetResearchScroll() {

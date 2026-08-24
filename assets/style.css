@@ -10,7 +10,7 @@
   --muted: #7d877f;
   --border: #e8e4dc;
   --border-strong: #d9d4ca;
-  --accent: #318cff;
+  --accent: #e0a21b;
   --accent-strong: #1f6fd1;
   --accent-soft: #edf5ff;
   --gold: #b79a67;
@@ -33,7 +33,7 @@
   --muted: #9aa49d;
   --border: #343d36;
   --border-strong: #414b43;
-  --accent: #318cff;
+  --accent: #e0a21b;
   --accent-strong: #61aaff;
   --accent-soft: #10243a;
   --gold: #c4aa77;
@@ -1535,7 +1535,7 @@ html:not([data-theme="dark"]) .chart-badge {
    V1.17.0 — PORTFÖYÜM TERMINAL / Fund Research
    ========================================================= */
 #researchView {
-  --terminal-accent:#57b8ff;
+  --terminal-accent:#e0a21b;
   --terminal-line:color-mix(in srgb, var(--border) 78%, transparent);
 }
 #researchView .research-result {
@@ -1724,13 +1724,13 @@ html:not([data-theme="dark"]) .chart-badge {
    V1.18.0 — PORTFÖYÜM TERMINAL / Dark Terminal Refinement
    ========================================================= */
 html[data-theme="dark"] #researchView {
-  --terminal-bg:#070b10;
-  --terminal-panel:#0b1118;
-  --terminal-panel-2:#0e151e;
-  --terminal-line:#1d2834;
-  --terminal-accent:#318cff;
-  --terminal-green:#36d47b;
-  --terminal-red:#ff5b57;
+  --terminal-bg:#050606;
+  --terminal-panel:#090b0d;
+  --terminal-panel-2:#0d0f11;
+  --terminal-line:#29261f;
+  --terminal-accent:#e0a21b;
+  --terminal-green:#e0a21b;
+  --terminal-red:#ff5c4a;
 }
 html[data-theme="dark"] #researchView {
   background:var(--terminal-bg);
@@ -1828,11 +1828,11 @@ html[data-theme="dark"] #researchView .negative {
   border-radius:8px;
 }
 html[data-theme="dark"] #researchView .terminal-tab.active {
-  color:#5aa8ff;
-  background:rgba(49,140,255,.07);
+  color:#ffbd2e;
+  background:rgba(224,162,27,.06);
 }
 html[data-theme="dark"] #researchView .terminal-tab.active::after {
-  background:#318cff;
+  background:#e0a21b;
 }
 
 /* chart controls */
@@ -1888,7 +1888,7 @@ html[data-theme="dark"] #researchView .allocation-row i {
   border-color:var(--terminal-line);
 }
 html[data-theme="dark"] #researchView .heat-cell {
-  background:#0a1017;
+  background:#080a0b;
 }
 html[data-theme="dark"] #researchView .allocation-row i {
   background:#111922;
@@ -1935,20 +1935,20 @@ html[data-theme="dark"] #researchView .allocation-row i {
    V1.19.0 — Screenshot-matched Portföyüm Terminal
    ========================================================= */
 body.research-terminal-mode{
-  background:#070b10;
+  background:#050606;
   color:#eef3f8;
 }
 body.research-terminal-mode .app-shell{
   grid-template-columns:230px minmax(0,1fr);
   min-height:100vh;
-  background:#070b10;
+  background:#050606;
 }
 body.research-terminal-mode .sidebar{
   position:sticky;
   top:0;
   height:100vh;
   padding:18px 14px 18px;
-  background:linear-gradient(180deg,#070b10 0%,#080d13 100%);
+  background:linear-gradient(180deg,#050606 0%,#070809 100%);
   border-right:1px solid #1b2530;
   color:#d8e0e8;
 }
@@ -1963,24 +1963,24 @@ body.research-terminal-mode .sidebar{
 
 .terminal-theme-switch{
   display:flex;
-  border:1px solid #24303c;
+  border:1px solid #332d21;
   border-radius:7px;
   padding:4px;
-  background:#0a1017;
+  background:#080a0b;
 }
 .terminal-theme-switch button{
   flex:1;border:0;background:transparent;color:#808c98;
   font:700 10px Manrope,sans-serif;padding:7px 8px;border-radius:5px;
 }
 .terminal-theme-switch button.active{
-  color:#55a4ff;
+  color:#ffbd2e;
   background:#101925;
 }
 .terminal-source-note{color:#7e8994!important;font-size:8px!important;line-height:1.6}
 .terminal-version{color:#5d6976!important;font:700 10px ui-monospace,SFMono-Regular,Menlo,monospace!important}
 
 body.research-terminal-mode .main{
-  background:#070b10;
+  background:#050606;
   padding:0 18px 18px;
   overflow:hidden;
 }
@@ -2006,7 +2006,7 @@ body.research-terminal-mode #researchView.active{
   height:40px;
   display:flex;align-items:center;gap:10px;
   padding:0 12px;
-  background:#0a1017;border:1px solid #1f2a35;border-radius:7px;
+  background:#080a0b;border:1px solid #29261f;border-radius:7px;
 }
 .terminal-search-icon{color:#91a0ad;font-size:17px}
 .terminal-search-shell input{
@@ -2015,16 +2015,16 @@ body.research-terminal-mode #researchView.active{
 }
 .terminal-search-shell input::placeholder{color:#66727e}
 .terminal-search-shell kbd{
-  min-width:23px;text-align:center;padding:2px 5px;border:1px solid #24303d;border-radius:4px;
-  color:#8793a0;background:#0c131b;font-size:10px;
+  min-width:23px;text-align:center;padding:2px 5px;border:1px solid #332d21;border-radius:4px;
+  color:#8793a0;background:#0a0b0c;font-size:10px;
 }
 .terminal-live-status{
   display:flex;align-items:center;gap:7px;color:#8e99a5;font-size:9px;white-space:nowrap;
 }
 .terminal-live-status b{color:#dce4eb;font-size:9px}
-.live-dot{width:7px;height:7px;border-radius:50%;background:#35dc7d;box-shadow:0 0 8px rgba(53,220,125,.4)}
-.live-word{color:#35dc7d;font-weight:800;letter-spacing:.06em}
-.terminal-live-status i{width:1px;height:13px;background:#28323c}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#e0a21b;box-shadow:0 0 8px rgba(224,162,27,.35)}
+.live-word{color:#e0a21b;font-weight:800;letter-spacing:.06em}
+.terminal-live-status i{width:1px;height:13px;background:#332d21}
 .terminal-live-status button{border:0;background:transparent;color:#aab5bf;font-size:15px;padding:0 2px}
 
 .terminal-research-form{
@@ -2033,14 +2033,14 @@ body.research-terminal-mode #researchView.active{
 .terminal-research-form label{margin:0}
 .terminal-research-form select,.terminal-research-form input{
   height:38px!important;border-radius:6px!important;
-  background:#0b1118!important;border:1px solid #202b36!important;color:#e7edf3!important;
+  background:#090b0d!important;border:1px solid #29261f!important;color:#e7edf3!important;
   font-size:11px!important;
 }
 .terminal-research-form select{width:165px}
 .terminal-research-form input{width:235px;text-transform:uppercase}
 .terminal-search-btn{
-  height:38px;border:1px solid #1e64b3;border-radius:6px;
-  background:#0d2f56;color:#59a8ff;font-weight:800;padding:0 18px;
+  height:38px;border:1px solid #72551a;border-radius:6px;
+  background:#171208;color:#ffbd2e;font-weight:800;padding:0 18px;
 }
 .terminal-research-status{
   text-align:right;color:#5f6b77;font-size:8px;min-height:12px;margin-bottom:6px;
@@ -2049,7 +2049,7 @@ body.research-terminal-mode #researchView.active{
 .terminal-result{display:grid;gap:10px}
 .terminal-fund-head{
   display:grid;grid-template-columns:minmax(0,1.42fr) minmax(350px,.86fr);
-  background:#090f16;border:1px solid #202b36;border-radius:7px;overflow:hidden;
+  background:#080a0b;border:1px solid #29261f;border-radius:7px;overflow:hidden;
 }
 .terminal-fund-summary{
   min-height:180px;display:grid;grid-template-columns:64px minmax(0,1fr) auto;
@@ -2057,8 +2057,8 @@ body.research-terminal-mode #researchView.active{
 }
 .terminal-fund-code{
   width:60px;height:60px;display:grid;place-items:center;
-  border-radius:7px;background:linear-gradient(145deg,#10251f,#0b1a17);
-  border:1px solid #244338;color:#f5f7f9;font:700 18px ui-monospace,SFMono-Regular,Menlo,monospace;
+  border-radius:7px;background:linear-gradient(145deg,#171208,#100d07);
+  border:1px solid #5f4718;color:#f5f7f9;font:700 18px ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 .terminal-fund-copy{min-width:0;padding-top:5px}
 .terminal-fund-title-row{display:flex;align-items:flex-start;gap:10px}
@@ -2076,7 +2076,7 @@ body.research-terminal-mode #researchView.active{
 .terminal-price .research-daily{margin-top:4px;font:700 11px ui-monospace,SFMono-Regular,Menlo,monospace}
 
 .terminal-fund-facts{
-  border-left:1px solid #202b36;
+  border-left:1px solid #29261f;
   display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
   align-content:center;padding:7px 12px;
 }
@@ -2090,10 +2090,10 @@ body.research-terminal-mode #researchView.active{
 
 .terminal-performance-strip{
   display:grid;grid-template-columns:repeat(6,1fr);
-  border:1px solid #202b36;border-radius:7px;background:#090f16;overflow:hidden;
+  border:1px solid #29261f;border-radius:7px;background:#080a0b;overflow:hidden;
 }
 .terminal-performance-cell{
-  min-height:64px;padding:10px 12px;border-right:1px solid #202b36;
+  min-height:64px;padding:10px 12px;border-right:1px solid #29261f;
 }
 .terminal-performance-cell:last-child{border-right:0}
 .terminal-performance-cell>div{display:flex;justify-content:space-between;align-items:center}
@@ -2106,7 +2106,7 @@ body.research-terminal-mode #researchView.active{
 .terminal-performance-cell strong.negative{color:#ff5b57}
 
 .terminal-tabs{
-  display:flex;border:1px solid #202b36;border-radius:7px;background:#090f16;overflow:hidden;
+  display:flex;border:1px solid #29261f;border-radius:7px;background:#080a0b;overflow:hidden;
 }
 .terminal-tabs[hidden]{display:none!important}
 .terminal-tab{
@@ -2114,7 +2114,7 @@ body.research-terminal-mode #researchView.active{
   font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.02em;position:relative;
 }
 .terminal-tab.active{color:#54a5ff;background:rgba(49,140,255,.035)}
-.terminal-tab.active::after{content:"";position:absolute;height:2px;left:14px;right:14px;bottom:0;background:#318cff}
+.terminal-tab.active::after{content:"";position:absolute;height:2px;left:14px;right:14px;bottom:0;background:#e0a21b}
 
 .terminal-overview-grid{
   display:grid;grid-template-columns:minmax(0,1.25fr) minmax(360px,.9fr);gap:12px;
@@ -2123,7 +2123,7 @@ body.research-terminal-mode #researchView.active{
   display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.9fr);gap:12px;
 }
 .terminal-panel{
-  background:#090f16;border:1px solid #202b36;border-radius:7px;padding:12px;min-width:0;
+  background:#080a0b;border:1px solid #29261f;border-radius:7px;padding:12px;min-width:0;
 }
 .terminal-panel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
 .terminal-panel-head h2{margin:0;color:#f0f4f8;font-size:12px;letter-spacing:-.01em}
@@ -2132,27 +2132,27 @@ body.research-terminal-mode #researchView.active{
 .terminal-chart-wrap{height:286px;position:relative}
 .terminal-chart-legend{display:flex;justify-content:center;gap:26px;color:#8b96a1;font-size:8px;margin-top:4px}
 .terminal-chart-legend span{display:flex;align-items:center;gap:7px}
-.terminal-chart-legend i{width:14px;height:2px;background:#36d47b;display:inline-block}
+.terminal-chart-legend i{width:14px;height:2px;background:#e0a21b;display:inline-block}
 .legend-benchmark i{background:transparent;border-top:1px dashed #697784}
 .terminal-chart-source{display:flex;align-items:center;gap:8px;color:#68747f;font-size:7px;margin-top:10px}
 .terminal-chart-source i{width:2px;height:2px;background:#68747f;border-radius:50%}
 
 .fund-range-controls{
-  display:flex;justify-content:center;margin:0 auto 4px;width:max-content;border:1px solid #202b36;border-radius:5px;overflow:hidden;
+  display:flex;justify-content:center;margin:0 auto 4px;width:max-content;border:1px solid #29261f;border-radius:5px;overflow:hidden;
 }
 .fund-range-controls[hidden]{display:none!important}
 .fund-range-controls button{
-  border:0;border-right:1px solid #202b36;background:#0a1017;color:#8d99a4;
+  border:0;border-right:1px solid #29261f;background:#080a0b;color:#8d99a4;
   font-size:8px;font-weight:800;padding:6px 10px;
 }
 .fund-range-controls button:last-child{border-right:0}
 .fund-range-controls button.active{background:#1767c0;color:white}
 
 .terminal-risk-grid{
-  display:grid;grid-template-columns:repeat(2,1fr);border:1px solid #202b36;border-radius:6px;overflow:hidden;
+  display:grid;grid-template-columns:repeat(2,1fr);border:1px solid #29261f;border-radius:6px;overflow:hidden;
 }
 .terminal-risk-grid .research-detail-item{
-  min-height:62px;padding:9px 11px;border:0!important;border-right:1px solid #202b36!important;border-bottom:1px solid #202b36!important;border-radius:0!important;background:transparent!important;
+  min-height:62px;padding:9px 11px;border:0!important;border-right:1px solid #29261f!important;border-bottom:1px solid #29261f!important;border-radius:0!important;background:transparent!important;
 }
 .terminal-risk-grid .research-detail-item:nth-child(even){border-right:0!important}
 .terminal-risk-grid .research-detail-item span{color:#87929e;font-size:8px;text-transform:uppercase;letter-spacing:.04em}
@@ -2170,10 +2170,10 @@ body.research-terminal-mode #researchView.active{
 .monthly-cell{color:#cbd5dd;background:#0c131a}
 .monthly-cell.pos{background:#163c2b;color:#dff8e9}
 .monthly-cell.neg{background:#49201f;color:#ffd8d7}
-.monthly-cell.empty{color:#586570;background:#0a1017}
+.monthly-cell.empty{color:#586570;background:#080a0b}
 
 .terminal-range-pill{
-  border:1px solid #202b36;border-radius:5px;padding:5px 9px;color:#a7b2bc;font-size:8px;
+  border:1px solid #29261f;border-radius:5px;padding:5px 9px;color:#a7b2bc;font-size:8px;
 }
 .terminal-aum-chart{height:170px}
 
@@ -2187,7 +2187,7 @@ body.research-terminal-mode .research-secondary-sections{
 body.research-terminal-mode .fund-provider-insights .panel,
 body.research-terminal-mode .fund-advanced-analysis .panel,
 body.research-terminal-mode .research-secondary-sections .panel{
-  background:#090f16;border-color:#202b36;color:#e9eef3;box-shadow:none;
+  background:#080a0b;border-color:#29261f;color:#e9eef3;box-shadow:none;
 }
 
 /* light quick-view variant keeps the same geometry */
@@ -2196,7 +2196,7 @@ body.research-terminal-mode html[data-theme="light"]{color-scheme:light}
 @media(max-width:1100px){
   body.research-terminal-mode .app-shell{grid-template-columns:210px minmax(0,1fr)}
   .terminal-fund-head{grid-template-columns:1fr}
-  .terminal-fund-facts{border-left:0;border-top:1px solid #202b36}
+  .terminal-fund-facts{border-left:0;border-top:1px solid #29261f}
   .terminal-overview-grid,.terminal-overview-bottom{grid-template-columns:1fr}
 }
 @media(max-width:780px){
@@ -2319,15 +2319,15 @@ body.research-terminal-mode #researchSecondarySections .provider-history-chart{
    ========================================================= */
 
 body.terminal-app-mode{
-  --t-bg:#070b10;
-  --t-panel:#090f16;
-  --t-panel-2:#0c131b;
-  --t-line:#202b36;
+  --t-bg:#050606;
+  --t-panel:#080a0b;
+  --t-panel-2:#0a0b0c;
+  --t-line:#29261f;
   --t-line-soft:#17212a;
   --t-text:#eef3f8;
   --t-muted:#83909c;
-  --t-blue:#318cff;
-  --t-blue-soft:rgba(49,140,255,.08);
+  --t-blue:#e0a21b;
+  --t-blue-soft:rgba(224,162,27,.07);
   --t-green:#42d97f;
   --t-red:#ff5b57;
   --t-gold:#d8bd7c;
@@ -2341,7 +2341,7 @@ body.terminal-app-mode .app-shell{
 }
 
 body.terminal-app-mode .sidebar{
-  background:linear-gradient(180deg,#070b10 0%,#080d13 100%);
+  background:linear-gradient(180deg,#050606 0%,#070809 100%);
   border-right:1px solid var(--t-line);
   color:var(--t-text);
 }
@@ -2427,8 +2427,8 @@ body.terminal-app-mode .ghost-btn{
   box-shadow:none;
 }
 body.terminal-app-mode .primary-btn{
-  background:#0d2f56;
-  border-color:#1e64b3;
+  background:#171208;
+  border-color:#72551a;
   color:#61aaff;
 }
 body.terminal-app-mode .primary-btn:hover{
@@ -2592,7 +2592,7 @@ body.terminal-app-mode .range-btn{
   border:0;
   border-right:1px solid var(--t-line);
   border-radius:0;
-  background:#0a1017;
+  background:#080a0b;
   color:#84919d;
   font-size:8px;
   padding:7px 10px;
@@ -2609,7 +2609,7 @@ body.terminal-app-mode .range-btn.active{
 body.terminal-app-mode input,
 body.terminal-app-mode select,
 body.terminal-app-mode textarea{
-  background:#0b1118;
+  background:#090b0d;
   border:1px solid var(--t-line);
   color:#e4ebf1;
   border-radius:6px;
@@ -2620,7 +2620,7 @@ body.terminal-app-mode select:focus,
 body.terminal-app-mode textarea:focus{
   border-color:#287ed8;
   outline:none;
-  box-shadow:0 0 0 2px rgba(49,140,255,.08);
+  box-shadow:0 0 0 2px rgba(224,162,27,.07);
 }
 body.terminal-app-mode label{
   color:#7d8995;
@@ -2642,7 +2642,7 @@ body.terminal-app-mode .notice{
 
 /* modal */
 body.terminal-app-mode .modal{
-  background:#090f16;
+  background:#080a0b;
   color:#eef3f8;
   border:1px solid var(--t-line);
   border-radius:8px;
@@ -2684,13 +2684,13 @@ body.terminal-app-mode.research-terminal-mode{
 /* tablet */
 @media (min-width:761px){
   body.terminal-app-mode:not(.research-terminal-mode) .main{
-    background:#070b10;
+    background:#050606;
   }
 }
 
 @media (max-width:760px){
   body.terminal-app-mode .sidebar{
-    background:#080d13;
+    background:#070809;
     border-top:1px solid var(--t-line);
   }
   body.terminal-app-mode .nav-item{
@@ -2745,17 +2745,17 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
    V1.21.2 — LEGACY GREEN CLEANUP
    ========================================================= */
 html[data-theme="dark"]{
-  --bg:#070b10;
-  --bg-soft:#080d13;
-  --panel:#090f16;
+  --bg:#050606;
+  --bg-soft:#070809;
+  --panel:#080a0b;
   --panel-2:#0b1219;
   --panel-3:#0d151e;
   --text:#eef3f8;
   --text-soft:#cbd5df;
   --muted:#7f8b97;
-  --border:#202b36;
+  --border:#29261f;
   --border-strong:#2b3947;
-  --accent:#318cff;
+  --accent:#e0a21b;
   --accent-strong:#61aaff;
   --accent-soft:rgba(49,140,255,.09);
   --gold:#d4aa5f;
@@ -2768,8 +2768,8 @@ html[data-theme="dark"]{
 }
 
 body.terminal-app-mode .filters{
-  background:#090f16 !important;
-  border:1px solid #202b36 !important;
+  background:#080a0b !important;
+  border:1px solid #29261f !important;
   border-radius:7px !important;
   padding:3px !important;
 }
@@ -2788,7 +2788,7 @@ body.terminal-app-mode .daily-strip,
 body.terminal-app-mode .daily-strip.positive,
 body.terminal-app-mode .daily-strip.negative{
   background:#0b1219 !important;
-  border:1px solid #202b36 !important;
+  border:1px solid #29261f !important;
   border-radius:6px !important;
 }
 body.terminal-app-mode .daily-strip span{color:#75828e !important}
@@ -2836,8 +2836,8 @@ body.terminal-app-mode .compact-type-badge{
 
 body.terminal-app-mode .chart-panel,
 body.terminal-app-mode .analytics-grid .panel{
-  background:#090f16 !important;
-  border-color:#202b36 !important;
+  background:#080a0b !important;
+  border-color:#29261f !important;
 }
 body.terminal-app-mode .chart-panel .panel-head,
 body.terminal-app-mode .analytics-grid .panel-head{
@@ -2852,8 +2852,8 @@ body.terminal-app-mode .nav-item.active{
 }
 body.terminal-app-mode input:focus,
 body.terminal-app-mode select:focus{
-  border-color:#318cff !important;
-  box-shadow:0 0 0 2px rgba(49,140,255,.10) !important;
+  border-color:#e0a21b !important;
+  box-shadow:0 0 0 2px rgba(224,162,27,.09) !important;
 }
 
 body.terminal-app-mode .asset-stat,
@@ -3021,7 +3021,7 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
     overflow:hidden !important;
     background:rgba(7,11,16,.97) !important;
     border:0 !important;
-    border-top:1px solid #202b36 !important;
+    border-top:1px solid #29261f !important;
     box-shadow:0 -8px 24px rgba(0,0,0,.22) !important;
     backdrop-filter:blur(16px) !important;
     -webkit-backdrop-filter:blur(16px) !important;
@@ -3050,7 +3050,7 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections .provid
   body.terminal-app-mode .nav-item.active,
   body.terminal-app-mode.research-terminal-mode .nav-item.active{
     background:#10243a !important;
-    border-color:#318cff !important;
+    border-color:#e0a21b !important;
     color:#61aaff !important;
     box-shadow:none !important;
   }
@@ -3374,7 +3374,7 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections:not([hi
 
     background:rgba(7,11,16,.98) !important;
     border:0 !important;
-    border-top:1px solid #202b36 !important;
+    border-top:1px solid #29261f !important;
     box-shadow:0 -8px 24px rgba(0,0,0,.24) !important;
 
     transform:none !important;
@@ -3440,7 +3440,7 @@ body.terminal-app-mode.research-terminal-mode #researchSecondarySections:not([hi
   body.terminal-app-mode .nav-item.active,
   body.terminal-app-mode.research-terminal-mode .nav-item.active{
     background:#10243a !important;
-    border-color:#318cff !important;
+    border-color:#e0a21b !important;
     color:#61aaff !important;
   }
 
@@ -4398,4 +4398,202 @@ body.terminal-pro-theme .accent-bg {
 body.terminal-pro-theme .border-blue,
 body.terminal-pro-theme .accent-border {
   border-color:#72551a !important;
+}
+
+
+/* =========================================================
+   V1.26.2 — FON ARA / RESEARCH TERMINAL PRO EXACT PASS
+   ========================================================= */
+
+html[data-theme="dark"] body.terminal-pro-theme #researchView {
+  --terminal-bg:#050606 !important;
+  --terminal-panel:#090b0d !important;
+  --terminal-panel-2:#0d0f11 !important;
+  --terminal-line:#29261f !important;
+  --terminal-accent:#e0a21b !important;
+  --terminal-green:#e0a21b !important;
+  --terminal-red:#ff5c4a !important;
+  background:#050606 !important;
+}
+
+/* Research page shell */
+body.terminal-pro-theme.research-terminal-mode,
+body.terminal-pro-theme.research-terminal-mode .app-shell,
+body.terminal-pro-theme.research-terminal-mode .main {
+  background:#050606 !important;
+}
+body.terminal-pro-theme.research-terminal-mode .sidebar {
+  background:linear-gradient(180deg,#050606,#070809) !important;
+  border-right-color:#29261f !important;
+}
+
+/* Search top controls */
+body.terminal-pro-theme .terminal-search-shell {
+  background:#080a0b !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme .terminal-search-shell kbd {
+  color:#a39b8b !important;
+  background:#0c0c0b !important;
+  border-color:#332d21 !important;
+}
+body.terminal-pro-theme .terminal-live-status {
+  color:#8e887d !important;
+}
+body.terminal-pro-theme .terminal-live-status b {
+  color:#e8e1d4 !important;
+}
+body.terminal-pro-theme .live-dot {
+  background:#e0a21b !important;
+  box-shadow:0 0 8px rgba(224,162,27,.36) !important;
+}
+body.terminal-pro-theme .live-word {
+  color:#e0a21b !important;
+}
+body.terminal-pro-theme .terminal-live-status i {
+  background:#332d21 !important;
+}
+body.terminal-pro-theme .terminal-live-status button {
+  color:#aaa294 !important;
+}
+
+body.terminal-pro-theme .terminal-research-form select,
+body.terminal-pro-theme .terminal-research-form input {
+  background:#080a0b !important;
+  color:#ece5d8 !important;
+  border-color:#332d21 !important;
+}
+body.terminal-pro-theme .terminal-search-btn {
+  height:38px !important;
+  border:1px solid #72551a !important;
+  border-radius:6px !important;
+  background:#171208 !important;
+  color:#ffbd2e !important;
+  font-weight:800 !important;
+  box-shadow:none !important;
+}
+body.terminal-pro-theme .terminal-search-btn:hover {
+  background:#201706 !important;
+  border-color:#a2781c !important;
+}
+
+/* Empty/unsearched hero */
+body.terminal-pro-theme .terminal-fund-head {
+  background:#080a0b !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme .terminal-fund-code,
+body.terminal-pro-theme #researchLogo {
+  background:linear-gradient(145deg,#171208,#100d07) !important;
+  border-color:#5f4718 !important;
+  color:#f1e6cc !important;
+  box-shadow:none !important;
+}
+body.terminal-pro-theme .terminal-fund-badge,
+body.terminal-pro-theme #researchBadge {
+  background:#171208 !important;
+  color:#d5a52e !important;
+  border-color:#57482d !important;
+}
+
+/* Hero fact labels that remained blue */
+body.terminal-pro-theme #researchView .fund-hero-fact span,
+body.terminal-pro-theme #researchView .research-detail-item span,
+body.terminal-pro-theme #researchView .fund-identity-cell span {
+  color:#c89627 !important;
+}
+body.terminal-pro-theme #researchView .fund-hero-fact strong,
+body.terminal-pro-theme #researchView .research-detail-item strong,
+body.terminal-pro-theme #researchView .fund-identity-cell strong {
+  color:#ece5d8 !important;
+}
+
+/* Performance metric strip */
+body.terminal-pro-theme #researchView .terminal-metric-strip {
+  background:#080a0b !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme #researchView .terminal-metric-strip .research-metric-card {
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme #researchView .terminal-metric-strip .research-metric-card.gain strong,
+html[data-theme="dark"] body.terminal-pro-theme #researchView .positive {
+  color:#ffbd2e !important;
+}
+body.terminal-pro-theme #researchView .terminal-metric-strip .research-metric-card.loss strong,
+html[data-theme="dark"] body.terminal-pro-theme #researchView .negative {
+  color:#ff5c4a !important;
+}
+
+/* Main tabs */
+body.terminal-pro-theme #researchView .fund-terminal-tabs {
+  background:#070809 !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme #researchView .terminal-tab {
+  color:#989185 !important;
+  border-right-color:#29261f !important;
+}
+html[data-theme="dark"] body.terminal-pro-theme #researchView .terminal-tab.active {
+  color:#ffbd2e !important;
+  background:rgba(224,162,27,.045) !important;
+}
+html[data-theme="dark"] body.terminal-pro-theme #researchView .terminal-tab.active::after {
+  background:#e0a21b !important;
+}
+
+/* Period selector: exact control shown in screenshot */
+body.terminal-pro-theme .fund-range-controls {
+  background:#070809 !important;
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme .fund-range-controls button {
+  color:#8f897d !important;
+  border-right-color:#29261f !important;
+  background:transparent !important;
+}
+body.terminal-pro-theme .fund-range-controls button:hover {
+  color:#e2d7c2 !important;
+  background:#100e09 !important;
+}
+body.terminal-pro-theme .fund-range-controls button.active {
+  color:#171006 !important;
+  background:#e0a21b !important;
+  box-shadow:none !important;
+}
+
+/* Research chart and risk panels */
+body.terminal-pro-theme #researchView .research-result .panel,
+body.terminal-pro-theme #researchView .terminal-panel,
+body.terminal-pro-theme #researchView .research-wide-panel {
+  background:#090b0d !important;
+  border-color:#29261f !important;
+  box-shadow:none !important;
+}
+body.terminal-pro-theme #researchView .research-detail-grid {
+  border-color:#29261f !important;
+}
+body.terminal-pro-theme #researchView .research-detail-item {
+  border-color:#29261f !important;
+  background:#090b0d !important;
+}
+
+/* Legend/footer/source */
+body.terminal-pro-theme #researchView .research-chart-footer,
+body.terminal-pro-theme #researchView .research-disclaimer,
+body.terminal-pro-theme #researchView .chart-source,
+body.terminal-pro-theme #researchView .terminal-chart-source {
+  color:#746e63 !important;
+}
+
+/* Loading and empty sections */
+body.terminal-pro-theme #researchView .provider-loading-panel,
+body.terminal-pro-theme #researchView .chart-empty-note {
+  background:#080a0b !important;
+  border-color:#29261f !important;
+  color:#817a6e !important;
+}
+body.terminal-pro-theme #researchView .provider-spinner {
+  border-color:#29261f !important;
+  border-top-color:#e0a21b !important;
 }
