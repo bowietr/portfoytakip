@@ -3606,3 +3606,467 @@ body.terminal-app-mode .sidebar .nav-item.active .nav-icon {
   pointer-events:none;
 }
 .panel:has(> canvas){position:relative}
+
+
+/* =========================================================
+   V1.26.0 — TERMINAL PRO (D) GLOBAL DESIGN SYSTEM
+   Applies to every page.
+   ========================================================= */
+
+body.terminal-pro-theme {
+  --bg: #050606 !important;
+  --panel: #090b0d !important;
+  --panel-2: #0d0f11 !important;
+  --panel-3: #111316 !important;
+  --border: #2a261d !important;
+  --border-strong: #3b3020 !important;
+  --text: #f2f0e8 !important;
+  --muted: #8f8a7d !important;
+  --muted-2: #6f6a5f !important;
+  --accent: #e0a21b !important;
+  --accent-2: #ffbd2e !important;
+  --accent-soft: rgba(224,162,27,.10) !important;
+  --accent-soft-2: rgba(224,162,27,.16) !important;
+  --positive: #e0a21b !important;
+  --negative: #ff5c4a !important;
+  --warning: #e0a21b !important;
+  --shadow: 0 12px 28px rgba(0,0,0,.22) !important;
+
+  background:
+    radial-gradient(circle at 72% 12%, rgba(224,162,27,.025), transparent 34%),
+    linear-gradient(180deg,#050606 0%,#070809 100%) !important;
+  color: var(--text) !important;
+  font-family:
+    Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
+    "SF Pro Display", "Segoe UI", sans-serif !important;
+}
+
+/* Main frame */
+body.terminal-pro-theme .app-shell {
+  background: transparent !important;
+}
+
+body.terminal-pro-theme .sidebar {
+  background: #060708 !important;
+  border-right: 1px solid #211f1a !important;
+  box-shadow: none !important;
+}
+
+body.terminal-pro-theme .main {
+  background: transparent !important;
+}
+
+/* Brand */
+body.terminal-pro-theme .brand {
+  gap: 12px !important;
+}
+
+body.terminal-pro-theme .brand-mark {
+  background: linear-gradient(180deg,#17130b,#0d0b07) !important;
+  color: var(--accent) !important;
+  border: 1px solid rgba(224,162,27,.48) !important;
+  border-radius: 8px !important;
+  box-shadow: inset 0 0 20px rgba(224,162,27,.045) !important;
+}
+
+body.terminal-pro-theme .brand strong {
+  color: #f5f1e7 !important;
+  letter-spacing: .01em !important;
+}
+
+body.terminal-pro-theme .brand small {
+  color: var(--accent) !important;
+  letter-spacing: .22em !important;
+}
+
+/* Sidebar nav */
+body.terminal-pro-theme .nav {
+  gap: 7px !important;
+}
+
+body.terminal-pro-theme .nav-item {
+  border: 1px solid transparent !important;
+  background: transparent !important;
+  color: #a5a097 !important;
+  border-radius: 7px !important;
+  min-height: 42px !important;
+  padding: 9px 11px !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  letter-spacing: .035em !important;
+}
+
+body.terminal-pro-theme .nav-item:hover {
+  color: #e7dfcc !important;
+  background: rgba(224,162,27,.035) !important;
+}
+
+body.terminal-pro-theme .nav-item.active {
+  color: var(--accent-2) !important;
+  background: rgba(224,162,27,.045) !important;
+  border-color: rgba(224,162,27,.62) !important;
+  box-shadow: inset 0 0 16px rgba(224,162,27,.025) !important;
+}
+
+body.terminal-pro-theme .nav-item .nav-icon,
+body.terminal-pro-theme .nav-item.active .nav-icon {
+  color: currentColor !important;
+}
+
+/* Top bar */
+body.terminal-pro-theme .topbar {
+  border-bottom: 1px solid #211f1a !important;
+  padding-bottom: 13px !important;
+  margin-bottom: 14px !important;
+}
+
+body.terminal-pro-theme .eyebrow,
+body.terminal-pro-theme .fund-model-kicker {
+  color: var(--accent) !important;
+  letter-spacing: .16em !important;
+}
+
+body.terminal-pro-theme .topbar h1 {
+  font-size: clamp(23px,2vw,30px) !important;
+  letter-spacing: -.02em !important;
+}
+
+/* Buttons */
+body.terminal-pro-theme .primary-btn,
+body.terminal-pro-theme .secondary-btn,
+body.terminal-pro-theme .icon-btn,
+body.terminal-pro-theme .text-btn {
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+body.terminal-pro-theme .primary-btn {
+  background: #17120a !important;
+  color: var(--accent-2) !important;
+  border: 1px solid rgba(224,162,27,.5) !important;
+}
+
+body.terminal-pro-theme .primary-btn:hover {
+  background: #211807 !important;
+  border-color: rgba(255,189,46,.72) !important;
+}
+
+body.terminal-pro-theme .secondary-btn,
+body.terminal-pro-theme .icon-btn {
+  background: #0b0d0f !important;
+  color: #c8c2b6 !important;
+  border: 1px solid #29261f !important;
+}
+
+/* Inputs / selects / forms */
+body.terminal-pro-theme input,
+body.terminal-pro-theme select,
+body.terminal-pro-theme textarea {
+  background: #080a0c !important;
+  color: #ece7db !important;
+  border: 1px solid #29261f !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+body.terminal-pro-theme input:focus,
+body.terminal-pro-theme select:focus,
+body.terminal-pro-theme textarea:focus {
+  border-color: rgba(224,162,27,.62) !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(224,162,27,.06) !important;
+}
+
+/* Core cards / panels */
+body.terminal-pro-theme .metric-card,
+body.terminal-pro-theme .panel,
+body.terminal-pro-theme .asset-card,
+body.terminal-pro-theme .fund-model-card,
+body.terminal-pro-theme .fund-model-panel,
+body.terminal-pro-theme .model-analysis-panel,
+body.terminal-pro-theme .research-card,
+body.terminal-pro-theme .research-summary,
+body.terminal-pro-theme .research-header-card,
+body.terminal-pro-theme .history-card {
+  background: linear-gradient(180deg,#0a0c0e,#080a0b) !important;
+  border: 1px solid #29261f !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+body.terminal-pro-theme .metric-card {
+  padding: 14px 15px !important;
+}
+
+body.terminal-pro-theme .metric-card > span,
+body.terminal-pro-theme .metric-card small {
+  color: #857f74 !important;
+  font-size: 9px !important;
+  letter-spacing: .09em !important;
+  text-transform: uppercase !important;
+}
+
+body.terminal-pro-theme .metric-card strong {
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace !important;
+  font-size: clamp(19px,1.7vw,27px) !important;
+  letter-spacing: -.025em !important;
+}
+
+/* Positive becomes amber for D design */
+body.terminal-pro-theme .positive,
+body.terminal-pro-theme .metric-card.positive strong,
+body.terminal-pro-theme .fund-model-card.model-buy .fund-model-signal strong {
+  color: var(--accent-2) !important;
+}
+
+body.terminal-pro-theme .negative,
+body.terminal-pro-theme .metric-card.negative strong {
+  color: var(--negative) !important;
+}
+
+/* Compact grids */
+body.terminal-pro-theme .summary-grid,
+body.terminal-pro-theme .dashboard-grid,
+body.terminal-pro-theme .asset-grid,
+body.terminal-pro-theme .fund-model-grid {
+  gap: 10px !important;
+}
+
+/* Tabs: terminal line */
+body.terminal-pro-theme .tabs,
+body.terminal-pro-theme .research-tabs,
+body.terminal-pro-theme .range-tabs,
+body.terminal-pro-theme .filter-tabs {
+  background: #07090a !important;
+  border: 1px solid #29261f !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+}
+
+body.terminal-pro-theme .tab,
+body.terminal-pro-theme .research-tab,
+body.terminal-pro-theme .range-btn,
+body.terminal-pro-theme .filter {
+  background: transparent !important;
+  color: #9b968b !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  font-size: 10px !important;
+  font-weight: 650 !important;
+  letter-spacing: .045em !important;
+}
+
+body.terminal-pro-theme .tab.active,
+body.terminal-pro-theme .research-tab.active,
+body.terminal-pro-theme .range-btn.active,
+body.terminal-pro-theme .filter.active {
+  color: var(--accent-2) !important;
+  background: rgba(224,162,27,.025) !important;
+  box-shadow: inset 0 -2px 0 var(--accent) !important;
+}
+
+/* Research header / fund identity */
+body.terminal-pro-theme .research-fund-code,
+body.terminal-pro-theme .fund-code,
+body.terminal-pro-theme .position-logo {
+  background: #151108 !important;
+  color: var(--accent-2) !important;
+  border: 1px solid rgba(224,162,27,.34) !important;
+  border-radius: 7px !important;
+}
+
+body.terminal-pro-theme .research-fund-title,
+body.terminal-pro-theme .fund-title {
+  color: #f2eee4 !important;
+}
+
+body.terminal-pro-theme .fund-badge,
+body.terminal-pro-theme .asset-type-badge {
+  background: rgba(224,162,27,.10) !important;
+  color: #d7a229 !important;
+  border: 1px solid rgba(224,162,27,.24) !important;
+}
+
+/* Performance strip */
+body.terminal-pro-theme .return-strip > *,
+body.terminal-pro-theme .performance-strip > * {
+  background: #080a0b !important;
+  border-color: #29261f !important;
+  border-radius: 0 !important;
+}
+
+body.terminal-pro-theme .return-strip strong,
+body.terminal-pro-theme .performance-strip strong {
+  font-family: "SFMono-Regular", Consolas, monospace !important;
+}
+
+/* Risk/stat tables */
+body.terminal-pro-theme .stats-grid,
+body.terminal-pro-theme .risk-grid {
+  border-color: #29261f !important;
+}
+
+body.terminal-pro-theme .stats-grid > *,
+body.terminal-pro-theme .risk-grid > * {
+  border-color: #29261f !important;
+  background: transparent !important;
+}
+
+body.terminal-pro-theme .stats-grid span,
+body.terminal-pro-theme .risk-grid span {
+  color: #827d73 !important;
+  font-size: 9px !important;
+  letter-spacing: .06em !important;
+  text-transform: uppercase !important;
+}
+
+body.terminal-pro-theme .stats-grid strong,
+body.terminal-pro-theme .risk-grid strong {
+  font-family: "SFMono-Regular", Consolas, monospace !important;
+  color: #ece5d7 !important;
+}
+
+/* Tables */
+body.terminal-pro-theme table {
+  border-color: #29261f !important;
+  background: #080a0b !important;
+}
+
+body.terminal-pro-theme th {
+  color: #938d81 !important;
+  background: #0a0c0e !important;
+  border-color: #29261f !important;
+  font-size: 9px !important;
+  letter-spacing: .08em !important;
+  text-transform: uppercase !important;
+}
+
+body.terminal-pro-theme td {
+  color: #c9c3b7 !important;
+  border-color: #25231d !important;
+  font-size: 11px !important;
+}
+
+/* Portfolio cards */
+body.terminal-pro-theme .asset-card {
+  padding: 14px !important;
+}
+
+body.terminal-pro-theme .asset-card h3,
+body.terminal-pro-theme .asset-card strong {
+  font-family: "SFMono-Regular", Consolas, monospace !important;
+}
+
+body.terminal-pro-theme .asset-card .daily-row {
+  background: #10100c !important;
+  border: 1px solid #252219 !important;
+  color: #b6ab92 !important;
+}
+
+/* Model analysis */
+body.terminal-pro-theme .model-analysis-head,
+body.terminal-pro-theme .fund-model-head {
+  padding: 16px 18px 13px !important;
+}
+
+body.terminal-pro-theme .fund-model-disclaimer {
+  border-color: #29261f !important;
+  color: #766f62 !important;
+  background: #080909 !important;
+}
+
+body.terminal-pro-theme .research-model-badge.model-buy,
+body.terminal-pro-theme .research-model-badge.model-hold {
+  color: var(--accent-2) !important;
+  border-color: rgba(224,162,27,.4) !important;
+  background: rgba(224,162,27,.06) !important;
+}
+
+body.terminal-pro-theme .model-meter {
+  background: #1a1812 !important;
+}
+
+body.terminal-pro-theme .model-meter i {
+  background: var(--accent) !important;
+}
+
+/* Modal */
+body.terminal-pro-theme dialog {
+  background: #090b0d !important;
+  color: #ece7db !important;
+  border: 1px solid #332d22 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 24px 64px rgba(0,0,0,.55) !important;
+}
+
+/* Charts: compact card typography */
+body.terminal-pro-theme canvas {
+  filter: saturate(.78) sepia(.08) !important;
+}
+
+body.terminal-pro-theme .panel h2,
+body.terminal-pro-theme .panel h3,
+body.terminal-pro-theme .chart-card h2,
+body.terminal-pro-theme .chart-card h3 {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  letter-spacing: .01em !important;
+}
+
+body.terminal-pro-theme .panel p,
+body.terminal-pro-theme .chart-card p {
+  font-size: 9px !important;
+  color: #777267 !important;
+}
+
+/* Status pills */
+body.terminal-pro-theme .status-pill {
+  background: #0a0b0c !important;
+  color: #a59e90 !important;
+  border-color: #29261f !important;
+  border-radius: 999px !important;
+}
+
+/* Scrollbars */
+body.terminal-pro-theme * {
+  scrollbar-color: #4b3c22 #090a0b;
+}
+body.terminal-pro-theme *::-webkit-scrollbar-thumb {
+  background: #4b3c22 !important;
+  border-radius: 10px !important;
+}
+body.terminal-pro-theme *::-webkit-scrollbar-track {
+  background: #090a0b !important;
+}
+
+/* Compact desktop spacing */
+@media (min-width: 901px) {
+  body.terminal-pro-theme .main {
+    padding-top: 15px !important;
+  }
+
+  body.terminal-pro-theme .view {
+    gap: 10px !important;
+  }
+
+  body.terminal-pro-theme .sidebar {
+    padding-top: 17px !important;
+  }
+}
+
+/* Mobile/tablet keeps same D language, but touch-friendly */
+@media (max-width: 900px) {
+  body.terminal-pro-theme .nav-item {
+    min-height: 46px !important;
+  }
+
+  body.terminal-pro-theme .metric-card {
+    padding: 14px !important;
+  }
+
+  body.terminal-pro-theme .panel,
+  body.terminal-pro-theme .asset-card,
+  body.terminal-pro-theme .fund-model-card {
+    border-radius: 7px !important;
+  }
+}
